@@ -412,7 +412,11 @@
         },
         "enable": "Enable {{misheard}}",
         "remove": "Remove {{misheard}}",
-        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription."
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription.",
+        "toast": {
+          "title": "Learned: “{{misheard}}” → “{{intended}}”",
+          "undo": "Undo"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

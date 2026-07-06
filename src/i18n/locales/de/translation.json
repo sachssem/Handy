@@ -412,7 +412,11 @@
         },
         "enable": "{{misheard}} aktivieren",
         "remove": "{{misheard}} entfernen",
-        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet."
+        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet.",
+        "toast": {
+          "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
+          "undo": "Rückgängig"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
