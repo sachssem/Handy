@@ -49,6 +49,10 @@ CURATION = {
     "Fun-ASR-MLT-Nano-2512":           {"rank": 10, "desc": "A tiny multilingual model"},
     # description-only (unranked, not recommended) — carried over from the legacy .bin entry
     "Breeze-ASR-25":                   {"desc": "Optimized for Taiwanese Mandarin. Code-switching support."},
+    # fork(voice-control): Q8_0 override — the >=1B size policy would pick Q5_K_M,
+    # but Q8_0 (2.04 GB, ~0.04 lower WER) fits a 16 GB machine comfortably and we
+    # want reference quality for German dictation with English code-switching.
+    "Qwen3-ASR-1.7B":                  {"desc": "Most accurate multilingual model, with automatic in-audio language switching", "default_quant": "Q8_0"},
 }
 # temporary capability corrections pending a card re-push (remove once cards fixed)
 OVERRIDES = {

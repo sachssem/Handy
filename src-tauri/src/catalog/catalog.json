@@ -507,6 +507,62 @@
       "recommended_rank": 9
     },
     {
+      "id": "handy-computer/Qwen3-ASR-1.7B-gguf",
+      "slug": "Qwen3-ASR-1.7B",
+      "name": "Qwen3-ASR 1.7B",
+      "architecture": "qwen3_asr",
+      "family": "qwen3",
+      "parameters": "2.0B",
+      "description": "Most accurate multilingual model, with automatic in-audio language switching",
+      "base_model": "Qwen/Qwen3-ASR-1.7B",
+      "license": "apache-2.0",
+      "language_count": 30,
+      "languages": ["zh", "en", "yue", "ar", "de", "fr", "es", "pt", "id", "it", "ko", "ru", "th", "vi", "ja", "tr", "hi", "ms", "nl", "sv", "da", "fi", "pl", "cs", "fil", "fa", "el", "ro", "hu", "mk"],
+      "capabilities": {
+        "streaming": false,
+        "translate": false,
+        "lang_detect": true,
+        "timestamps": "none"
+      },
+      "speed_score": 38,
+      "accuracy_score": 90,
+      "files": [
+        {
+          "filename": "Qwen3-ASR-1.7B-Q4_K_M.gguf",
+          "quant": "Q4_K_M",
+          "size_bytes": 1319830496
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q5_K_M.gguf",
+          "quant": "Q5_K_M",
+          "size_bytes": 1517290464
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q6_K.gguf",
+          "quant": "Q6_K",
+          "size_bytes": 1692554208
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-Q8_0.gguf",
+          "quant": "Q8_0",
+          "size_bytes": 2185030624
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-BF16.gguf",
+          "quant": "BF16",
+          "size_bytes": 4083087904
+        },
+        {
+          "filename": "Qwen3-ASR-1.7B-F16.gguf",
+          "quant": "F16",
+          "size_bytes": 4091390944
+        }
+      ],
+      "default_quant": "Q8_0",
+      "recommended": false,
+      "recommended_rank": null
+    },
+    {
       "id": "handy-computer/Fun-ASR-MLT-Nano-2512-gguf",
       "slug": "Fun-ASR-MLT-Nano-2512",
       "name": "Fun-ASR Nano Multilingual",
