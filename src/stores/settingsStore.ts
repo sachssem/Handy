@@ -617,6 +617,17 @@ export const useSettingsStore = create<SettingsStore>()(
       listen("model-state-changed", () => {
         get().refreshSettings();
       });
+
+      // fork(voice-control): the learned-corrections list is also mutated
+      // backend-side — auto-learning upserts a pair (learned-correction-event)
+      // and a toast Undo removes one (learned-corrections-changed) — so refresh
+      // the review UI on both.
+      listen("learned-correction-event", () => {
+        get().refreshSettings();
+      });
+      listen("learned-corrections-changed", () => {
+        get().refreshSettings();
+      });
     },
   })),
 );

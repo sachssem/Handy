@@ -669,6 +669,7 @@ pub fn run(cli_args: CliArgs) {
             // fork(voice-control): auto-learned correction toast event (Phase B
             // ships the contract; the Phase C listener consumes it).
             correction_learning::LearnedCorrectionEvent,
+            correction_learning::LearnedCorrectionsChanged,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

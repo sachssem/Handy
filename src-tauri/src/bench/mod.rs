@@ -214,6 +214,9 @@ fn run_bench(args: RunArgs) -> Result<()> {
                     let mut s = base_settings.clone();
                     s.text_rules_enabled = cfg.rules;
                     s.text_rules_itn_enabled = cfg.itn;
+                    // WER must not depend on the user's learned dictionary, so
+                    // the deterministic apply stage is always off in the bench.
+                    s.learn_corrections_enabled = false;
                     // Mirror the app: custom words are only pre-prompted for
                     // whisper; here we always let the post-pipeline apply them.
                     let processed = crate::managers::transcription::post_process_transcription_text(

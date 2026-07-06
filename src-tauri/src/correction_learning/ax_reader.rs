@@ -34,7 +34,7 @@ mod imp {
     use super::FocusRead;
     use core_foundation::base::{CFType, CFTypeRef, TCFType};
     use core_foundation::string::{CFString, CFStringRef};
-    use objc2_app_kit::NSWorkspace;
+    use objc2_app_kit::{NSRunningApplication, NSWorkspace};
 
     type AXUIElementRef = CFTypeRef;
     type AXError = i32;
@@ -91,19 +91,44 @@ mod imp {
         Some(app.processIdentifier())
     }
 
+    /// A stable identity string for the app with `pid` (bundle id, else the
+    /// localized name). Snapshotted alongside the pid so a later read can detect
+    /// the pid being recycled by a different process.
+    pub fn process_name(pid: i32) -> Option<String> {
+        let app = NSRunningApplication::runningApplicationWithProcessIdentifier(pid)?;
+        app.bundleIdentifier()
+            .or_else(|| app.localizedName())
+            .map(|s| s.to_string())
+    }
+
     /// Read the focused text field of the app with `pid`.
     ///
     /// The systemwide focus path fails outside a registered GUI process, so —
     /// exactly as the spike proved — we go through the per-application element
     /// (`AXUIElementCreateApplication(pid)` → `AXFocusedUIElement`), which reads
     /// even when the app is briefly backgrounded.
-    pub fn read_focused(pid: i32) -> FocusRead {
+    ///
+    /// `expected_name` is the app identity snapshotted at paste time (if any);
+    /// when the pid now resolves to a different app the OS has recycled the
+    /// number, so we report [`FocusRead::AppGone`] rather than reading a
+    /// stranger's field.
+    pub fn read_focused(pid: i32, expected_name: Option<&str>) -> FocusRead {
         // Cheap liveness check: `kill(pid, 0)` failing with ESRCH means the
         // paste target quit, so the session can tear down silently.
         if unsafe { libc::kill(pid, 0) } != 0
             && std::io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH)
         {
             return FocusRead::AppGone;
+        }
+
+        // PID-reuse guard: if the pid resolves to a different app than the one we
+        // snapshotted, the original target quit and its number was reassigned.
+        if let Some(expected) = expected_name {
+            if let Some(current) = process_name(pid) {
+                if current != expected {
+                    return FocusRead::AppGone;
+                }
+            }
         }
 
         let app = unsafe { AXUIElementCreateApplication(pid) };
@@ -133,7 +158,7 @@ mod imp {
 }
 
 #[cfg(target_os = "macos")]
-pub use imp::{frontmost_pid, read_focused};
+pub use imp::{frontmost_pid, process_name, read_focused};
 
 /// Stub for platforms without an Accessibility API: no target can be resolved.
 #[cfg(not(target_os = "macos"))]
@@ -141,9 +166,15 @@ pub fn frontmost_pid() -> Option<i32> {
     None
 }
 
+/// Stub for platforms without an Accessibility API: no identity is available.
+#[cfg(not(target_os = "macos"))]
+pub fn process_name(_pid: i32) -> Option<String> {
+    None
+}
+
 /// Stub for platforms without an Accessibility API: the field is never readable,
 /// so the session never learns anything and degrades silently.
 #[cfg(not(target_os = "macos"))]
-pub fn read_focused(_pid: i32) -> FocusRead {
+pub fn read_focused(_pid: i32, _expected_name: Option<&str>) -> FocusRead {
     FocusRead::NoSignal
 }

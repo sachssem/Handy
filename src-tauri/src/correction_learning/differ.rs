@@ -388,6 +388,32 @@ mod tests {
         assert_eq!(extract("ich gehe zu der Tür", "ich gehe zu den Tür"), None);
     }
 
+    #[test]
+    fn abbreviation_pair_is_not_auto_learnable() {
+        // `New York → NYC` changes the word count and is far apart in edit
+        // distance, so the auto-learning gate rejects it at the Conservative
+        // default (and every level). Such multi-word/abbreviation pairs are an
+        // apply-stage feature reached only through a manual add, never learned
+        // on their own.
+        for level in [
+            Aggressiveness::Conservative,
+            Aggressiveness::Balanced,
+            Aggressiveness::Aggressive,
+        ] {
+            assert_eq!(
+                extract_with(
+                    "meet in New York",
+                    "meet in NYC",
+                    level,
+                    PhoneticLang::Other
+                ),
+                None,
+                "{:?} must not auto-learn New York → NYC",
+                level
+            );
+        }
+    }
+
     // --- Phase D: aggressiveness profiles ---------------------------------
 
     /// Each row names a pair that should be learnable only at the given level or

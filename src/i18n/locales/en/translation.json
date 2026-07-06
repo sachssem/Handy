@@ -429,11 +429,12 @@
           "manual": "Manual"
         },
         "count": "seen {{count}}×",
+        "langBadge": "Learned for language: {{lang}}",
+        "platformHint": "Automatic learning runs only on macOS. You can still add corrections by hand below, and they are applied on every platform.",
         "add": {
           "misheardPlaceholder": "Misheard",
           "intendedPlaceholder": "Corrected",
-          "button": "Add",
-          "duplicate": "\"{{misheard}}\" is already corrected"
+          "button": "Add"
         },
         "enable": "Enable {{misheard}}",
         "remove": "Remove {{misheard}}",

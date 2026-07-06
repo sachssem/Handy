@@ -40,6 +40,12 @@ pub struct LearnedCorrection {
     /// Whether the pair is applied at transcription time. A pair can be disabled
     /// without deleting it.
     pub enabled: bool,
+    /// The transcription language this pair was learned for (the code the
+    /// session's phonetic gate resolved, e.g. `"de"`). `None` — every manual
+    /// add — applies to every language; a `Some` pair is only applied when the
+    /// current transcription resolves to the same language.
+    #[serde(default)]
+    pub lang: Option<String>,
 }
 
 impl LearnedCorrection {
@@ -57,6 +63,7 @@ impl LearnedCorrection {
             last_seen,
             source,
             enabled: true,
+            lang: None,
         }
     }
 }
@@ -77,18 +84,41 @@ fn correction_id(misheard: &str, intended: &str) -> String {
         .collect()
 }
 
-/// Insert `correction`, or, if a pair with the same id already exists, bump its
-/// `count`/`last_seen` in place (preserving the user's `enabled` choice and
-/// refreshing `intended`). Returns the id of the affected entry.
+/// Insert `correction`, keyed on the case-folded `misheard` word alone, so a
+/// given mishearing has exactly one entry:
+///
+/// - same `misheard` **and** same `intended` (identical pair re-learned): bump
+///   `count`/`last_seen` in place, preserving the user's `enabled` choice;
+/// - same `misheard` but a **different** `intended`: replace the entry — adopt
+///   the new `intended`/`id`/`lang`/`source`, reset `count` to 1, re-enable it
+///   and refresh `last_seen` (the old mapping is superseded, not kept alongside);
+/// - unseen `misheard`: push it.
+///
+/// Returns the id of the affected entry.
 pub fn upsert(corrections: &mut Vec<LearnedCorrection>, correction: LearnedCorrection) -> String {
-    let id = correction.id.clone();
-    if let Some(existing) = corrections.iter_mut().find(|c| c.id == id) {
-        existing.count = existing.count.saturating_add(1);
-        existing.last_seen = correction.last_seen;
-        existing.intended = correction.intended;
-    } else {
-        corrections.push(correction);
+    let key = correction.misheard.trim().to_lowercase();
+    if let Some(existing) = corrections
+        .iter_mut()
+        .find(|c| c.misheard.trim().to_lowercase() == key)
+    {
+        if existing.id == correction.id {
+            // Identical pair seen again — bump, keep the user's tweaks.
+            existing.count = existing.count.saturating_add(1);
+            existing.last_seen = correction.last_seen;
+        } else {
+            // Same mishearing, new target — the old mapping is replaced.
+            existing.id = correction.id;
+            existing.intended = correction.intended;
+            existing.count = 1;
+            existing.last_seen = correction.last_seen;
+            existing.source = correction.source;
+            existing.enabled = true;
+            existing.lang = correction.lang;
+        }
+        return existing.id.clone();
     }
+    let id = correction.id.clone();
+    corrections.push(correction);
     id
 }
 
@@ -125,6 +155,26 @@ mod tests {
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].count, 2);
         assert_eq!(list[0].last_seen, 2);
+    }
+
+    #[test]
+    fn upsert_replaces_intended_for_same_misheard() {
+        let mut list = Vec::new();
+        let first = LearnedCorrection::new("Jon", "John", CorrectionSource::Auto, 1);
+        upsert(&mut list, first);
+        // Learn a different target for the same mishearing: replaces, not adds.
+        let second = LearnedCorrection::new("jon", "Jonas", CorrectionSource::Manual, 5);
+        let second_id = second.id.clone();
+        let returned = upsert(&mut list, second);
+        assert_eq!(list.len(), 1);
+        assert_eq!(list[0].intended, "Jonas");
+        assert_eq!(list[0].count, 1, "count resets when the mapping changes");
+        assert_eq!(list[0].last_seen, 5);
+        assert_eq!(list[0].source, CorrectionSource::Manual);
+        assert!(list[0].enabled);
+        // The id follows the new pair, and is what upsert reports back.
+        assert_eq!(list[0].id, second_id);
+        assert_eq!(returned, second_id);
     }
 
     #[test]

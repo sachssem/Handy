@@ -896,6 +896,11 @@ pub fn remove_learned_correction(app: AppHandle, id: String) -> Result<(), Strin
     let mut settings = settings::get_settings(&app);
     correction_learning::remove(&mut settings.learned_corrections, &id);
     settings::write_settings(&app, settings);
+    // Notify the settings window (a toast Undo edits the list behind its back).
+    use tauri_specta::Event;
+    if let Err(err) = (correction_learning::LearnedCorrectionsChanged {}).emit(&app) {
+        error!("Failed to emit learned-corrections-changed event: {}", err);
+    }
     Ok(())
 }
 

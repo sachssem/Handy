@@ -33,7 +33,7 @@ mod store;
 pub(crate) mod toast;
 
 pub use differ::Aggressiveness;
-pub use session::{begin_session, LearnedCorrectionEvent};
+pub use session::{begin_session, LearnedCorrectionEvent, LearnedCorrectionsChanged};
 pub use store::{remove, upsert, CorrectionSource, LearnedCorrection};
 
 use crate::settings::AppSettings;
@@ -41,15 +41,37 @@ use crate::settings::AppSettings;
 /// Apply enabled learned corrections to `text`.
 ///
 /// Matching is word-boundary exact and case-insensitive over Unicode word
-/// tokens, and the longest phrase wins — so a learned `New York → NYC` is
-/// preferred over a learned `York → Yorkshire`, and `cat → dog` never rewrites
-/// the middle of `category`. Returns `text` unchanged when the feature is
-/// disabled or no pair matches.
+/// tokens, and the longest phrase wins — so a manually added `New York → NYC` is
+/// preferred over a `York → Yorkshire`, and `cat → dog` never rewrites the
+/// middle of `category`. (Multi-word and abbreviation pairs like `New York →
+/// NYC` are an apply-stage capability driven by manual adds; the Conservative
+/// auto-learning gate rejects word-count-changing pairs, so they are not learned
+/// on their own.) A language-tagged pair is applied only when the current
+/// transcription resolves to that same language; untagged pairs (all manual
+/// adds) always apply. Returns `text` unchanged when the feature is disabled or
+/// no pair matches.
 pub fn apply_learned(text: &str, settings: &AppSettings) -> String {
     if !settings.learn_corrections_enabled {
         return text.to_string();
     }
-    apply_corrections(text, &settings.learned_corrections)
+    apply_corrections(
+        text,
+        &settings.learned_corrections,
+        &resolved_language(settings),
+    )
+}
+
+/// The language code that drives both learning and applying: the transcription
+/// language decides how a word is heard, so `selected_language` wins; its default
+/// `"auto"` names no language, so the UI language (`app_language`) fills in. The
+/// session tags auto-learned pairs with this code and the apply stage gates on
+/// it, so both sides resolve it identically.
+pub(crate) fn resolved_language(settings: &AppSettings) -> String {
+    if settings.selected_language == "auto" {
+        settings.app_language.clone()
+    } else {
+        settings.selected_language.clone()
+    }
 }
 
 /// A learned pair compiled for matching: `misheard` split into lowercased word
@@ -60,9 +82,11 @@ struct CompiledPair {
 }
 
 /// The substitution core, split from [`apply_learned`] so it is testable without
-/// constructing a full [`AppSettings`].
-fn apply_corrections(text: &str, corrections: &[LearnedCorrection]) -> String {
-    let pairs = compile_pairs(corrections);
+/// constructing a full [`AppSettings`]. `current_lang` is the resolved language
+/// of the text being corrected; language-tagged pairs whose tag differs are
+/// skipped.
+fn apply_corrections(text: &str, corrections: &[LearnedCorrection], current_lang: &str) -> String {
+    let pairs = compile_pairs(corrections, current_lang);
     if pairs.is_empty() {
         return text.to_string();
     }
@@ -87,11 +111,16 @@ fn apply_corrections(text: &str, corrections: &[LearnedCorrection]) -> String {
     out
 }
 
-/// Compile the enabled corrections into a longest-first match table.
-fn compile_pairs(corrections: &[LearnedCorrection]) -> Vec<CompiledPair> {
+/// Compile the enabled corrections into a longest-first match table, dropping
+/// language-tagged pairs that do not match `current_lang`.
+fn compile_pairs(corrections: &[LearnedCorrection], current_lang: &str) -> Vec<CompiledPair> {
     let mut pairs: Vec<CompiledPair> = corrections
         .iter()
         .filter(|correction| correction.enabled)
+        .filter(|correction| match &correction.lang {
+            Some(lang) => lang == current_lang,
+            None => true,
+        })
         .filter_map(|correction| {
             let words: Vec<String> = correction
                 .misheard
@@ -241,7 +270,7 @@ mod tests {
     fn replaces_at_word_boundary() {
         let corrections = vec![pair("cat", "dog")];
         assert_eq!(
-            apply_corrections("the cat sat", &corrections),
+            apply_corrections("the cat sat", &corrections, "en"),
             "the dog sat"
         );
     }
@@ -251,7 +280,7 @@ mod tests {
         // `cat` must not rewrite the middle of `category`.
         let corrections = vec![pair("cat", "dog")];
         assert_eq!(
-            apply_corrections("a category list", &corrections),
+            apply_corrections("a category list", &corrections, "en"),
             "a category list"
         );
     }
@@ -260,7 +289,7 @@ mod tests {
     fn longest_phrase_wins() {
         let corrections = vec![pair("York", "Yorkshire"), pair("New York", "NYC")];
         assert_eq!(
-            apply_corrections("New York rocks", &corrections),
+            apply_corrections("New York rocks", &corrections, "en"),
             "NYC rocks"
         );
     }
@@ -269,7 +298,7 @@ mod tests {
     fn case_insensitive_match_keeps_intended_casing() {
         let corrections = vec![pair("munchen", "München")];
         assert_eq!(
-            apply_corrections("Ich war in Munchen", &corrections),
+            apply_corrections("Ich war in Munchen", &corrections, "en"),
             "Ich war in München"
         );
     }
@@ -279,7 +308,7 @@ mod tests {
         // A learned umlaut word must not match inside a longer compound token.
         let corrections = vec![pair("Müller", "Møller")];
         assert_eq!(
-            apply_corrections("Herr Müller und Müllerstraße", &corrections),
+            apply_corrections("Herr Müller und Müllerstraße", &corrections, "en"),
             "Herr Møller und Müllerstraße"
         );
     }
@@ -288,8 +317,34 @@ mod tests {
     fn disabled_entries_are_skipped() {
         let corrections = vec![disabled("cat", "dog")];
         assert_eq!(
-            apply_corrections("the cat sat", &corrections),
+            apply_corrections("the cat sat", &corrections, "en"),
             "the cat sat"
+        );
+    }
+
+    #[test]
+    fn language_tagged_pairs_only_apply_to_that_language() {
+        let mut de = pair("Munchen", "München");
+        de.lang = Some("de".to_string());
+        let corrections = vec![de];
+        // Applied when the transcription language matches.
+        assert_eq!(
+            apply_corrections("Ich war in Munchen", &corrections, "de"),
+            "Ich war in München"
+        );
+        // Skipped for a different language.
+        assert_eq!(
+            apply_corrections("Ich war in Munchen", &corrections, "en"),
+            "Ich war in Munchen"
+        );
+    }
+
+    #[test]
+    fn untagged_pairs_apply_to_any_language() {
+        let corrections = vec![pair("cat", "dog")];
+        assert_eq!(
+            apply_corrections("the cat sat", &corrections, "de"),
+            "the dog sat"
         );
     }
 }
