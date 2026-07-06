@@ -2517,6 +2517,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "core-foundation 0.10.1",
  "cpal",
  "earshot",
  "enigo",

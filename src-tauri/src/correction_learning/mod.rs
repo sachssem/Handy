@@ -21,9 +21,12 @@
 //! - **Phase C** — the "learned X → Y" toast with undo.
 //! - **Phase D** — aggressiveness settings and phonetic gating.
 
+mod ax_reader;
 mod differ;
+mod session;
 mod store;
 
+pub use session::{begin_session, LearnedCorrectionEvent};
 pub use store::{remove, upsert, CorrectionSource, LearnedCorrection};
 
 use crate::settings::AppSettings;

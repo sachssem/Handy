@@ -176,6 +176,11 @@ objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = "0.3"
 objc2-service-management = "0.3.2"
+# fork(voice-control): hand-rolled Accessibility FFI for the focused-field
+# reader (see `correction_learning::ax_reader`). objc2-app-kit (above) resolves
+# the frontmost app; core-foundation wraps the AX CFType values.
+core-foundation = "0.10"
+libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 gtk-layer-shell = { version = "0.8", features = ["v0_6"] }

@@ -9,10 +9,10 @@
 //! insertions/deletions, case-only edits, unrelated substitutions and everyday
 //! function words.
 //!
-//! The differ is pure and table-tested. Phase A ships it so its behaviour is
-//! locked by tests; the live caller — the post-paste learning session — arrives
-//! in Phase B, so the extraction API is unused in non-test builds until then.
-#![allow(dead_code)]
+//! The differ is pure and table-tested. Its live caller is the post-paste
+//! learning session, which only exists on macOS; on other platforms the
+//! extraction API is unused outside tests.
+#![cfg_attr(not(target_os = "macos"), allow(dead_code))]
 
 use similar::{ChangeTag, TextDiff};
 
