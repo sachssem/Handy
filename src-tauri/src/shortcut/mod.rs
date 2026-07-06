@@ -26,6 +26,7 @@ use crate::settings::{
     OverlayPosition, OverlayStyle, PasteMethod, ShortcutBinding, SoundTheme, TypingTool,
     APPLE_INTELLIGENCE_PROVIDER_ID,
 };
+use crate::text_rules::{self, TextRule};
 use crate::tray;
 
 // Note: Commands are accessed via shortcut::handy_keys:: in lib.rs
@@ -720,6 +721,55 @@ pub fn update_custom_words(app: AppHandle, words: Vec<String>) -> Result<(), Str
     settings.custom_words = words;
     settings::write_settings(&app, settings);
     Ok(())
+}
+
+// fork(voice-control): deterministic text-rules layer settings commands.
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_text_rules_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_text_rules_itn_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_itn_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_rules_custom(app: AppHandle, rules: Vec<TextRule>) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_custom = rules;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_rules_disabled_builtins(
+    app: AppHandle,
+    triggers: Vec<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_disabled_builtins = triggers;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Return the built-in text-rules table so the UI can list them with a
+/// per-rule enable/disable checkbox.
+#[tauri::command]
+#[specta::specta]
+pub fn get_text_rules_builtins() -> Vec<TextRule> {
+    text_rules::builtin_rules()
 }
 
 #[tauri::command]

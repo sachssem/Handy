@@ -16,6 +16,7 @@ pub mod portable;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod text_rules;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -567,6 +568,11 @@ pub fn run(cli_args: CliArgs) {
             shortcut::delete_post_process_prompt,
             shortcut::set_post_process_selected_prompt,
             shortcut::update_custom_words,
+            shortcut::change_text_rules_enabled_setting,
+            shortcut::change_text_rules_itn_enabled_setting,
+            shortcut::update_text_rules_custom,
+            shortcut::update_text_rules_disabled_builtins,
+            shortcut::get_text_rules_builtins,
             shortcut::suspend_binding,
             shortcut::resume_binding,
             shortcut::change_mute_while_recording_setting,
