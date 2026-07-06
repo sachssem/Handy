@@ -245,7 +245,8 @@
         "output": "Output",
         "transcription": "Trascrizione",
         "history": "Cronologia",
-        "experimental": "Sperimentale"
+        "experimental": "Sperimentale",
+        "textRules": "Regole di testo"
       },
       "experimentalToggle": {
         "label": "Funzionalità Sperimentali",
@@ -363,6 +364,34 @@
         "add": "Aggiungi",
         "remove": "Rimuovi {{word}}",
         "duplicate": "\"{{word}}\" esiste già"
+      },
+      "textRules": {
+        "title": "Regole di testo",
+        "description": "Converte istantaneamente i comandi di punteggiatura e formattazione pronunciati (in tedesco e inglese) in simboli, senza passare per l'IA. Viene eseguito prima dell'eventuale post-elaborazione con IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Numeri in cifre",
+          "description": "Converte i numeri pronunciati in cifre, ad es. \"five hundred thirty nine\" → \"539\". I piccoli numeri isolati restano come parole."
+        },
+        "builtins": {
+          "title": "Comandi integrati",
+          "description": "Abilita o disabilita i singoli comandi integrati. Disabilitane uno se si attiva per errore nel parlato normale (ad es. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Regole personalizzate",
+          "description": "Aggiungi le tue regole di sostituzione da attivatore. Le regole personalizzate hanno la precedenza su quelle integrate con lo stesso attivatore.",
+          "triggerPlaceholder": "Attivatore",
+          "replacementPlaceholder": "Sostituzione",
+          "add": "Aggiungi",
+          "remove": "Rimuovi {{trigger}}",
+          "duplicate": "\"{{trigger}}\" esiste già",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Attacca a sinistra",
+          "glue": "Unisci",
+          "standalone": "Autonomo"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

@@ -245,7 +245,8 @@
         "output": "Đầu ra",
         "transcription": "Chuyển đổi",
         "history": "Lịch sử",
-        "experimental": "Thử nghiệm"
+        "experimental": "Thử nghiệm",
+        "textRules": "Quy tắc văn bản"
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm",
@@ -363,6 +364,34 @@
         "add": "Thêm",
         "remove": "Xóa {{word}}",
         "duplicate": "\"{{word}}\" đã tồn tại"
+      },
+      "textRules": {
+        "title": "Quy tắc văn bản",
+        "description": "Chuyển đổi ngay lập tức các lệnh dấu câu và định dạng được nói (tiếng Đức và tiếng Anh) thành ký hiệu, không cần qua AI. Chạy trước bước xử lý hậu kỳ AI tùy chọn.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Chuyển số thành chữ số",
+          "description": "Chuyển đổi các số được nói thành chữ số, ví dụ \"five hundred thirty nine\" → \"539\". Các số nhỏ đứng riêng lẻ được giữ nguyên dưới dạng chữ."
+        },
+        "builtins": {
+          "title": "Lệnh tích hợp sẵn",
+          "description": "Bật hoặc tắt từng lệnh tích hợp sẵn. Tắt một lệnh nếu nó bị kích hoạt nhầm trong lời nói bình thường (ví dụ \"Punkt\")."
+        },
+        "custom": {
+          "title": "Quy tắc tùy chỉnh",
+          "description": "Thêm quy tắc trình kích hoạt-thay thế của riêng bạn. Quy tắc tùy chỉnh ghi đè quy tắc tích hợp sẵn có cùng trình kích hoạt.",
+          "triggerPlaceholder": "Trình kích hoạt",
+          "replacementPlaceholder": "Thay thế",
+          "add": "Thêm",
+          "remove": "Xóa {{trigger}}",
+          "duplicate": "\"{{trigger}}\" đã tồn tại",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Gắn bên trái",
+          "glue": "Dán liền",
+          "standalone": "Độc lập"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

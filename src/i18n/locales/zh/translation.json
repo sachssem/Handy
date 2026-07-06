@@ -245,7 +245,8 @@
         "output": "输出",
         "transcription": "转录",
         "history": "历史",
-        "experimental": "实验性"
+        "experimental": "实验性",
+        "textRules": "文本规则"
       },
       "experimentalToggle": {
         "label": "实验性功能",
@@ -363,6 +364,34 @@
         "add": "添加",
         "remove": "删除 {{word}}",
         "duplicate": "\"{{word}}\" 已存在"
+      },
+      "textRules": {
+        "title": "文本规则",
+        "description": "将口述的标点和格式命令（德语和英语）即时转换为符号，无需经过 AI 处理。在可选的 AI 后处理之前运行。",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "数字转为阿拉伯数字",
+          "description": "将口述的数字转换为阿拉伯数字，例如 \"five hundred thirty nine\" → \"539\"。较小的单独数字将保留为文字。"
+        },
+        "builtins": {
+          "title": "内置命令",
+          "description": "启用或禁用单个内置命令。如果某个命令在正常说话时被误触发，请将其禁用（例如 \"Punkt\"）。"
+        },
+        "custom": {
+          "title": "自定义规则",
+          "description": "添加您自己的触发词到替换内容的规则。自定义规则会覆盖具有相同触发词的内置规则。",
+          "triggerPlaceholder": "触发词",
+          "replacementPlaceholder": "替换内容",
+          "add": "添加",
+          "remove": "删除 {{trigger}}",
+          "duplicate": "\"{{trigger}}\" 已存在",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "左侧附加",
+          "glue": "粘连",
+          "standalone": "独立"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

@@ -224,7 +224,8 @@
         "output": "الإخراج",
         "transcription": "التفريغ الصوتي",
         "history": "السجل",
-        "experimental": "تجريبي"
+        "experimental": "تجريبي",
+        "textRules": "قواعد النص"
       },
       "experimentalToggle": {
         "label": "الميزات التجريبية",
@@ -342,6 +343,34 @@
         "add": "إضافة",
         "remove": "إزالة {{word}}",
         "duplicate": "\"{{word}}\" موجود بالفعل"
+      },
+      "textRules": {
+        "title": "قواعد النص",
+        "description": "تحويل أوامر علامات الترقيم والتنسيق المنطوقة (بالألمانية والإنجليزية) إلى رموز فوراً، دون الحاجة إلى معالجة بالذكاء الاصطناعي. يعمل قبل المعالجة اللاحقة الاختيارية بالذكاء الاصطناعي.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "الأعداد إلى أرقام",
+          "description": "تحويل الأعداد المنطوقة إلى أرقام، مثل \"five hundred thirty nine\" → \"539\". تبقى الأعداد الصغيرة المفردة مكتوبة بالحروف."
+        },
+        "builtins": {
+          "title": "الأوامر المدمجة",
+          "description": "تفعيل أو تعطيل الأوامر المدمجة الفردية. عطّل أحدها إذا كان يُفعَّل بالخطأ في الكلام العادي (مثل \"Punkt\")."
+        },
+        "custom": {
+          "title": "قواعد مخصصة",
+          "description": "أضف قواعد التحويل الخاصة بك من مُشغّل إلى بديل. تتجاوز القواعد المخصصة القواعد المدمجة ذات المُشغّل نفسه.",
+          "triggerPlaceholder": "المُشغّل",
+          "replacementPlaceholder": "البديل",
+          "add": "إضافة",
+          "remove": "إزالة {{trigger}}",
+          "duplicate": "\"{{trigger}}\" موجود بالفعل",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "إلحاق باليسار",
+          "glue": "لصق",
+          "standalone": "مستقل"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

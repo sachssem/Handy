@@ -245,7 +245,8 @@
         "output": "출력",
         "transcription": "전사",
         "history": "히스토리",
-        "experimental": "실험적"
+        "experimental": "실험적",
+        "textRules": "텍스트 규칙"
       },
       "experimentalToggle": {
         "label": "실험적 기능",
@@ -363,6 +364,34 @@
         "add": "추가",
         "remove": "{{word}} 제거",
         "duplicate": "\"{{word}}\"이(가) 이미 존재합니다"
+      },
+      "textRules": {
+        "title": "텍스트 규칙",
+        "description": "음성으로 말한 구두점 및 서식 명령(독일어 및 영어)을 AI를 거치지 않고 즉시 기호로 변환합니다. 선택적 AI 후처리 이전에 실행됩니다.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "숫자를 숫자로 변환",
+          "description": "말한 숫자를 숫자로 변환합니다. 예: \"five hundred thirty nine\" → \"539\". 작은 단독 숫자는 단어 그대로 유지됩니다."
+        },
+        "builtins": {
+          "title": "기본 제공 명령",
+          "description": "개별 기본 제공 명령을 활성화하거나 비활성화합니다. 일반적인 말에서 잘못 작동하면 해당 명령을 비활성화하세요(예: \"Punkt\")."
+        },
+        "custom": {
+          "title": "사용자 정의 규칙",
+          "description": "직접 트리거-대체 규칙을 추가합니다. 사용자 정의 규칙은 동일한 트리거의 기본 제공 규칙보다 우선합니다.",
+          "triggerPlaceholder": "트리거",
+          "replacementPlaceholder": "대체",
+          "add": "추가",
+          "remove": "{{trigger}} 제거",
+          "duplicate": "\"{{trigger}}\"이(가) 이미 존재합니다",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "왼쪽에 붙이기",
+          "glue": "연결",
+          "standalone": "독립"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

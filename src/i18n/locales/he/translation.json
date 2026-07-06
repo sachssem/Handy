@@ -245,7 +245,8 @@
         "output": "פלט",
         "transcription": "תמלול",
         "history": "היסטוריה",
-        "experimental": "ניסיוני"
+        "experimental": "ניסיוני",
+        "textRules": "כללי טקסט"
       },
       "experimentalToggle": {
         "label": "תכונות ניסיוניות",
@@ -363,6 +364,34 @@
         "add": "הוסף",
         "remove": "הסר את {{word}}",
         "duplicate": "\"{{word}}\" כבר קיימת"
+      },
+      "textRules": {
+        "title": "כללי טקסט",
+        "description": "המר פקודות פיסוק ועיצוב מדוברות (גרמנית ואנגלית) לסמלים באופן מיידי, ללא סבב עיבוד בינה מלאכותית. פועל לפני עיבוד ה-AI האופציונלי.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "מספרים לספרות",
+          "description": "המר מספרים מדוברים לספרות, למשל \"five hundred thirty nine\" → \"539\". מספרים בודדים קטנים נשארים כמילים."
+        },
+        "builtins": {
+          "title": "פקודות מובנות",
+          "description": "הפעל או השבת פקודות מובנות בודדות. השבת אחת אם היא מופעלת בטעות בדיבור רגיל (למשל \"Punkt\")."
+        },
+        "custom": {
+          "title": "כללים מותאמים אישית",
+          "description": "הוסף כללי מפעיל-להחלפה משלך. כללים מותאמים אישית גוברים על המובנים עם אותו מפעיל.",
+          "triggerPlaceholder": "מפעיל",
+          "replacementPlaceholder": "החלפה",
+          "add": "הוסף",
+          "remove": "הסר את {{trigger}}",
+          "duplicate": "\"{{trigger}}\" כבר קיים",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "צמוד לשמאל",
+          "glue": "הדבק",
+          "standalone": "עצמאי"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

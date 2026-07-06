@@ -245,7 +245,8 @@
         "output": "Salida",
         "transcription": "Transcripción",
         "history": "Historial",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "textRules": "Reglas de Texto"
       },
       "experimentalToggle": {
         "label": "Funciones Experimentales",
@@ -363,6 +364,34 @@
         "add": "Agregar",
         "remove": "Eliminar {{word}}",
         "duplicate": "\"{{word}}\" ya existe"
+      },
+      "textRules": {
+        "title": "Reglas de Texto",
+        "description": "Convierte comandos de puntuación y formato hablados (alemán e inglés) en símbolos al instante, sin recurrir a la IA. Se ejecuta antes del posprocesamiento opcional con IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Números a Dígitos",
+          "description": "Convierte números hablados en dígitos, p. ej. \"five hundred thirty nine\" → \"539\". Los números pequeños aislados se dejan escritos con palabras."
+        },
+        "builtins": {
+          "title": "Comandos Integrados",
+          "description": "Activa o desactiva comandos integrados individuales. Desactiva uno si se dispara por error en el habla normal (p. ej. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Reglas Personalizadas",
+          "description": "Agrega tus propias reglas de activador a reemplazo. Las reglas personalizadas anulan las integradas con el mismo activador.",
+          "triggerPlaceholder": "Activador",
+          "replacementPlaceholder": "Reemplazo",
+          "add": "Agregar",
+          "remove": "Eliminar {{trigger}}",
+          "duplicate": "\"{{trigger}}\" ya existe",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Adjuntar a la izquierda",
+          "glue": "Pegar",
+          "standalone": "Independiente"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

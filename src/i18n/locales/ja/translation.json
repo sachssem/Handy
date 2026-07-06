@@ -245,7 +245,8 @@
         "output": "出力",
         "transcription": "文字起こし",
         "history": "履歴",
-        "experimental": "実験的"
+        "experimental": "実験的",
+        "textRules": "テキストルール"
       },
       "experimentalToggle": {
         "label": "実験的な機能",
@@ -363,6 +364,34 @@
         "add": "追加",
         "remove": "{{word}}を削除",
         "duplicate": "「{{word}}」は既に存在します"
+      },
+      "textRules": {
+        "title": "テキストルール",
+        "description": "話した句読点や書式のコマンド（ドイツ語・英語）を、AIを介さずに即座に記号へ変換します。任意のAI後処理の前に実行されます。",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "数値を数字に変換",
+          "description": "話した数値を数字に変換します。例: \"five hundred thirty nine\" → \"539\"。小さな単独の数値は単語のまま残します。"
+        },
+        "builtins": {
+          "title": "組み込みコマンド",
+          "description": "個々の組み込みコマンドを有効または無効にします。通常の発話で誤動作する場合は無効にしてください（例: \"Punkt\"）。"
+        },
+        "custom": {
+          "title": "カスタムルール",
+          "description": "独自のトリガーから置換へのルールを追加します。カスタムルールは同じトリガーの組み込みルールより優先されます。",
+          "triggerPlaceholder": "トリガー",
+          "replacementPlaceholder": "置換",
+          "add": "追加",
+          "remove": "{{trigger}}を削除",
+          "duplicate": "「{{trigger}}」は既に存在します",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "左に付ける",
+          "glue": "連結",
+          "standalone": "独立"
+        }
       },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",

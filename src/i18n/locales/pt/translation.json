@@ -245,7 +245,8 @@
         "output": "Saída",
         "transcription": "Transcrição",
         "history": "Histórico",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "textRules": "Regras de Texto"
       },
       "experimentalToggle": {
         "label": "Recursos Experimentais",
@@ -363,6 +364,34 @@
         "add": "Adicionar",
         "remove": "Remover {{word}}",
         "duplicate": "\"{{word}}\" já existe"
+      },
+      "textRules": {
+        "title": "Regras de Texto",
+        "description": "Converte comandos falados de pontuação e formatação (alemão e inglês) em símbolos instantaneamente, sem recorrer à IA. É executado antes do pós-processamento opcional por IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Números em Dígitos",
+          "description": "Converte números falados em dígitos, por exemplo \"five hundred thirty nine\" → \"539\". Números pequenos e isolados permanecem por extenso."
+        },
+        "builtins": {
+          "title": "Comandos Integrados",
+          "description": "Ative ou desative comandos integrados individuais. Desative um deles se for acionado por engano na fala normal (por exemplo \"Punkt\")."
+        },
+        "custom": {
+          "title": "Regras Personalizadas",
+          "description": "Adicione as suas próprias regras de gatilho para substituição. As regras personalizadas substituem as integradas com o mesmo gatilho.",
+          "triggerPlaceholder": "Gatilho",
+          "replacementPlaceholder": "Substituição",
+          "add": "Adicionar",
+          "remove": "Remover {{trigger}}",
+          "duplicate": "\"{{trigger}}\" já existe",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Anexar à esquerda",
+          "glue": "Colar",
+          "standalone": "Independente"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

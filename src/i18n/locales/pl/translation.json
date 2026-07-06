@@ -245,7 +245,8 @@
         "output": "Wyjście",
         "transcription": "Transkrypcja",
         "history": "Historia",
-        "experimental": "Eksperymentalne"
+        "experimental": "Eksperymentalne",
+        "textRules": "Reguły tekstu"
       },
       "experimentalToggle": {
         "label": "Funkcje Eksperymentalne",
@@ -363,6 +364,34 @@
         "add": "Dodaj",
         "remove": "Usuń {{word}}",
         "duplicate": "\"{{word}}\" już istnieje"
+      },
+      "textRules": {
+        "title": "Reguły tekstu",
+        "description": "Zamienia wypowiadane polecenia interpunkcji i formatowania (niemieckie i angielskie) natychmiast na symbole, bez udziału AI. Działa przed opcjonalnym przetwarzaniem AI.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Liczby na cyfry",
+          "description": "Zamienia wypowiadane liczby na cyfry, np. \"five hundred thirty nine\" → \"539\". Małe pojedyncze liczby pozostają zapisane słownie."
+        },
+        "builtins": {
+          "title": "Wbudowane polecenia",
+          "description": "Włącz lub wyłącz poszczególne wbudowane polecenia. Wyłącz dane polecenie, jeśli błędnie uruchamia się w normalnej mowie (np. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Reguły własne",
+          "description": "Dodaj własne reguły zamiany wyzwalacza na zamiennik. Reguły własne zastępują wbudowane o tym samym wyzwalaczu.",
+          "triggerPlaceholder": "Wyzwalacz",
+          "replacementPlaceholder": "Zamiennik",
+          "add": "Dodaj",
+          "remove": "Usuń {{trigger}}",
+          "duplicate": "\"{{trigger}}\" już istnieje",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Dołącz z lewej",
+          "glue": "Sklej",
+          "standalone": "Samodzielne"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

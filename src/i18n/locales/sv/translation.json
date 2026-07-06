@@ -245,7 +245,8 @@
         "output": "Utmatning",
         "transcription": "Transkription",
         "history": "Historik",
-        "experimental": "Experimentellt"
+        "experimental": "Experimentellt",
+        "textRules": "Textregler"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
@@ -363,6 +364,34 @@
         "add": "Lägg till",
         "remove": "Ta bort {{word}}",
         "duplicate": "\"{{word}}\" finns redan"
+      },
+      "textRules": {
+        "title": "Textregler",
+        "description": "Omvandlar talade skiljetecken- och formateringskommandon (tyska och engelska) direkt till symboler, utan en AI-omväg. Körs före valfri AI-efterbearbetning.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Tal till siffror",
+          "description": "Omvandlar talade tal till siffror, t.ex. \"five hundred thirty nine\" → \"539\". Små fristående tal lämnas som ord."
+        },
+        "builtins": {
+          "title": "Inbyggda kommandon",
+          "description": "Aktivera eller inaktivera enskilda inbyggda kommandon. Inaktivera ett om det utlöses av misstag i vanligt tal (t.ex. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Egna regler",
+          "description": "Lägg till egna regler för utlösare till ersättning. Egna regler åsidosätter inbyggda med samma utlösare.",
+          "triggerPlaceholder": "Utlösare",
+          "replacementPlaceholder": "Ersättning",
+          "add": "Lägg till",
+          "remove": "Ta bort {{trigger}}",
+          "duplicate": "\"{{trigger}}\" finns redan",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Fäst till vänster",
+          "glue": "Limma",
+          "standalone": "Fristående"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

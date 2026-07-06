@@ -245,7 +245,8 @@
         "output": "Вивід",
         "transcription": "Транскрипція",
         "history": "Історія",
-        "experimental": "Експериментальне"
+        "experimental": "Експериментальне",
+        "textRules": "Правила тексту"
       },
       "experimentalToggle": {
         "label": "Експериментальні функції",
@@ -363,6 +364,34 @@
         "add": "Додати",
         "remove": "Видалити {{word}}",
         "duplicate": "\"{{word}}\" вже існує"
+      },
+      "textRules": {
+        "title": "Правила тексту",
+        "description": "Миттєво перетворює вимовлені команди пунктуації та форматування (німецькою та англійською) на символи, без звернення до ШІ. Виконується перед необов'язковою постобробкою ШІ.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Числа в цифри",
+          "description": "Перетворює вимовлені числа на цифри, напр. \"five hundred thirty nine\" → \"539\". Невеликі окремі числа залишаються словами."
+        },
+        "builtins": {
+          "title": "Вбудовані команди",
+          "description": "Увімкнення або вимкнення окремих вбудованих команд. Вимкніть команду, якщо вона хибно спрацьовує у звичайному мовленні (напр. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Власні правила",
+          "description": "Додайте власні правила заміни за тригером. Власні правила заміняють вбудовані з тим самим тригером.",
+          "triggerPlaceholder": "Тригер",
+          "replacementPlaceholder": "Заміна",
+          "add": "Додати",
+          "remove": "Видалити {{trigger}}",
+          "duplicate": "\"{{trigger}}\" вже існує",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Приєднати ліворуч",
+          "glue": "Склеїти",
+          "standalone": "Окремо"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

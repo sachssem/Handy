@@ -245,7 +245,8 @@
         "output": "Çıktı",
         "transcription": "Transkripsiyon",
         "history": "Geçmiş",
-        "experimental": "Deneysel"
+        "experimental": "Deneysel",
+        "textRules": "Metin Kuralları"
       },
       "experimentalToggle": {
         "label": "Deneysel Özellikler",
@@ -363,6 +364,34 @@
         "add": "Ekle",
         "remove": "{{word}} Kaldır",
         "duplicate": "\"{{word}}\" zaten mevcut"
+      },
+      "textRules": {
+        "title": "Metin Kuralları",
+        "description": "Konuşulan noktalama ve biçimlendirme komutlarını (Almanca ve İngilizce) yapay zeka turu olmadan anında sembollere dönüştürür. İsteğe bağlı yapay zeka son işlemeden önce çalışır.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Sayıları Rakama Çevir",
+          "description": "Konuşulan sayıları rakamlara dönüştürür, ör. \"five hundred thirty nine\" → \"539\". Küçük tek başına sayılar yazıyla bırakılır."
+        },
+        "builtins": {
+          "title": "Yerleşik Komutlar",
+          "description": "Bireysel yerleşik komutları etkinleştirin veya devre dışı bırakın. Normal konuşmada yanlış tetikleniyorsa birini devre dışı bırakın (ör. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Özel Kurallar",
+          "description": "Kendi tetikleyici-değiştirme kurallarınızı ekleyin. Özel kurallar aynı tetikleyiciye sahip yerleşik kuralları geçersiz kılar.",
+          "triggerPlaceholder": "Tetikleyici",
+          "replacementPlaceholder": "Değiştirme",
+          "add": "Ekle",
+          "remove": "{{trigger}} Kaldır",
+          "duplicate": "\"{{trigger}}\" zaten mevcut",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Sola ekle",
+          "glue": "Yapıştır",
+          "standalone": "Bağımsız"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

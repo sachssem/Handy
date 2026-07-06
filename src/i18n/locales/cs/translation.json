@@ -245,7 +245,8 @@
         "output": "Výstup",
         "transcription": "Přepis",
         "history": "Historie",
-        "experimental": "Experimentální"
+        "experimental": "Experimentální",
+        "textRules": "Textová pravidla"
       },
       "experimentalToggle": {
         "label": "Experimentální funkce",
@@ -363,6 +364,34 @@
         "add": "Přidat",
         "remove": "Odebrat {{word}}",
         "duplicate": "\"{{word}}\" již existuje"
+      },
+      "textRules": {
+        "title": "Textová pravidla",
+        "description": "Převádí vyslovené příkazy pro interpunkci a formátování (němčina a angličtina) okamžitě na symboly, bez zásahu AI. Spouští se před volitelným následným zpracováním pomocí AI.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Čísla na číslice",
+          "description": "Převod vyslovených čísel na číslice, např. \"five hundred thirty nine\" → \"539\". Malá samostatná čísla zůstávají vypsaná slovy."
+        },
+        "builtins": {
+          "title": "Vestavěné příkazy",
+          "description": "Povolte nebo zakažte jednotlivé vestavěné příkazy. Zakažte některý, pokud se chybně spouští v běžné řeči (např. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Vlastní pravidla",
+          "description": "Přidejte vlastní pravidla ze spouštěče na náhradu. Vlastní pravidla přepisují vestavěná se stejným spouštěčem.",
+          "triggerPlaceholder": "Spouštěč",
+          "replacementPlaceholder": "Náhrada",
+          "add": "Přidat",
+          "remove": "Odebrat {{trigger}}",
+          "duplicate": "\"{{trigger}}\" již existuje",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Připojit vlevo",
+          "glue": "Slepit",
+          "standalone": "Samostatně"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

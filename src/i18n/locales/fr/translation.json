@@ -245,7 +245,8 @@
         "output": "Sortie",
         "transcription": "Transcription",
         "history": "Historique",
-        "experimental": "Expérimental"
+        "experimental": "Expérimental",
+        "textRules": "Règles de texte"
       },
       "experimentalToggle": {
         "label": "Fonctionnalités Expérimentales",
@@ -363,6 +364,34 @@
         "add": "Ajouter",
         "remove": "Supprimer {{word}}",
         "duplicate": "\"{{word}}\" existe déjà"
+      },
+      "textRules": {
+        "title": "Règles de texte",
+        "description": "Convertit instantanément les commandes de ponctuation et de mise en forme dictées (allemand et anglais) en symboles, sans passer par l'IA. S'exécute avant le post-traitement facultatif par l'IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Nombres en chiffres",
+          "description": "Convertit les nombres dictés en chiffres, p. ex. \"five hundred thirty nine\" → \"539\". Les petits nombres isolés restent écrits en toutes lettres."
+        },
+        "builtins": {
+          "title": "Commandes intégrées",
+          "description": "Activez ou désactivez individuellement les commandes intégrées. Désactivez-en une si elle se déclenche par erreur dans la parole normale (p. ex. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Règles personnalisées",
+          "description": "Ajoutez vos propres règles de déclencheur vers remplacement. Les règles personnalisées remplacent les règles intégrées ayant le même déclencheur.",
+          "triggerPlaceholder": "Déclencheur",
+          "replacementPlaceholder": "Remplacement",
+          "add": "Ajouter",
+          "remove": "Supprimer {{trigger}}",
+          "duplicate": "\"{{trigger}}\" existe déjà",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Attacher à gauche",
+          "glue": "Coller",
+          "standalone": "Autonome"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

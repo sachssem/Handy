@@ -245,7 +245,8 @@
         "output": "Uitvoer",
         "transcription": "Transcriptie",
         "history": "Geschiedenis",
-        "experimental": "Experimenteel"
+        "experimental": "Experimenteel",
+        "textRules": "Tekstregels"
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
@@ -363,6 +364,34 @@
         "add": "Toevoegen",
         "remove": "{{word}} verwijderen",
         "duplicate": "\"{{word}}\" bestaat al"
+      },
+      "textRules": {
+        "title": "Tekstregels",
+        "description": "Zet uitgesproken leesteken- en opmaakcommando's (Duits en Engels) direct om naar symbolen, zonder tussenkomst van AI. Wordt uitgevoerd vóór de optionele AI-nabewerking.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Getallen naar cijfers",
+          "description": "Zet uitgesproken getallen om naar cijfers, bijv. \"five hundred thirty nine\" → \"539\". Kleine losse getallen blijven als woorden staan."
+        },
+        "builtins": {
+          "title": "Ingebouwde commando's",
+          "description": "Schakel afzonderlijke ingebouwde commando's in of uit. Schakel er een uit als het per ongeluk afgaat in normale spraak (bijv. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Eigen regels",
+          "description": "Voeg je eigen trigger-naar-vervanging-regels toe. Eigen regels hebben voorrang op ingebouwde regels met dezelfde trigger.",
+          "triggerPlaceholder": "Trigger",
+          "replacementPlaceholder": "Vervanging",
+          "add": "Toevoegen",
+          "remove": "{{trigger}} verwijderen",
+          "duplicate": "\"{{trigger}}\" bestaat al",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Links vastmaken",
+          "glue": "Aaneen",
+          "standalone": "Zelfstandig"
+        }
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
