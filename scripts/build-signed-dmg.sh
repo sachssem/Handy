@@ -27,7 +27,9 @@ export CMAKE_POLICY_VERSION_MINIMUM=3.5
 export APPLE_SIGNING_IDENTITY="$IDENTITY"
 
 echo "==> Building Handy.app (signed as: $IDENTITY)"
-bun run tauri build --bundles app
+# createUpdaterArtifacts=false: the fork ships local DMGs, not updater bundles;
+# leaving it on aborts the build without TAURI_SIGNING_PRIVATE_KEY.
+bun run tauri build --bundles app --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
 APP="src-tauri/target/release/bundle/macos/Handy.app"
 if [[ ! -d "$APP" ]]; then
