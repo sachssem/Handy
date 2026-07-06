@@ -30,14 +30,14 @@ ${output}
 
 ## Testfälle fürs A/B
 
-| Diktat (gesprochen) | Erwartet |
-| --- | --- |
-| "fünfhundertneununddreißig Euro" | `539 Euro` |
-| "voice Bindestrich control" | `voice-control` |
-| "src slash components slash settings" | `src/components/settings` |
-| "erster Punkt neue Zeile zweiter Punkt" | `erster Punkt` ⏎ `zweiter Punkt` (Ambiguität — beobachten!) |
-| "camel case use settings" | `useSettings` |
-| "ähm also ich meine wir nehmen äh Variante zwei" | `Wir nehmen Variante zwei` |
+| Diktat (gesprochen)                              | Erwartet                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------- |
+| "fünfhundertneununddreißig Euro"                 | `539 Euro`                                                  |
+| "voice Bindestrich control"                      | `voice-control`                                             |
+| "src slash components slash settings"            | `src/components/settings`                                   |
+| "erster Punkt neue Zeile zweiter Punkt"          | `erster Punkt` ⏎ `zweiter Punkt` (Ambiguität — beobachten!) |
+| "camel case use settings"                        | `useSettings`                                               |
+| "ähm also ich meine wir nehmen äh Variante zwei" | `Wir nehmen Variante zwei`                                  |
 
 Beobachtungen/Fehlschläge hier notieren; alles, was der LLM unzuverlässig macht,
 wandert als deterministische Regel in den Text-Rules-Layer des Forks.
