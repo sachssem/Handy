@@ -23,6 +23,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 # name = "cli"
 # path = "src/audio_toolkit/bin/cli.rs"
 
+# fork(voice-control): headless voice-dictation benchmark harness. Thin wrapper
+# around `handy_app_lib::bench` so it can reuse the in-crate engine/text-rules
+# code without dragging in a Tauri AppHandle. See src/bench/ and bench/README.md.
+[[bin]]
+name = "handy-bench"
+path = "src/bin/handy-bench.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 serde_json = "1"
@@ -65,6 +72,7 @@ strsim = "0.11.0"
 natural = "0.5.0"
 regex = "1"
 chrono = "0.4"
+toml = "0.8" # fork(voice-control): bench-suite corpus manifest format
 rusqlite = { version = "0.37", features = ["bundled"] }
 tar = "0.4.44"
 flate2 = "1.0"

@@ -1593,7 +1593,10 @@ fn transcribe_cpp_run_plan(
     }
 }
 
-fn post_process_transcription_text(
+// fork(voice-control): `pub(crate)` so the bench harness (src/bench/) can run the
+// exact production post-transcription pipeline (custom words → filler filter →
+// text rules) standalone. Crate-internal only; not part of the public API.
+pub(crate) fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
     custom_words_already_prompted: bool,
