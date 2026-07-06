@@ -515,4 +515,23 @@ mod tests {
         // Without an absorbed ASR mark, "Punkt" stays a glue joiner for paths.
         assert_eq!(subst("www Punkt example Punkt com"), "www.example.com");
     }
+
+    #[test]
+    fn german_question_mark_command_absorbs_prosody() {
+        // The comma before "Fragezeichen" (attached to "hier") and the trailing
+        // period are ASR artifacts; the AttachLeft "?" overrides the comma.
+        assert_eq!(
+            subst("So, das ist echt eine gute Frage hier, Fragezeichen."),
+            "So, das ist echt eine gute Frage hier?"
+        );
+    }
+
+    #[test]
+    fn english_question_mark_command_absorbs_prosody() {
+        // Multi-word English trigger, case-insensitive, same absorption.
+        assert_eq!(
+            subst("Echt eine super Frage hier, Question Mark."),
+            "Echt eine super Frage hier?"
+        );
+    }
 }

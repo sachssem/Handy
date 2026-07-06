@@ -76,15 +76,22 @@ pub fn builtin_rules() -> Vec<TextRule> {
         ("dot", ".", SpacingPolicy::Glue),
         // Trailing punctuation.
         ("Doppelpunkt", ":", SpacingPolicy::AttachLeft),
+        ("colon", ":", SpacingPolicy::AttachLeft),
         ("Semikolon", ";", SpacingPolicy::AttachLeft),
+        ("semicolon", ";", SpacingPolicy::AttachLeft),
         ("Komma", ",", SpacingPolicy::AttachLeft),
+        ("comma", ",", SpacingPolicy::AttachLeft),
         ("Fragezeichen", "?", SpacingPolicy::AttachLeft),
+        ("question mark", "?", SpacingPolicy::AttachLeft),
         ("Ausrufezeichen", "!", SpacingPolicy::AttachLeft),
+        ("exclamation mark", "!", SpacingPolicy::AttachLeft),
         // Brackets. The opening bracket hugs the word to its right; the closing
         // bracket glues to the word on its left and lets following punctuation
         // (e.g. a list comma) stand.
         ("Klammer auf", "(", SpacingPolicy::AttachRight),
+        ("open paren", "(", SpacingPolicy::AttachRight),
         ("Klammer zu", ")", SpacingPolicy::Glue),
+        ("close paren", ")", SpacingPolicy::Glue),
         // Standalone symbols and block separators.
         ("Anführungszeichen", "\"", SpacingPolicy::Standalone),
         ("neue Zeile", "\n", SpacingPolicy::Standalone),
