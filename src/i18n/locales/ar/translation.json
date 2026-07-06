@@ -368,6 +368,7 @@
         },
         "spacing": {
           "attach_left": "إلحاق باليسار",
+          "attach_right": "إلحاق باليمين",
           "glue": "لصق",
           "standalone": "مستقل"
         }

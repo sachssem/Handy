@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Adjuntar a la izquierda",
+          "attach_right": "Adjuntar a la derecha",
           "glue": "Pegar",
           "standalone": "Independiente"
         }

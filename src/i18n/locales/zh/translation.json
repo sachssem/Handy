@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "左侧附加",
+          "attach_right": "右侧附加",
           "glue": "粘连",
           "standalone": "独立"
         }

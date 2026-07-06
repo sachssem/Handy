@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Gắn bên trái",
+          "attach_right": "Gắn bên phải",
           "glue": "Dán liền",
           "standalone": "Độc lập"
         }

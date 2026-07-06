@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "靠左附加",
+          "attach_right": "靠右附加",
           "glue": "黏合",
           "standalone": "獨立"
         }

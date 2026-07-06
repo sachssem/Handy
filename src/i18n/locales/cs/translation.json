@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Připojit vlevo",
+          "attach_right": "Připojit vpravo",
           "glue": "Slepit",
           "standalone": "Samostatně"
         }

@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "왼쪽에 붙이기",
+          "attach_right": "오른쪽에 붙이기",
           "glue": "연결",
           "standalone": "독립"
         }

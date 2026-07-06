@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Links vastmaken",
+          "attach_right": "Rechts vastmaken",
           "glue": "Aaneen",
           "standalone": "Zelfstandig"
         }

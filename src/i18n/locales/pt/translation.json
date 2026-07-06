@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Anexar à esquerda",
+          "attach_right": "Anexar à direita",
           "glue": "Colar",
           "standalone": "Independente"
         }

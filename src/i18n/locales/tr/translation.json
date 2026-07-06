@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Sola ekle",
+          "attach_right": "Sağa ekle",
           "glue": "Yapıştır",
           "standalone": "Bağımsız"
         }

@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Приєднати ліворуч",
+          "attach_right": "Приєднати праворуч",
           "glue": "Склеїти",
           "standalone": "Окремо"
         }

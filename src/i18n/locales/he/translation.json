@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "צמוד לשמאל",
+          "attach_right": "צמוד לימין",
           "glue": "הדבק",
           "standalone": "עצמאי"
         }

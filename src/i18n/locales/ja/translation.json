@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "左に付ける",
+          "attach_right": "右に付ける",
           "glue": "連結",
           "standalone": "独立"
         }

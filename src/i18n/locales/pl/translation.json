@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Dołącz z lewej",
+          "attach_right": "Dołącz z prawej",
           "glue": "Sklej",
           "standalone": "Samodzielne"
         }

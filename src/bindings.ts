@@ -990,7 +990,7 @@ export type RecordingRetentionPeriod = "never" | "preserve_limit" | "days_3" | "
 export type SecretMap = Partial<{ [key in string]: string }>
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
 export type SoundTheme = "marimba" | "pop" | "custom"
-export type SpacingPolicy = "attach_left" | "glue" | "standalone"
+export type SpacingPolicy = "attach_left" | "attach_right" | "glue" | "standalone"
 /**
  * Phase of the streaming overlay card, emitted to drive its UI state.
  */

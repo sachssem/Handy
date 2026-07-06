@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Attach left",
+          "attach_right": "Attach right",
           "glue": "Glue",
           "standalone": "Standalone"
         }

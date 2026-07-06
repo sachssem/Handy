@@ -389,6 +389,7 @@
         },
         "spacing": {
           "attach_left": "Fäst till vänster",
+          "attach_right": "Fäst till höger",
           "glue": "Limma",
           "standalone": "Fristående"
         }
