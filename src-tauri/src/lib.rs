@@ -580,6 +580,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_text_rules_disabled_builtins,
             shortcut::get_text_rules_builtins,
             shortcut::change_learn_corrections_enabled_setting,
+            shortcut::change_learn_corrections_log_only_setting,
             shortcut::update_learned_corrections,
             shortcut::add_learned_correction,
             shortcut::remove_learned_correction,
@@ -658,6 +659,9 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
+            // fork(voice-control): auto-learned correction toast event (Phase B
+            // ships the contract; the Phase C listener consumes it).
+            correction_learning::LearnedCorrectionEvent,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds

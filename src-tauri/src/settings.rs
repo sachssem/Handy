@@ -452,6 +452,10 @@ pub struct AppSettings {
     // fork(voice-control): auto-learned corrections (see `correction_learning`).
     #[serde(default)]
     pub learn_corrections_enabled: bool,
+    /// Dry-run soak: run the full learning pipeline but only log would-be pairs
+    /// instead of storing them.
+    #[serde(default)]
+    pub learn_corrections_log_only: bool,
     #[serde(default)]
     pub learned_corrections: Vec<LearnedCorrection>,
 }
@@ -875,6 +879,7 @@ pub fn get_default_settings() -> AppSettings {
         text_rules_custom: Vec::new(),
         text_rules_disabled_builtins: Vec::new(),
         learn_corrections_enabled: false,
+        learn_corrections_log_only: false,
         learned_corrections: Vec::new(),
     }
 }

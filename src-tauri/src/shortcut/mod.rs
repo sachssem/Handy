@@ -787,6 +787,20 @@ pub fn change_learn_corrections_enabled_setting(
     Ok(())
 }
 
+/// Toggle the dry-run soak: when on, the learning pipeline runs fully but only
+/// logs `would-learn: X → Y` instead of storing pairs.
+#[tauri::command]
+#[specta::specta]
+pub fn change_learn_corrections_log_only_setting(
+    app: AppHandle,
+    log_only: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.learn_corrections_log_only = log_only;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 /// Replace the full learned-corrections list. The review UI edits the list
 /// locally (enable toggles, deletions) and writes it back whole, mirroring
 /// `update_text_rules_custom`.

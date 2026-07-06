@@ -323,6 +323,14 @@ async changeLearnCorrectionsEnabledSetting(enabled: boolean) : Promise<Result<nu
     else return { status: "error", error: e  as any };
 }
 },
+async changeLearnCorrectionsLogOnlySetting(logOnly: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_log_only_setting", { logOnly }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async updateLearnedCorrections(corrections: LearnedCorrection[]) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_learned_corrections", { corrections }) };
@@ -917,10 +925,12 @@ async isLaptop() : Promise<Result<boolean, string>> {
 
 export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
+learnedCorrectionEvent: LearnedCorrectionEvent,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent
 }>({
 historyUpdatePayload: "history-update-payload",
+learnedCorrectionEvent: "learned-correction-event",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event"
 })
@@ -950,7 +960,7 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learned_corrections?: LearnedCorrection[] }
+overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_corrections_log_only?: boolean; learned_corrections?: LearnedCorrection[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -979,6 +989,7 @@ reset_bindings: string[] }
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
 export type LearnedCorrection = { id: string; misheard: string; intended: string; count: number; last_seen: number; source: CorrectionSource; enabled: boolean }
+export type LearnedCorrectionEvent = { id: string; misheard: string; intended: string }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }

@@ -761,11 +761,24 @@ impl ShortcutAction for TranscribeAction {
                                         return;
                                     }
 
+                                    // fork(voice-control): snapshot the pasted
+                                    // text before `paste` consumes it, so the
+                                    // learning session can diff a later edit.
+                                    let learn_snapshot = final_text.clone();
                                     match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
+                                        Ok(()) => {
+                                            debug!(
+                                                "Text pasted successfully in {:?}",
+                                                paste_time.elapsed()
+                                            );
+                                            // fork(voice-control): open the
+                                            // post-paste correction-learning
+                                            // window on the target app.
+                                            crate::correction_learning::begin_session(
+                                                &ah_clone,
+                                                learn_snapshot,
+                                            );
+                                        }
                                         Err(e) => {
                                             error!("Failed to paste transcription: {}", e);
                                             let _ = ah_clone.emit("paste-error", ());

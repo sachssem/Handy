@@ -131,6 +131,8 @@ const settingUpdaters: {
     commands.updateTextRulesDisabledBuiltins(value as string[]),
   learn_corrections_enabled: (value) =>
     commands.changeLearnCorrectionsEnabledSetting(value as boolean),
+  learn_corrections_log_only: (value) =>
+    commands.changeLearnCorrectionsLogOnlySetting(value as boolean),
   learned_corrections: (value) =>
     commands.updateLearnedCorrections(value as LearnedCorrection[]),
   word_correction_threshold: (value) =>
