@@ -264,3 +264,21 @@ Rules:
 - **One feature = one reviewable commit group.** Features must remain individually droppable via `git rebase -i` if upstream ships an equivalent.
 - Follow all upstream conventions above (i18n for user-facing strings, `cargo fmt`/`clippy`, ESLint, conventional commits). Fork feature commits use the normal `feat:` prefix.
 - Do NOT open PRs/issues against upstream for fork-only features (upstream feature freeze); the "GitHub workflow" section above applies only when intentionally contributing upstream.
+
+## Fork Build (local signed DMG)
+
+Build release DMGs with the fork script, not `bun run tauri build` directly:
+
+```bash
+scripts/build-signed-dmg.sh
+```
+
+It handles two macOS-local issues that plain `tauri build` does not:
+
+- **Stable code signing.** Ad-hoc signatures have an unstable identity, so macOS TCC forgets Microphone/Accessibility grants on every rebuild (app shows the permission as granted in System Settings while Handy still reports it as pending). The script signs with a stable self-signed code-signing certificate, making the app's Designated Requirement constant so permissions persist across rebuilds. Default identity: `Voice Control / Handy Dev`; override with `HANDY_SIGN_IDENTITY="<name>"` (list via `security find-identity -v`). The cert is a free, self-signed **Code Signing** certificate created in Keychain Access → Certificate Assistant (no paid Apple Developer ID). `codesign` accepts it even though it shows as `CSSMERR_TP_NOT_TRUSTED` / not a "valid identity"; no keychain trust change is required.
+- **Reliable DMG packaging.** Tauri's `bundle_dmg.sh` (AppleScript Finder layout) fails intermittently on this machine, so the script builds only the `.app` (`--bundles app`) and packages the DMG via `hdiutil`.
+
+Notes:
+
+- The build is **not notarized** (no paid Apple Developer ID). First launch of each new build needs one right-click → Open (Gatekeeper). This is separate from the permission persistence above and cannot be removed without notarization.
+- If permissions get stuck after switching signing identity once (the old grants were tied to the previous identity), reset them once: `tccutil reset Microphone com.pais.handy` and `tccutil reset Accessibility com.pais.handy`, then re-grant. Subsequent same-cert rebuilds keep the grants.
