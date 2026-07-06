@@ -215,3 +215,52 @@ See the [Troubleshooting](README.md#troubleshooting) section in README.md.
 - **Full contributor workflow:** [CONTRIBUTING.md](CONTRIBUTING.md).
 
 **Commits:** Use conventional commit prefixes (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`). Focus the message on _why_, not _what_.
+
+---
+
+<!-- ============================================================== -->
+<!-- FORK SECTION — everything below is fork-specific (voice-control).
+     Kept as one additive block at the end of the file to minimize
+     rebase conflicts with upstream. On conflict: keep upstream's
+     changes above, keep this block below. -->
+<!-- ============================================================== -->
+
+# Fork Workflow (voice-control)
+
+This repository is a long-lived personal fork of [cjpais/Handy](https://github.com/cjpais/Handy) focused on voice-control/dictation ergonomics (see [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)). Upstream is under a feature freeze, so fork-only features live here permanently. `CLAUDE.md` is a symlink to this file.
+
+## Remotes & Branches
+
+| Ref | Role |
+| --- | --- |
+| `upstream` → `cjpais/Handy` | Source of truth for `main`. Never push here. |
+| `origin` → `sachssem/Handy` | Our fork on GitHub. All pushes go here. |
+| `main` | **Pure upstream mirror.** Tracks `upstream/main`. Only ever updated via fast-forward (`git fetch upstream && git merge --ff-only upstream/main`), then pushed to `origin main`. NEVER commit to `main`. |
+| `voice-control` | **Integration branch — the fork's real mainline.** All fork patches live here as clean, logically separated commits. Release builds (DMG) are built from this branch. |
+| `feat/*` | Short-lived feature branches, cut from `voice-control`. Rebase-merged back as 1–3 clean commits (no merge commits), then deleted. |
+
+## Upstream Update Procedure
+
+```bash
+git fetch upstream
+git checkout main && git merge --ff-only upstream/main
+git push origin main
+git tag backup/voice-control-$(date +%Y%m%d) voice-control   # safety net
+git rebase main voice-control
+# resolve conflicts; fork changes are additive, so conflicts should be rare
+git push --force-with-lease origin voice-control
+```
+
+Rules:
+
+- Always create the backup tag before rebasing; delete old backup tags once the rebase is verified.
+- Only `--force-with-lease` (never `--force`) and only on `voice-control`/`feat/*`, never on `main`.
+- After a rebase, verify with `cargo test` and a `bun run build` before pushing.
+
+## Fork Design Rules (keep rebases cheap)
+
+- **Additive over invasive:** new functionality goes into new modules/files; touch upstream files only at narrow, stable insertion points (e.g. one call in the transcription output pipeline). Prefer one clearly marked block over scattered edits.
+- **Fork-owned files** (safe to change freely, upstream never touches them): `docs/REQUIREMENTS.md`, this Fork section, and any module introduced by a fork feature (each feature's commit message lists its new files).
+- **One feature = one reviewable commit group.** Features must remain individually droppable via `git rebase -i` if upstream ships an equivalent.
+- Follow all upstream conventions above (i18n for user-facing strings, `cargo fmt`/`clippy`, ESLint, conventional commits). Fork feature commits use the normal `feat:` prefix.
+- Do NOT open PRs/issues against upstream for fork-only features (upstream feature freeze); the "GitHub workflow" section above applies only when intentionally contributing upstream.
