@@ -231,13 +231,13 @@ This repository is a long-lived personal fork of [cjpais/Handy](https://github.c
 
 ## Remotes & Branches
 
-| Ref | Role |
-| --- | --- |
-| `upstream` → `cjpais/Handy` | Source of truth for `main`. Never push here. |
-| `origin` → `sachssem/Handy` | Our fork on GitHub. All pushes go here. |
-| `main` | **Pure upstream mirror.** Tracks `upstream/main`. Only ever updated via fast-forward (`git fetch upstream && git merge --ff-only upstream/main`), then pushed to `origin main`. NEVER commit to `main`. |
-| `voice-control` | **Integration branch — the fork's real mainline.** All fork patches live here as clean, logically separated commits. Release builds (DMG) are built from this branch. |
-| `feat/*` | Short-lived feature branches, cut from `voice-control`. Rebase-merged back as 1–3 clean commits (no merge commits), then deleted. |
+| Ref                         | Role                                                                                                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `upstream` → `cjpais/Handy` | Source of truth for `main`. Never push here.                                                                                                                                                            |
+| `origin` → `sachssem/Handy` | Our fork on GitHub. All pushes go here.                                                                                                                                                                 |
+| `main`                      | **Pure upstream mirror.** Tracks `upstream/main`. Only ever updated via fast-forward (`git fetch upstream && git merge --ff-only upstream/main`), then pushed to `origin main`. NEVER commit to `main`. |
+| `voice-control`             | **Integration branch — the fork's real mainline.** All fork patches live here as clean, logically separated commits. Release builds (DMG) are built from this branch.                                   |
+| `feat/*`                    | Short-lived feature branches, cut from `voice-control`. Rebase-merged back as 1–3 clean commits (no merge commits), then deleted.                                                                       |
 
 ## Upstream Update Procedure
 
