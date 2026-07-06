@@ -3,14 +3,23 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
+import type { Aggressiveness } from "@/bindings";
 import { Input } from "../ui/Input";
 import { Button } from "../ui/Button";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
+import { Dropdown } from "../ui/Dropdown";
+import type { DropdownOption } from "../ui/Dropdown";
 
 interface LearnedCorrectionsProps {
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
 }
+
+const AGGRESSIVENESS_LEVELS: Aggressiveness[] = [
+  "conservative",
+  "balanced",
+  "aggressive",
+];
 
 export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
   ({ descriptionMode = "tooltip", grouped = false }) => {
@@ -19,7 +28,27 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
       useSettings();
 
     const enabled = getSetting("learn_corrections_enabled") || false;
+    const logOnly = getSetting("learn_corrections_log_only") || false;
+    const aggressiveness =
+      getSetting("learn_corrections_aggressiveness") || "conservative";
+    const windowSecs = getSetting("learn_corrections_window_secs") ?? 45;
     const corrections = getSetting("learned_corrections") || [];
+
+    const aggressivenessOptions: DropdownOption[] = AGGRESSIVENESS_LEVELS.map(
+      (level) => ({
+        value: level,
+        label: t(
+          `settings.advanced.learnedCorrections.aggressiveness.${level}.label`,
+        ),
+      }),
+    );
+
+    const handleWindowChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = parseInt(event.target.value, 10);
+      if (!isNaN(value) && value > 0) {
+        updateSetting("learn_corrections_window_secs", value);
+      }
+    };
 
     const [newMisheard, setNewMisheard] = useState("");
     const [newIntended, setNewIntended] = useState("");
@@ -98,116 +127,185 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
         />
 
         {enabled && (
-          <div className="px-4 p-2 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                type="text"
-                className="max-w-40"
-                value={newMisheard}
-                onChange={(e) => setNewMisheard(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={t(
-                  "settings.advanced.learnedCorrections.add.misheardPlaceholder",
+          <>
+            <ToggleSwitch
+              checked={logOnly}
+              onChange={(checked) =>
+                updateSetting("learn_corrections_log_only", checked)
+              }
+              isUpdating={isUpdating("learn_corrections_log_only")}
+              label={t("settings.advanced.learnedCorrections.trialMode.title")}
+              description={t(
+                "settings.advanced.learnedCorrections.trialMode.description",
+              )}
+              descriptionMode={descriptionMode}
+              grouped={grouped}
+            />
+
+            <div className="px-4 p-2 space-y-2">
+              <div className="text-sm font-semibold">
+                {t("settings.advanced.learnedCorrections.aggressiveness.title")}
+              </div>
+              <div className="text-xs text-mid-gray">
+                {t(
+                  "settings.advanced.learnedCorrections.aggressiveness.description",
                 )}
-                variant="compact"
-                disabled={isBusy}
+              </div>
+              <Dropdown
+                className="w-48"
+                options={aggressivenessOptions}
+                selectedValue={aggressiveness}
+                onSelect={(value) =>
+                  updateSetting(
+                    "learn_corrections_aggressiveness",
+                    value as Aggressiveness,
+                  )
+                }
+                disabled={isUpdating("learn_corrections_aggressiveness")}
               />
-              <Input
-                type="text"
-                className="max-w-40"
-                value={newIntended}
-                onChange={(e) => setNewIntended(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder={t(
-                  "settings.advanced.learnedCorrections.add.intendedPlaceholder",
+              <div className="text-xs text-mid-gray">
+                {t(
+                  `settings.advanced.learnedCorrections.aggressiveness.${aggressiveness}.description`,
                 )}
-                variant="compact"
-                disabled={isBusy}
-              />
-              <Button
-                onClick={handleAdd}
-                disabled={!newMisheard.trim() || !newIntended.trim() || isBusy}
-                variant="primary"
-                size="md"
-              >
-                {t("settings.advanced.learnedCorrections.add.button")}
-              </Button>
+              </div>
             </div>
 
-            {corrections.length === 0 ? (
-              <div className="text-xs text-mid-gray">
-                {t("settings.advanced.learnedCorrections.empty")}
+            <div className="px-4 p-2 space-y-2">
+              <div className="text-sm font-semibold">
+                {t("settings.advanced.learnedCorrections.window.title")}
               </div>
-            ) : (
-              <div className="flex flex-col gap-1">
-                {corrections.map((correction) => (
-                  <div
-                    key={correction.id}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={correction.enabled}
-                        disabled={isBusy}
-                        onChange={(e) =>
-                          handleToggleEntry(correction.id, e.target.checked)
-                        }
-                        aria-label={t(
-                          "settings.advanced.learnedCorrections.enable",
-                          { misheard: correction.misheard },
-                        )}
-                      />
-                      <span
-                        className={`truncate ${correction.enabled ? "" : "opacity-50 line-through"}`}
-                      >
-                        {t("settings.advanced.learnedCorrections.mapping", {
-                          misheard: correction.misheard,
-                          intended: correction.intended,
-                        })}
-                      </span>
-                      <span className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-mid-gray/15 text-mid-gray">
-                        {t(
-                          `settings.advanced.learnedCorrections.source.${correction.source}`,
-                        )}
-                      </span>
-                      {correction.count > 1 && (
-                        <span className="shrink-0 text-xs text-mid-gray">
-                          {t("settings.advanced.learnedCorrections.count", {
-                            count: correction.count,
+              <div className="text-xs text-mid-gray">
+                {t("settings.advanced.learnedCorrections.window.description")}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  min="10"
+                  max="300"
+                  value={windowSecs}
+                  onChange={handleWindowChange}
+                  disabled={isUpdating("learn_corrections_window_secs")}
+                  className="w-20"
+                />
+                <span className="text-sm text-text">
+                  {t("settings.advanced.learnedCorrections.window.seconds")}
+                </span>
+              </div>
+            </div>
+
+            <div className="px-4 p-2 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  type="text"
+                  className="max-w-40"
+                  value={newMisheard}
+                  onChange={(e) => setNewMisheard(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={t(
+                    "settings.advanced.learnedCorrections.add.misheardPlaceholder",
+                  )}
+                  variant="compact"
+                  disabled={isBusy}
+                />
+                <Input
+                  type="text"
+                  className="max-w-40"
+                  value={newIntended}
+                  onChange={(e) => setNewIntended(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder={t(
+                    "settings.advanced.learnedCorrections.add.intendedPlaceholder",
+                  )}
+                  variant="compact"
+                  disabled={isBusy}
+                />
+                <Button
+                  onClick={handleAdd}
+                  disabled={
+                    !newMisheard.trim() || !newIntended.trim() || isBusy
+                  }
+                  variant="primary"
+                  size="md"
+                >
+                  {t("settings.advanced.learnedCorrections.add.button")}
+                </Button>
+              </div>
+
+              {corrections.length === 0 ? (
+                <div className="text-xs text-mid-gray">
+                  {t("settings.advanced.learnedCorrections.empty")}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {corrections.map((correction) => (
+                    <div
+                      key={correction.id}
+                      className="flex items-center justify-between gap-2 text-sm"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={correction.enabled}
+                          disabled={isBusy}
+                          onChange={(e) =>
+                            handleToggleEntry(correction.id, e.target.checked)
+                          }
+                          aria-label={t(
+                            "settings.advanced.learnedCorrections.enable",
+                            { misheard: correction.misheard },
+                          )}
+                        />
+                        <span
+                          className={`truncate ${correction.enabled ? "" : "opacity-50 line-through"}`}
+                        >
+                          {t("settings.advanced.learnedCorrections.mapping", {
+                            misheard: correction.misheard,
+                            intended: correction.intended,
                           })}
                         </span>
-                      )}
-                    </div>
-                    <Button
-                      onClick={() => handleRemove(correction.id)}
-                      disabled={isBusy}
-                      variant="danger-ghost"
-                      size="sm"
-                      aria-label={t(
-                        "settings.advanced.learnedCorrections.remove",
-                        { misheard: correction.misheard },
-                      )}
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <span className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-mid-gray/15 text-mid-gray">
+                          {t(
+                            `settings.advanced.learnedCorrections.source.${correction.source}`,
+                          )}
+                        </span>
+                        {correction.count > 1 && (
+                          <span className="shrink-0 text-xs text-mid-gray">
+                            {t("settings.advanced.learnedCorrections.count", {
+                              count: correction.count,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => handleRemove(correction.id)}
+                        disabled={isBusy}
+                        variant="danger-ghost"
+                        size="sm"
+                        aria-label={t(
+                          "settings.advanced.learnedCorrections.remove",
+                          { misheard: correction.misheard },
+                        )}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </>
     );

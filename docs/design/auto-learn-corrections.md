@@ -1,6 +1,6 @@
 # Auto-Lernen aus Korrekturen — Machbarkeit & Implementationsplan
 
-> Stand: 2026-07-06 · Status: **Spike (Phase 0) abgeschlossen — volles GO** · Referenz: [REQUIREMENTS.md](../REQUIREMENTS.md) 🔭 „Auto-Lernen aus Korrekturen"
+> Stand: 2026-07-07 · Status: **Implementiert — Phasen A–D committet** (Store + Apply, macOS-AX-Session, Toast, Aggressivität/Phonetik/Fenster) · Referenz: [REQUIREMENTS.md](../REQUIREMENTS.md) 🍴 „Auto-Lernen aus Korrekturen"
 
 ## Spike-Ergebnisse (2026-07-06, Phase 0 abgeschlossen)
 
@@ -114,7 +114,13 @@ Reihenfolge: Case/Punktuation normalisieren → nur **Substitutionen** (reine In
 
 ## Toast-UI
 
-**Eigenes kleines Fenster** (`learned_toast`), nicht neuer Phase des Recording-Overlays: das Overlay (NSPanel, `focusable(false)`, overlay.rs:322) ist an den Record-Lifecycle gekoppelt und nicht klickbar; der Toast braucht ~5 s Eigenleben + klickbaren Undo-Button (`can_become_key_window: true`). Event `learned-correction` `{id, misheard, intended}` (tauri-specta, Muster `HistoryUpdatePayload`), Auto-Hide 5 s, Undo → Command `remove_learned_correction(id)`. i18n: `learnedCorrection.toast`, `learnedCorrection.undo` (en+de zuerst).
+**Eigenes kleines Fenster** (`learned_toast`), nicht neuer Phase des Recording-Overlays: das Overlay (NSPanel, `focusable(false)`, overlay.rs:322) ist an den Record-Lifecycle gekoppelt und nicht klickbar; der Toast braucht ~5 s Eigenleben + klickbaren Undo-Button (`can_become_key_window: true`). Event `learned-correction-event` `{id, misheard, intended}` (tauri-specta, Muster `HistoryUpdatePayload`), Auto-Hide 5 s, Undo → Command `remove_learned_correction(id)`. i18n: `learnedCorrection.toast`, `learnedCorrection.undo` (en+de zuerst).
+
+**Implementiert (Abweichungen vom Plan):**
+
+- **Polling statt Key-Hook** (Risiko #5 aufgelöst): Die Session pollt das Zielfeld alle ~4 s per AX-Read, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Details im Modul-Doc von `session.rs`.
+- **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event` (nicht `learned-correction`).
+- **i18n-Namespace**: sämtliche Strings liegen unter `settings.advanced.learnedCorrections.*` (inkl. `trialMode`, `aggressiveness`, `window`), nicht unter einem Top-Level `learnedCorrection.*`.
 
 ## Settings
 

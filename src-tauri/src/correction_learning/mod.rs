@@ -19,7 +19,8 @@
 //! - **Phase B** — the macOS focused-field reader and the post-paste learning
 //!   session that feed [`differ`] live.
 //! - **Phase C** — the "learned X → Y" toast with undo.
-//! - **Phase D** — aggressiveness settings and phonetic gating.
+//! - **Phase D** — the aggressiveness setting, the phonetic borderline gate
+//!   (Double Metaphone / Kölner Phonetik), and the user-facing learning window.
 
 mod ax_reader;
 mod differ;
@@ -31,6 +32,7 @@ mod store;
 // `correction_learning::toast::*` path.
 pub(crate) mod toast;
 
+pub use differ::Aggressiveness;
 pub use session::{begin_session, LearnedCorrectionEvent};
 pub use store::{remove, upsert, CorrectionSource, LearnedCorrection};
 
