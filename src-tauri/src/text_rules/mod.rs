@@ -27,6 +27,9 @@ pub enum SpacingPolicy {
     /// No space before, a single space after. Used for trailing punctuation
     /// such as `,` `.` `:` `;` `?` `!`.
     AttachLeft,
+    /// A single space before, no space after. Used for characters that open a
+    /// span, e.g. `(` in `test (mir geht's gut)`.
+    AttachRight,
     /// No spaces on either side. Used for characters that glue two words
     /// together, e.g. `-` `/` `_` in `voice Bindestrich control` → `voice-control`.
     /// Gluing is the safe default for a user-authored symbol replacement.
@@ -77,8 +80,10 @@ pub fn builtin_rules() -> Vec<TextRule> {
         ("Komma", ",", SpacingPolicy::AttachLeft),
         ("Fragezeichen", "?", SpacingPolicy::AttachLeft),
         ("Ausrufezeichen", "!", SpacingPolicy::AttachLeft),
-        // Brackets.
-        ("Klammer auf", "(", SpacingPolicy::Glue),
+        // Brackets. The opening bracket hugs the word to its right; the closing
+        // bracket glues to the word on its left and lets following punctuation
+        // (e.g. a list comma) stand.
+        ("Klammer auf", "(", SpacingPolicy::AttachRight),
         ("Klammer zu", ")", SpacingPolicy::Glue),
         // Standalone symbols and block separators.
         ("Anführungszeichen", "\"", SpacingPolicy::Standalone),
