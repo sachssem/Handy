@@ -220,6 +220,8 @@ mod imp {
         if let Err(err) = event.emit(app) {
             log::error!("Failed to emit learned-correction event: {}", err);
         }
+        // The toast webview has just received the event; reveal its window.
+        crate::correction_learning::toast::show_learned_toast(app);
     }
 }
 

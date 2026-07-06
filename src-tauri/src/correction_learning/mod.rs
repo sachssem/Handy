@@ -25,6 +25,11 @@ mod ax_reader;
 mod differ;
 mod session;
 mod store;
+// `pub(crate)` (not re-exported): the `#[tauri::command]` in `toast` expands
+// sibling helper items that `collect_commands!` resolves by module path, which a
+// `pub use` of the function alone would not carry — so callers use the full
+// `correction_learning::toast::*` path.
+pub(crate) mod toast;
 
 pub use session::{begin_session, LearnedCorrectionEvent};
 pub use store::{remove, upsert, CorrectionSource, LearnedCorrection};
