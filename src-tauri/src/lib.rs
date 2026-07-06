@@ -585,6 +585,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::get_text_rules_builtins,
             shortcut::change_learn_corrections_enabled_setting,
             shortcut::change_learn_corrections_log_only_setting,
+            shortcut::change_learn_corrections_aggressiveness_setting,
+            shortcut::change_learn_corrections_window_secs_setting,
             shortcut::update_learned_corrections,
             shortcut::add_learned_correction,
             shortcut::remove_learned_correction,

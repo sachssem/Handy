@@ -397,7 +397,32 @@
       },
       "learnedCorrections": {
         "title": "Gelernte Korrekturen",
-        "description": "Ein persönliches Wörterbuch exakter Wortkorrekturen, das vor der optionalen KI-Nachbearbeitung auf jede Transkription angewendet wird. Füge Korrekturen für das hinzu, was die Erkennung immer wieder falsch versteht — Namen, Fachbegriffe, Umlaute — und sie werden deterministisch ersetzt. Automatisches Lernen aus deinen Korrekturen folgt in einem späteren Update.",
+        "description": "Ein persönliches Wörterbuch exakter Wortkorrekturen, das vor der optionalen KI-Nachbearbeitung auf jede Transkription angewendet wird. Füge Korrekturen für das hinzu, was die Erkennung immer wieder falsch versteht — Namen, Fachbegriffe, Umlaute — und sie werden deterministisch ersetzt. Unter macOS kann Handy sie auch selbst lernen: Wenn du ein Wort kurz nach dem Einfügen korrigierst, wird diese Korrektur automatisch übernommen.",
+        "trialMode": {
+          "title": "Testmodus (Probelauf)",
+          "description": "Führt die gesamte Lern-Pipeline aus, protokolliert mögliche Korrekturen aber nur, statt sie zu speichern. So kannst du ein paar Tage lang beobachten, was Handy lernen würde, bevor du dein Wörterbuch ändern lässt."
+        },
+        "aggressiveness": {
+          "title": "Lern-Aggressivität",
+          "description": "Wie bereitwillig eine Änderung als echtes Verhören akzeptiert wird. Lockerere Stufen lernen mehr, riskieren aber, das Wörterbuch zu vergiften.",
+          "conservative": {
+            "label": "Konservativ",
+            "description": "Es werden nur sehr ähnliche, gleich klingende Korrekturen gelernt. Am sichersten gegen Fehleinträge."
+          },
+          "balanced": {
+            "label": "Ausgewogen",
+            "description": "Akzeptiert auch etwas stärker abweichende Korrekturen; Phonetik dient nur als Hinweis."
+          },
+          "aggressive": {
+            "label": "Aggressiv",
+            "description": "Lernt selbst lose verwandte Korrekturen, auch Alltagswörter. Höchstes Risiko für Fehleinträge."
+          }
+        },
+        "window": {
+          "title": "Lernfenster",
+          "description": "Wie lange Handy nach dem Einfügen das Feld auf eine manuelle Korrektur beobachtet.",
+          "seconds": "Sekunden"
+        },
         "mapping": "{{misheard}} → {{intended}}",
         "source": {
           "auto": "Auto",

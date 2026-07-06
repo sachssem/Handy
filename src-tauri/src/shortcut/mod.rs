@@ -19,7 +19,7 @@ use specta::Type;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
-use crate::correction_learning::{self, CorrectionSource, LearnedCorrection};
+use crate::correction_learning::{self, Aggressiveness, CorrectionSource, LearnedCorrection};
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
@@ -797,6 +797,46 @@ pub fn change_learn_corrections_log_only_setting(
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.learn_corrections_log_only = log_only;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Set how aggressively the gate pipeline accepts a candidate. An unknown value
+/// falls back to the safest level (`Conservative`).
+#[tauri::command]
+#[specta::specta]
+pub fn change_learn_corrections_aggressiveness_setting(
+    app: AppHandle,
+    aggressiveness: String,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    let parsed = match aggressiveness.as_str() {
+        "conservative" => Aggressiveness::Conservative,
+        "balanced" => Aggressiveness::Balanced,
+        "aggressive" => Aggressiveness::Aggressive,
+        other => {
+            warn!(
+                "Invalid learn-corrections aggressiveness '{}', defaulting to conservative",
+                other
+            );
+            Aggressiveness::Conservative
+        }
+    };
+    settings.learn_corrections_aggressiveness = parsed;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Set the post-paste learning window length in seconds. The session clamps the
+/// stored value to a sane range, so no bounds are enforced here.
+#[tauri::command]
+#[specta::specta]
+pub fn change_learn_corrections_window_secs_setting(
+    app: AppHandle,
+    window_secs: u32,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.learn_corrections_window_secs = window_secs;
     settings::write_settings(&app, settings);
     Ok(())
 }

@@ -397,7 +397,32 @@
       },
       "learnedCorrections": {
         "title": "Learned Corrections",
-        "description": "A personal dictionary of exact word fixes applied to every transcription, before optional AI post-processing. Add corrections for what the recognizer keeps getting wrong — names, jargon, umlauts — and they are replaced deterministically. Automatic learning from your edits arrives in a later update.",
+        "description": "A personal dictionary of exact word fixes applied to every transcription, before optional AI post-processing. Add corrections for what the recognizer keeps getting wrong — names, jargon, umlauts — and they are replaced deterministically. On macOS, Handy can also learn them on its own: when you fix a word shortly after pasting, that correction is captured automatically.",
+        "trialMode": {
+          "title": "Trial mode (dry run)",
+          "description": "Run the full learning pipeline but only log would-be corrections instead of storing them. Use it to watch what Handy would learn for a few days before letting it change your dictionary."
+        },
+        "aggressiveness": {
+          "title": "Learning aggressiveness",
+          "description": "How readily an edit is accepted as a genuine mishearing. Looser levels learn more but risk poisoning the dictionary.",
+          "conservative": {
+            "label": "Conservative",
+            "description": "Only very close, similar-sounding fixes are learned. Safest against wrong entries."
+          },
+          "balanced": {
+            "label": "Balanced",
+            "description": "Accepts moderately different fixes; phonetics are advisory only."
+          },
+          "aggressive": {
+            "label": "Aggressive",
+            "description": "Learns even loosely related fixes, including everyday words. Highest risk of bad entries."
+          }
+        },
+        "window": {
+          "title": "Learning window",
+          "description": "How long after pasting Handy watches the field for a manual correction.",
+          "seconds": "seconds"
+        },
         "mapping": "{{misheard}} → {{intended}}",
         "source": {
           "auto": "Auto",

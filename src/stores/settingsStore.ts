@@ -133,6 +133,10 @@ const settingUpdaters: {
     commands.changeLearnCorrectionsEnabledSetting(value as boolean),
   learn_corrections_log_only: (value) =>
     commands.changeLearnCorrectionsLogOnlySetting(value as boolean),
+  learn_corrections_aggressiveness: (value) =>
+    commands.changeLearnCorrectionsAggressivenessSetting(value as string),
+  learn_corrections_window_secs: (value) =>
+    commands.changeLearnCorrectionsWindowSecsSetting(value as number),
   learned_corrections: (value) =>
     commands.updateLearnedCorrections(value as LearnedCorrection[]),
   word_correction_threshold: (value) =>

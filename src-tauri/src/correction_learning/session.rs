@@ -100,24 +100,55 @@ fn normalized_words(text: &str) -> Vec<String> {
 mod imp {
     use super::{is_related_to_snapshot, LearnedCorrectionEvent};
     use crate::correction_learning::ax_reader::{self, FocusRead};
-    use crate::correction_learning::differ::{self, Candidate};
+    use crate::correction_learning::differ::{self, Candidate, GateProfile, PhoneticLang};
     use crate::correction_learning::store::{self, CorrectionSource, LearnedCorrection};
-    use crate::settings;
+    use crate::settings::{self, AppSettings};
     use log::info;
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{Duration, Instant};
     use tauri::AppHandle;
     use tauri_specta::Event;
 
-    /// How long the learning window stays open after a paste. Const for now; a
-    /// user-facing setting (`learn_corrections_window_secs`) arrives in Phase D.
-    const WINDOW: Duration = Duration::from_secs(45);
-    /// How often the snapshotted field is re-read within the window.
+    /// How often the snapshotted field is re-read within the window. Const (the
+    /// window length itself is the user-facing `learn_corrections_window_secs`).
     const POLL_INTERVAL: Duration = Duration::from_secs(4);
+    /// Bounds for the configurable learning window, clamped so a stray setting
+    /// value can neither close the window instantly nor keep the poll thread
+    /// alive indefinitely.
+    const MIN_WINDOW_SECS: u32 = 10;
+    const MAX_WINDOW_SECS: u32 = 300;
 
     /// Bumped on every `begin_session`; a running session exits once its
     /// generation is no longer current, so a newer paste cleanly supersedes it.
     static GENERATION: AtomicU64 = AtomicU64::new(0);
+
+    /// The learning window length from settings, clamped to a sane range.
+    fn window(settings: &AppSettings) -> Duration {
+        let secs = settings
+            .learn_corrections_window_secs
+            .clamp(MIN_WINDOW_SECS, MAX_WINDOW_SECS);
+        Duration::from_secs(secs as u64)
+    }
+
+    /// Which phonetic algorithm the borderline gate should use.
+    ///
+    /// Language source: the *transcription* language decides how a word is heard,
+    /// so it drives the phonetic algorithm. `selected_language` carries that, but
+    /// its default `"auto"` names no language — then we fall back to the UI
+    /// language (`app_language`). German → Kölner Phonetik, everything else →
+    /// Double Metaphone.
+    fn phonetic_lang(settings: &AppSettings) -> PhoneticLang {
+        let code = if settings.selected_language == "auto" {
+            settings.app_language.as_str()
+        } else {
+            settings.selected_language.as_str()
+        };
+        if code.starts_with("de") {
+            PhoneticLang::German
+        } else {
+            PhoneticLang::Other
+        }
+    }
 
     /// Snapshot a just-pasted transcription and open the learning window on the
     /// app it was pasted into. Runs on the main thread (the paste callsite), so
@@ -135,14 +166,34 @@ mod imp {
             None => return,
         };
 
+        // Snapshot the gate configuration at paste time, alongside the text.
+        let params = SessionParams {
+            window: window(&settings),
+            profile: GateProfile::for_aggressiveness(settings.learn_corrections_aggressiveness),
+            lang: phonetic_lang(&settings),
+        };
+
         let my_generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
         let app = app.clone();
-        std::thread::spawn(move || run_session(app, my_generation, pid, original));
+        std::thread::spawn(move || run_session(app, my_generation, pid, original, params));
+    }
+
+    /// The gate configuration snapshotted for one learning window.
+    struct SessionParams {
+        window: Duration,
+        profile: GateProfile,
+        lang: PhoneticLang,
     }
 
     /// The polling window: re-read the target field, diff, and commit a stable
     /// gated candidate. Returns on commit, teardown, expiry, or supersession.
-    fn run_session(app: AppHandle, generation: u64, pid: i32, original: String) {
+    fn run_session(
+        app: AppHandle,
+        generation: u64,
+        pid: i32,
+        original: String,
+        params: SessionParams,
+    ) {
         let started = Instant::now();
         let mut last_candidate: Option<Candidate> = None;
 
@@ -153,7 +204,7 @@ mod imp {
             if GENERATION.load(Ordering::SeqCst) != generation {
                 return;
             }
-            if started.elapsed() >= WINDOW {
+            if started.elapsed() >= params.window {
                 return;
             }
 
@@ -168,7 +219,12 @@ mod imp {
                         last_candidate = None;
                         continue;
                     }
-                    match differ::extract_correction(&original, &current) {
+                    match differ::extract_correction(
+                        &original,
+                        &current,
+                        &params.profile,
+                        params.lang,
+                    ) {
                         Some(candidate) => {
                             // Require the same candidate on two consecutive reads
                             // so we learn only after the edit has settled.

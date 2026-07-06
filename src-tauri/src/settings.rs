@@ -1,4 +1,4 @@
-use crate::correction_learning::LearnedCorrection;
+use crate::correction_learning::{Aggressiveness, LearnedCorrection};
 use crate::text_rules::TextRule;
 use log::{debug, warn};
 use serde::de::{self, Visitor};
@@ -456,8 +456,20 @@ pub struct AppSettings {
     /// instead of storing them.
     #[serde(default)]
     pub learn_corrections_log_only: bool,
+    /// How aggressively the gate pipeline accepts a candidate. Defaults to the
+    /// safest level (`Conservative`) against dictionary poisoning.
+    #[serde(default)]
+    pub learn_corrections_aggressiveness: Aggressiveness,
+    /// How long (seconds) the post-paste learning window stays open. Clamped to a
+    /// sane range in the session.
+    #[serde(default = "default_learn_corrections_window_secs")]
+    pub learn_corrections_window_secs: u32,
     #[serde(default)]
     pub learned_corrections: Vec<LearnedCorrection>,
+}
+
+fn default_learn_corrections_window_secs() -> u32 {
+    45
 }
 
 fn default_model() -> String {
@@ -880,6 +892,8 @@ pub fn get_default_settings() -> AppSettings {
         text_rules_disabled_builtins: Vec::new(),
         learn_corrections_enabled: false,
         learn_corrections_log_only: false,
+        learn_corrections_aggressiveness: Aggressiveness::default(),
+        learn_corrections_window_secs: default_learn_corrections_window_secs(),
         learned_corrections: Vec::new(),
     }
 }

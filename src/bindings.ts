@@ -331,6 +331,22 @@ async changeLearnCorrectionsLogOnlySetting(logOnly: boolean) : Promise<Result<nu
     else return { status: "error", error: e  as any };
 }
 },
+async changeLearnCorrectionsAggressivenessSetting(aggressiveness: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_aggressiveness_setting", { aggressiveness }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLearnCorrectionsWindowSecsSetting(windowSecs: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_window_secs_setting", { windowSecs }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async updateLearnedCorrections(corrections: LearnedCorrection[]) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("update_learned_corrections", { corrections }) };
@@ -968,7 +984,8 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_corrections_log_only?: boolean; learned_corrections?: LearnedCorrection[] }
+overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_corrections_log_only?: boolean; learn_corrections_aggressiveness?: Aggressiveness; learn_corrections_window_secs?: number; learned_corrections?: LearnedCorrection[] }
+export type Aggressiveness = "conservative" | "balanced" | "aggressive"
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }

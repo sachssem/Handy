@@ -31,8 +31,7 @@
 ## Fork-Features (bauen, wenn konkreter Bedarf bestätigt)
 
 - ✅ **Regel-Layer in der Pipeline** — geliefert, siehe oben (Einfügepunkt wurde `post_process_transcription_text` in `transcription.rs`, nicht `actions.rs`).
-- 🔨 **Auto-Lernen aus Korrekturen** (Wispr-Flow-Loop: manuelle Nachkorrekturen im Textfeld beobachten → Dictionary automatisch füttern):
-  Implementierung liegt auf `feat/correction-learning` (Store, AX-Feldleser, Toast+Undo, phonetisches Gating, Trial-Mode); Design in `docs/design/auto-learn-corrections.md`. Review vor Merge ausstehend.
+- ✅🍴 **Auto-Lernen aus Korrekturen** (Wispr-Flow-Loop: manuelle Nachkorrekturen im Textfeld beobachten → Dictionary automatisch füttern) — im Fork umgesetzt: macOS-Lern-Loop (Accessibility-Read nach Paste mit Element-Pinning, Wort-Diff, Anti-Vergiftungs-Gates inkl. Phonetik), Review-UI und „Gelernt"-Toast mit Undo, Trial-Mode. Design/Details: `docs/design/auto-learn-corrections.md`.
 - 🔭 **Hands-free-Modus** (VAD-getriggert statt Taste) — in Handy offen (Issue #147); Silero VAD ist als Stille-Filter schon an Bord, Trigger-Modus wäre Fork-Arbeit.
 - 🔭 **Per-App-Profile** (Profil je Ziel-App: anderer Prompt/Modell/Verhalten, wie VoiceInk "Power Mode") — Handy hat nichts dergleichen; Frontmost-App-Detection + Settings-Erweiterung.
 - 🔭 **Snippets** (Sprach-Trigger → gespeicherter Text) — nicht vorhanden; als Ersetzungs-Sonderfall im Regel-Layer machbar.
