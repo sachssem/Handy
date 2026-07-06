@@ -10,6 +10,7 @@ import type {
   ShortcutActivation,
   VadBackend,
   TextRule,
+  LearnedCorrection,
 } from "@/bindings";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
@@ -146,6 +147,10 @@ const settingUpdaters: {
     commands.updateTextRulesCustom(value as TextRule[]),
   text_rules_disabled_builtins: (value) =>
     commands.updateTextRulesDisabledBuiltins(value as string[]),
+  learn_corrections_enabled: (value) =>
+    commands.changeLearnCorrectionsEnabledSetting(value as boolean),
+  learned_corrections: (value) =>
+    commands.updateLearnedCorrections(value as LearnedCorrection[]),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

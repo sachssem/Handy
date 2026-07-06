@@ -1,3 +1,4 @@
+use crate::correction_learning::LearnedCorrection;
 use crate::text_rules::TextRule;
 use crate::utils;
 use log::{debug, warn};
@@ -540,6 +541,11 @@ pub struct AppSettings {
     pub text_rules_custom: Vec<TextRule>,
     #[serde(default)]
     pub text_rules_disabled_builtins: Vec<String>,
+    // fork(voice-control): auto-learned corrections (see `correction_learning`).
+    #[serde(default)]
+    pub learn_corrections_enabled: bool,
+    #[serde(default)]
+    pub learned_corrections: Vec<LearnedCorrection>,
 }
 
 fn default_model() -> String {
@@ -1007,6 +1013,8 @@ pub fn get_default_settings() -> AppSettings {
         text_rules_itn_enabled: false,
         text_rules_custom: Vec::new(),
         text_rules_disabled_builtins: Vec::new(),
+        learn_corrections_enabled: false,
+        learned_corrections: Vec::new(),
     }
 }
 

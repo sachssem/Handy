@@ -13,6 +13,8 @@ mod chinese_script;
 pub mod cli;
 mod clipboard;
 mod commands;
+// fork(voice-control): auto-learned corrections (exact misheard→intended dict).
+mod correction_learning;
 mod helpers;
 mod input;
 mod llm_client;
@@ -700,6 +702,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_text_rules_custom,
             shortcut::update_text_rules_disabled_builtins,
             shortcut::get_text_rules_builtins,
+            shortcut::change_learn_corrections_enabled_setting,
+            shortcut::update_learned_corrections,
+            shortcut::add_learned_correction,
+            shortcut::remove_learned_correction,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,

@@ -1858,7 +1858,10 @@ pub(crate) fn post_process_transcription_text(
         let normalized = normalize_transcription_output(&without_fillers);
 
         // fork(voice-control): deterministic text rules
-        crate::text_rules::apply_text_rules(&normalized, settings)
+        let ruled = crate::text_rules::apply_text_rules(&normalized, settings);
+
+        // fork(voice-control): exact misheard→intended learned corrections
+        crate::correction_learning::apply_learned(&ruled, settings)
     })
 }
 
