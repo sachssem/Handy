@@ -245,7 +245,8 @@
         "output": "Output",
         "transcription": "Transcription",
         "history": "History",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "textRules": "Text Rules"
       },
       "experimentalToggle": {
         "label": "Experimental Features",
@@ -363,6 +364,34 @@
         "add": "Add",
         "remove": "Remove {{word}}",
         "duplicate": "\"{{word}}\" already exists"
+      },
+      "textRules": {
+        "title": "Text Rules",
+        "description": "Convert spoken punctuation and formatting commands (German and English) into symbols instantly, without an AI round-trip. Runs before optional AI post-processing.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Numbers to Digits",
+          "description": "Convert spoken numbers into digits, e.g. \"five hundred thirty nine\" → \"539\". Small standalone numbers are left as words."
+        },
+        "builtins": {
+          "title": "Built-in Commands",
+          "description": "Enable or disable individual built-in commands. Disable one if it misfires in normal speech (e.g. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Custom Rules",
+          "description": "Add your own trigger to replacement rules. Custom rules override built-ins with the same trigger.",
+          "triggerPlaceholder": "Trigger",
+          "replacementPlaceholder": "Replacement",
+          "add": "Add",
+          "remove": "Remove {{trigger}}",
+          "duplicate": "\"{{trigger}}\" already exists",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Attach left",
+          "glue": "Glue",
+          "standalone": "Standalone"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

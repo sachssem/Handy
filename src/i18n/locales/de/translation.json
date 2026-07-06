@@ -245,7 +245,8 @@
         "output": "Ausgabe",
         "transcription": "Transkription",
         "history": "Verlauf",
-        "experimental": "Experimentell"
+        "experimental": "Experimentell",
+        "textRules": "Textregeln"
       },
       "experimentalToggle": {
         "label": "Experimentelle Funktionen",
@@ -363,6 +364,34 @@
         "add": "Hinzufügen",
         "remove": "{{word}} entfernen",
         "duplicate": "\"{{word}}\" existiert bereits"
+      },
+      "textRules": {
+        "title": "Textregeln",
+        "description": "Wandelt gesprochene Satzzeichen- und Formatierungsbefehle (Deutsch und Englisch) sofort in Symbole um, ohne KI-Umweg. Läuft vor der optionalen KI-Nachbearbeitung.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Zahlen als Ziffern",
+          "description": "Wandelt gesprochene Zahlen in Ziffern um, z. B. \"fünfhundertneununddreißig\" → \"539\". Kleine einzelne Zahlen bleiben ausgeschrieben."
+        },
+        "builtins": {
+          "title": "Eingebaute Befehle",
+          "description": "Einzelne eingebaute Befehle aktivieren oder deaktivieren. Deaktiviere einen, wenn er in normaler Sprache stört (z. B. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Eigene Regeln",
+          "description": "Eigene Auslöser-zu-Ersetzung-Regeln hinzufügen. Eigene Regeln überschreiben eingebaute mit demselben Auslöser.",
+          "triggerPlaceholder": "Auslöser",
+          "replacementPlaceholder": "Ersetzung",
+          "add": "Hinzufügen",
+          "remove": "{{trigger}} entfernen",
+          "duplicate": "\"{{trigger}}\" existiert bereits",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Links anfügen",
+          "glue": "Verbinden",
+          "standalone": "Eigenständig"
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
