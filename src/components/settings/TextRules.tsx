@@ -15,7 +15,12 @@ interface TextRulesProps {
   grouped?: boolean;
 }
 
-const SPACING_POLICIES: SpacingPolicy[] = ["attach_left", "glue", "standalone"];
+const SPACING_POLICIES: SpacingPolicy[] = [
+  "attach_left",
+  "attach_right",
+  "glue",
+  "standalone",
+];
 
 // Whitespace replacements need a readable representation in the list.
 const displayReplacement = (replacement: string): string => {
