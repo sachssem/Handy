@@ -36,9 +36,12 @@ if [[ ! -d "$APP" ]]; then
 fi
 
 # Defensive re-sign: guarantee a deep, stable signature even if Tauri's pass
-# missed nested binaries. --options runtime matches the official build.
-echo "==> Re-signing bundle (deep)"
-codesign --force --deep --options runtime --sign "$IDENTITY" "$APP"
+# missed nested binaries. Must pass --options runtime AND the entitlements file:
+# hardened runtime without the microphone entitlements silently blocks mic access
+# (the permission prompt never appears). Entitlements path matches tauri.conf.json.
+ENTITLEMENTS="src-tauri/Entitlements.plist"
+echo "==> Re-signing bundle (deep, with entitlements)"
+codesign --force --deep --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$APP"
 codesign --verify --strict "$APP" && echo "    signature valid"
 
 VERSION="$(defaults read "$REPO_ROOT/$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "dev")"
