@@ -1,0 +1,128 @@
+# Handy voice-dictation benchmark corpus.
+#
+# `spoken`   — the words the user reads aloud (WER/CER reference + record prompt).
+# `expected` — the ideal formatted output after ASR + text rules
+#              (format-accuracy reference), derived from the text_rules semantics
+#              in src-tauri/src/text_rules/ (the 28 unit tests are the source of
+#              truth). Newlines are real (produced by "neue Zeile"/"neuer Absatz").
+# `variants` — audio files at <case-id>/<variant>.wav, recorded via
+#              `handy-bench record`. Audio is NOT committed (see .gitignore).
+#
+# Recording protocol: one quiet room; per case record `normal`, `fast`, and a
+# Swabian/`dialect` take. See bench/README.md.
+
+# --- German prose baseline (no commands) -----------------------------------
+[[case]]
+id = "prose-de-baseline"
+spoken = "Ich habe gestern das neue Feature getestet und es funktioniert einwandfrei"
+expected = "Ich habe gestern das neue Feature getestet und es funktioniert einwandfrei"
+tags = ["de", "prose"]
+variants = ["normal", "fast", "dialect"]
+
+# --- German punctuation commands -------------------------------------------
+[[case]]
+id = "punct-basic-de"
+spoken = "Guten Tag Punkt hallo Komma wie geht es dir Fragezeichen"
+expected = "Guten Tag. Hallo, wie geht es dir?"
+tags = ["punctuation", "de"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "punct-klammer-de"
+spoken = "das Ergebnis Klammer auf sehr wichtig Klammer zu ist eindeutig"
+expected = "das Ergebnis (sehr wichtig) ist eindeutig"
+tags = ["punctuation", "de", "brackets"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "punct-newline-de"
+spoken = "erste Zeile neue Zeile zweite Zeile"
+expected = "erste Zeile\nZweite Zeile"
+tags = ["punctuation", "de", "newline"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "punct-mixed-de"
+spoken = "Titel Doppelpunkt Projektplan neuer Absatz erstens die Analyse"
+expected = "Titel: Projektplan\n\nErstens die Analyse"
+tags = ["punctuation", "de"]
+variants = ["normal", "fast", "dialect"]
+
+# --- English keyword commands ----------------------------------------------
+[[case]]
+id = "en-keywords"
+spoken = "the address is example dot com slash docs question mark"
+expected = "the address is example.com/docs?"
+tags = ["punctuation", "en", "keywords"]
+variants = ["normal", "fast", "dialect"]
+
+# --- Inverse text normalization --------------------------------------------
+[[case]]
+id = "itn-539-compound"
+spoken = "die Zahl ist fünfhundertneununddreißig"
+expected = "die Zahl ist 539"
+tags = ["itn", "de", "numbers"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "itn-decimal"
+spoken = "der Messwert beträgt zwei Komma fünf"
+expected = "der Messwert beträgt 2,5"
+tags = ["itn", "de", "numbers"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "itn-guards"
+spoken = "ein Haus und zwei Bäume stehen dort"
+expected = "ein Haus und zwei Bäume stehen dort"
+tags = ["itn", "de", "guards"]
+variants = ["normal", "fast", "dialect"]
+notes = "Guards: German article 'ein' and standalone 'zwei' (< 13) must NOT become digits."
+
+[[case]]
+id = "itn-dreizehn"
+spoken = "ich habe dreizehn Aufgaben erledigt"
+expected = "ich habe 13 Aufgaben erledigt"
+tags = ["itn", "de", "numbers"]
+variants = ["normal", "fast", "dialect"]
+
+# --- DE/EN code-switching tech speech --------------------------------------
+[[case]]
+id = "codeswitch-tech"
+spoken = "ich muss den Pull Request noch mergen bevor das Deployment startet"
+expected = "ich muss den Pull Request noch mergen bevor das Deployment startet"
+tags = ["tech", "de", "en", "codeswitch"]
+variants = ["normal", "fast", "dialect"]
+
+# --- Paths + casing --------------------------------------------------------
+[[case]]
+id = "path-src-components"
+spoken = "der Import kommt aus src slash components"
+expected = "der Import kommt aus src/components"
+tags = ["paths", "de", "tech"]
+variants = ["normal", "fast", "dialect"]
+
+[[case]]
+id = "path-feat-branch"
+spoken = "der Branch heißt feat slash text dash rules"
+expected = "der Branch heißt feat/text-rules"
+tags = ["paths", "en", "tech"]
+variants = ["normal", "fast", "dialect"]
+
+# --- Short English (Cyrillic-killers on multilingual models) ---------------
+[[case]]
+id = "short-en-merge-review"
+spoken = "we had a merge conflict during code review"
+expected = "we had a merge conflict during code review"
+tags = ["asr", "en", "short"]
+variants = ["normal", "fast", "dialect"]
+notes = "Short English on a German-leaning/multilingual model can come out transliterated (Cyrillic)."
+
+# --- Filler / self-correction ----------------------------------------------
+[[case]]
+id = "filler-selfcorrect"
+spoken = "ähm also ich meine wir sollten das direkt umsetzen"
+expected = "Wir sollten das direkt umsetzen"
+tags = ["filler", "de", "selfcorrect"]
+variants = ["normal", "fast", "dialect"]
+notes = "Aspirational target: text_rules does NOT strip fillers/self-corrections today, so low format accuracy here documents a known gap."

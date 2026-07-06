@@ -42,3 +42,9 @@ blob-report/
 
 # Nix build output
 result
+
+# fork(voice-control): benchmark suite — the user's voice recordings and run
+# outputs never go to the public fork. The corpus manifest IS committed.
+bench/corpus/**/*.wav
+bench/corpus/history-stubs.toml
+bench/results/
