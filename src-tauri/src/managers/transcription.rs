@@ -889,35 +889,37 @@ impl TranscriptionManager {
         // Only transcribe-cpp models expose streaming; ONNX engines fall back to
         // batch. The loaded session (not the ModelManager copy) is the source of
         // truth for run-path capabilities.
-        let (supports_streaming, supports_translate, languages) = match &engine {
-            LoadedEngine::TranscribeCpp(session) => {
-                let model = session.model();
-                let caps = model.capabilities();
-                info!(
-                    "Live preview: model '{}' arch='{}' variant='{}' supports_streaming={} \
+        let (supports_streaming, supports_translate, languages, accepts_language_hint) =
+            match &engine {
+                LoadedEngine::TranscribeCpp(session) => {
+                    let model = session.model();
+                    let caps = model.capabilities();
+                    info!(
+                        "Live preview: model '{}' arch='{}' variant='{}' supports_streaming={} \
                      supports_translate={} languages={:?}",
-                    model_id,
-                    model.arch(),
-                    model.variant(),
-                    caps.supports_streaming,
-                    caps.supports_translate,
-                    caps.languages,
-                );
-                (
-                    caps.supports_streaming,
-                    caps.supports_translate,
-                    caps.languages,
-                )
-            }
-            _ => {
-                info!(
-                    "Live preview: model '{}' is not a transcribe-cpp model; \
+                        model_id,
+                        model.arch(),
+                        model.variant(),
+                        caps.supports_streaming,
+                        caps.supports_translate,
+                        caps.languages,
+                    );
+                    (
+                        caps.supports_streaming,
+                        caps.supports_translate,
+                        caps.languages,
+                        !arch_rejects_language_hint(&model.arch()),
+                    )
+                }
+                _ => {
+                    info!(
+                        "Live preview: model '{}' is not a transcribe-cpp model; \
                      streaming is unavailable, using batch transcription",
-                    model_id
-                );
-                (false, false, Vec::new())
-            }
-        };
+                        model_id
+                    );
+                    (false, false, Vec::new(), true)
+                }
+            };
 
         if !supports_streaming {
             self.return_engine(engine, &model_id);
@@ -936,6 +938,7 @@ impl TranscriptionManager {
             &effective_language,
             &languages,
             supports_translate,
+            accepts_language_hint,
         );
         let output_language = resolve_output_language_evidence(
             &settings,
@@ -1253,6 +1256,10 @@ impl TranscriptionManager {
         // with INVALID_ARG, so the whisper extension must be gated on the
         // arch, not on the feature (see #1601).
         let mut model_is_whisper = false;
+        // fork(voice-control): whether the loaded arch accepts an explicit
+        // language hint. Qwen3-ASR advertises languages for auto-detect coverage
+        // but rejects any hint, so a pinned language must never be forwarded.
+        let mut model_accepts_language_hint = true;
 
         // Perform transcription with the appropriate engine.
         // We use catch_unwind to prevent engine panics from poisoning the mutex,
@@ -1294,6 +1301,7 @@ impl TranscriptionManager {
                 let caps = model.capabilities();
                 model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
                 model_is_whisper = model.arch() == "whisper";
+                model_accepts_language_hint = !arch_rejects_language_hint(&model.arch());
                 model_supports_translate = caps.supports_translate;
                 model_languages = caps.languages;
                 debug!(
@@ -1328,6 +1336,7 @@ impl TranscriptionManager {
                             &validated_language,
                             &model_languages,
                             model_supports_translate,
+                            model_accepts_language_hint,
                         );
                         output_was_translated = run_plan.target_language.as_deref() == Some("en");
                         applied_language_hint = run_plan.language.clone();
@@ -1736,6 +1745,16 @@ struct TranscribeCppRunPlan {
     target_language: Option<String>,
 }
 
+/// fork(voice-control): archs that publish `caps.languages` to document their
+/// auto-detect coverage but reject any explicit language hint (they return
+/// TRANSCRIBE_ERR_UNSUPPORTED_LANGUAGE, even for a code that is in the list).
+/// Qwen3-ASR is the only such arch today; forwarding a pinned language fails the
+/// whole run, so its run plan must stay on auto-detect regardless of the user's
+/// language intent. Its built-in LID still handles in-audio code-switching.
+fn arch_rejects_language_hint(arch: &str) -> bool {
+    arch == "qwen3_asr"
+}
+
 /// Build the transcribe-cpp language/task options shared by batch and live
 /// streaming paths.
 fn transcribe_cpp_run_plan(
@@ -1743,6 +1762,7 @@ fn transcribe_cpp_run_plan(
     effective_language: &str,
     model_languages: &[String],
     model_supports_translate: bool,
+    accepts_language_hint: bool,
 ) -> TranscribeCppRunPlan {
     let requested_language = match effective_language {
         "auto" => None,
@@ -1751,8 +1771,14 @@ fn transcribe_cpp_run_plan(
     // Only pass a language the loaded model actually advertises (per
     // capabilities().languages); otherwise auto-detect rather than failing with
     // UNSUPPORTED_LANGUAGE. Language-agnostic models report an empty list, so
-    // they always stay on auto.
-    let language = requested_language.filter(|lang| model_languages.iter().any(|l| l == lang));
+    // they always stay on auto. fork(voice-control): a few archs advertise
+    // languages purely to document auto-detect coverage yet reject explicit
+    // hints, so never forward one to them (see arch_rejects_language_hint).
+    let language = if accepts_language_hint {
+        requested_language.filter(|lang| model_languages.iter().any(|l| l == lang))
+    } else {
+        None
+    };
     let (task, target_language) = cpp_translation_task(
         translate_to_english,
         model_supports_translate,
@@ -2547,7 +2573,7 @@ mod tests {
             ..Default::default()
         };
         let supported = languages(&[]);
-        let plan = transcribe_cpp_run_plan(false, "en", &supported, false);
+        let plan = transcribe_cpp_run_plan(false, "en", &supported, false, true);
 
         assert_eq!(plan.language, None);
         assert_eq!(
@@ -2580,7 +2606,7 @@ mod tests {
 
     #[test]
     fn transcribe_cpp_run_plan_skips_english_translation() {
-        let plan = transcribe_cpp_run_plan(true, "en", &languages(&["en", "es"]), true);
+        let plan = transcribe_cpp_run_plan(true, "en", &languages(&["en", "es"]), true, true);
 
         assert!(matches!(plan.task, Task::Transcribe));
         assert_eq!(plan.language.as_deref(), Some("en"));
@@ -2589,7 +2615,7 @@ mod tests {
 
     #[test]
     fn transcribe_cpp_run_plan_translates_supported_non_english() {
-        let plan = transcribe_cpp_run_plan(true, "es", &languages(&["en", "es"]), true);
+        let plan = transcribe_cpp_run_plan(true, "es", &languages(&["en", "es"]), true, true);
 
         assert!(matches!(plan.task, Task::Translate));
         assert_eq!(plan.language.as_deref(), Some("es"));
@@ -2598,10 +2624,22 @@ mod tests {
 
     #[test]
     fn transcribe_cpp_run_plan_requires_model_translation_support() {
-        let plan = transcribe_cpp_run_plan(true, "es", &languages(&["en", "es"]), false);
+        let plan = transcribe_cpp_run_plan(true, "es", &languages(&["en", "es"]), false, true);
 
         assert!(matches!(plan.task, Task::Transcribe));
         assert_eq!(plan.language.as_deref(), Some("es"));
+        assert_eq!(plan.target_language, None);
+    }
+
+    #[test]
+    fn transcribe_cpp_run_plan_never_hints_when_arch_rejects_hints() {
+        // fork(voice-control): Qwen3-ASR advertises languages for auto-detect
+        // coverage but rejects explicit hints, so a pinned language must be
+        // dropped in favor of auto-detect even when it is in the model's list.
+        let plan = transcribe_cpp_run_plan(false, "de", &languages(&["de", "en"]), false, false);
+
+        assert!(matches!(plan.task, Task::Transcribe));
+        assert_eq!(plan.language, None);
         assert_eq!(plan.target_language, None);
     }
 }
