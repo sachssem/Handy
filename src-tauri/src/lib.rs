@@ -4,6 +4,10 @@ mod apple_intelligence;
 mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
+// fork(voice-control): headless benchmark harness. Only the `handy-bench` bin
+// entry point uses this; it stays in-crate so it can reach internal engine
+// loading / text-rules / settings code without a Tauri AppHandle.
+pub mod bench;
 mod catalog;
 mod chinese_script;
 pub mod cli;

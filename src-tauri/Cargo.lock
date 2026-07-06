@@ -2563,6 +2563,7 @@ dependencies = [
  "tauri-specta",
  "tempfile",
  "tokio",
+ "toml 0.8.2",
  "transcribe-cpp",
  "transcribe-rs",
  "vad-rs",
