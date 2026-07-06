@@ -1826,7 +1826,10 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        normalize_transcription_output(&without_fillers)
+        let normalized = normalize_transcription_output(&without_fillers);
+
+        // fork(voice-control): deterministic text rules
+        crate::text_rules::apply_text_rules(&normalized, settings)
     })
 }
 

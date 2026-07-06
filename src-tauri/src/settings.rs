@@ -1,3 +1,4 @@
+use crate::text_rules::TextRule;
 use crate::utils;
 use log::{debug, warn};
 use serde::de::{self, Visitor};
@@ -530,6 +531,15 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    // fork(voice-control): deterministic text-rules layer (see `text_rules`).
+    #[serde(default)]
+    pub text_rules_enabled: bool,
+    #[serde(default)]
+    pub text_rules_itn_enabled: bool,
+    #[serde(default)]
+    pub text_rules_custom: Vec<TextRule>,
+    #[serde(default)]
+    pub text_rules_disabled_builtins: Vec<String>,
 }
 
 fn default_model() -> String {
@@ -993,6 +1003,10 @@ pub fn get_default_settings() -> AppSettings {
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
         overlay_style: default_overlay_style(),
+        text_rules_enabled: false,
+        text_rules_itn_enabled: false,
+        text_rules_custom: Vec::new(),
+        text_rules_disabled_builtins: Vec::new(),
     }
 }
 

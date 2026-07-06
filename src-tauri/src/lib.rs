@@ -21,6 +21,7 @@ mod secure_input;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod text_rules;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -690,6 +691,11 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_custom_words,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
+            shortcut::change_text_rules_enabled_setting,
+            shortcut::change_text_rules_itn_enabled_setting,
+            shortcut::update_text_rules_custom,
+            shortcut::update_text_rules_disabled_builtins,
+            shortcut::get_text_rules_builtins,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
