@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+import { type } from "@tauri-apps/plugin-os";
 import { useSettings } from "../../hooks/useSettings";
 import { commands } from "@/bindings";
 import type { Aggressiveness } from "@/bindings";
@@ -21,11 +22,21 @@ const AGGRESSIVENESS_LEVELS: Aggressiveness[] = [
   "aggressive",
 ];
 
+// Learning-window bounds, mirroring MIN_WINDOW_SECS / MAX_WINDOW_SECS in
+// correction_learning/session.rs — the persisted value is clamped here so the
+// input always shows the value the session will actually use.
+const WINDOW_MIN_SECS = 10;
+const WINDOW_MAX_SECS = 300;
+
 export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
   ({ descriptionMode = "tooltip", grouped = false }) => {
     const { t } = useTranslation();
     const { getSetting, updateSetting, isUpdating, refreshSettings } =
       useSettings();
+
+    // Automatic learning (the post-paste watcher) only exists on macOS; the
+    // dictionary itself — manual add + deterministic apply — works everywhere.
+    const isMacOS = type() === "macos";
 
     const enabled = getSetting("learn_corrections_enabled") || false;
     const logOnly = getSetting("learn_corrections_log_only") || false;
@@ -45,8 +56,12 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
 
     const handleWindowChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = parseInt(event.target.value, 10);
-      if (!isNaN(value) && value > 0) {
-        updateSetting("learn_corrections_window_secs", value);
+      if (!isNaN(value)) {
+        const clamped = Math.min(
+          WINDOW_MAX_SECS,
+          Math.max(WINDOW_MIN_SECS, value),
+        );
+        updateSetting("learn_corrections_window_secs", clamped);
       }
     };
 
@@ -62,16 +77,8 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
       if (!misheard || !intended) {
         return;
       }
-      if (
-        corrections.some(
-          (c) => c.misheard.toLowerCase() === misheard.toLowerCase(),
-        )
-      ) {
-        toast.error(
-          t("settings.advanced.learnedCorrections.add.duplicate", { misheard }),
-        );
-        return;
-      }
+      // Adding an existing misheard word is allowed: the backend upserts on the
+      // misheard key, so a new target simply replaces the previous mapping.
       // The backend assigns the id / timestamp, so add through the command and
       // refresh rather than editing the list locally.
       setIsAdding(true);
@@ -128,70 +135,89 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
 
         {enabled && (
           <>
-            <ToggleSwitch
-              checked={logOnly}
-              onChange={(checked) =>
-                updateSetting("learn_corrections_log_only", checked)
-              }
-              isUpdating={isUpdating("learn_corrections_log_only")}
-              label={t("settings.advanced.learnedCorrections.trialMode.title")}
-              description={t(
-                "settings.advanced.learnedCorrections.trialMode.description",
-              )}
-              descriptionMode={descriptionMode}
-              grouped={grouped}
-            />
-
-            <div className="px-4 p-2 space-y-2">
-              <div className="text-sm font-semibold">
-                {t("settings.advanced.learnedCorrections.aggressiveness.title")}
-              </div>
-              <div className="text-xs text-mid-gray">
-                {t(
-                  "settings.advanced.learnedCorrections.aggressiveness.description",
-                )}
-              </div>
-              <Dropdown
-                className="w-48"
-                options={aggressivenessOptions}
-                selectedValue={aggressiveness}
-                onSelect={(value) =>
-                  updateSetting(
-                    "learn_corrections_aggressiveness",
-                    value as Aggressiveness,
-                  )
-                }
-                disabled={isUpdating("learn_corrections_aggressiveness")}
-              />
-              <div className="text-xs text-mid-gray">
-                {t(
-                  `settings.advanced.learnedCorrections.aggressiveness.${aggressiveness}.description`,
-                )}
-              </div>
-            </div>
-
-            <div className="px-4 p-2 space-y-2">
-              <div className="text-sm font-semibold">
-                {t("settings.advanced.learnedCorrections.window.title")}
-              </div>
-              <div className="text-xs text-mid-gray">
-                {t("settings.advanced.learnedCorrections.window.description")}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="number"
-                  min="10"
-                  max="300"
-                  value={windowSecs}
-                  onChange={handleWindowChange}
-                  disabled={isUpdating("learn_corrections_window_secs")}
-                  className="w-20"
+            {/* Auto-learning-only controls: macOS is the only platform with the
+                post-paste field watcher. Elsewhere the dictionary is manual, so
+                these are hidden and a hint explains why. */}
+            {isMacOS ? (
+              <>
+                <ToggleSwitch
+                  checked={logOnly}
+                  onChange={(checked) =>
+                    updateSetting("learn_corrections_log_only", checked)
+                  }
+                  isUpdating={isUpdating("learn_corrections_log_only")}
+                  label={t(
+                    "settings.advanced.learnedCorrections.trialMode.title",
+                  )}
+                  description={t(
+                    "settings.advanced.learnedCorrections.trialMode.description",
+                  )}
+                  descriptionMode={descriptionMode}
+                  grouped={grouped}
                 />
-                <span className="text-sm text-text">
-                  {t("settings.advanced.learnedCorrections.window.seconds")}
-                </span>
+
+                <div className="px-4 p-2 space-y-2">
+                  <div className="text-sm font-semibold">
+                    {t(
+                      "settings.advanced.learnedCorrections.aggressiveness.title",
+                    )}
+                  </div>
+                  <div className="text-xs text-mid-gray">
+                    {t(
+                      "settings.advanced.learnedCorrections.aggressiveness.description",
+                    )}
+                  </div>
+                  <Dropdown
+                    className="w-48"
+                    options={aggressivenessOptions}
+                    selectedValue={aggressiveness}
+                    onSelect={(value) =>
+                      updateSetting(
+                        "learn_corrections_aggressiveness",
+                        value as Aggressiveness,
+                      )
+                    }
+                    disabled={isUpdating("learn_corrections_aggressiveness")}
+                  />
+                  <div className="text-xs text-mid-gray">
+                    {t(
+                      `settings.advanced.learnedCorrections.aggressiveness.${aggressiveness}.description`,
+                    )}
+                  </div>
+                </div>
+
+                <div className="px-4 p-2 space-y-2">
+                  <div className="text-sm font-semibold">
+                    {t("settings.advanced.learnedCorrections.window.title")}
+                  </div>
+                  <div className="text-xs text-mid-gray">
+                    {t(
+                      "settings.advanced.learnedCorrections.window.description",
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type="number"
+                      min="10"
+                      max="300"
+                      value={windowSecs}
+                      onChange={handleWindowChange}
+                      disabled={isUpdating("learn_corrections_window_secs")}
+                      className="w-20"
+                    />
+                    <span className="text-sm text-text">
+                      {t("settings.advanced.learnedCorrections.window.seconds")}
+                    </span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="px-4 p-2">
+                <div className="text-xs text-mid-gray">
+                  {t("settings.advanced.learnedCorrections.platformHint")}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="px-4 p-2 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -268,6 +294,17 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
                             `settings.advanced.learnedCorrections.source.${correction.source}`,
                           )}
                         </span>
+                        {correction.lang && (
+                          <span
+                            className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-mid-gray/15 text-mid-gray"
+                            title={t(
+                              "settings.advanced.learnedCorrections.langBadge",
+                              { lang: correction.lang },
+                            )}
+                          >
+                            {correction.lang}
+                          </span>
+                        )}
                         {correction.count > 1 && (
                           <span className="shrink-0 text-xs text-mid-gray">
                             {t("settings.advanced.learnedCorrections.count", {
