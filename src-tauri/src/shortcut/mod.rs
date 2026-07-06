@@ -19,6 +19,7 @@ use specta::Type;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::correction_learning::{self, CorrectionSource, LearnedCorrection};
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
@@ -770,6 +771,78 @@ pub fn update_text_rules_disabled_builtins(
 #[specta::specta]
 pub fn get_text_rules_builtins() -> Vec<TextRule> {
     text_rules::builtin_rules()
+}
+
+// fork(voice-control): learned-corrections settings commands.
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_learn_corrections_enabled_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.learn_corrections_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Replace the full learned-corrections list. The review UI edits the list
+/// locally (enable toggles, deletions) and writes it back whole, mirroring
+/// `update_text_rules_custom`.
+#[tauri::command]
+#[specta::specta]
+pub fn update_learned_corrections(
+    app: AppHandle,
+    corrections: Vec<LearnedCorrection>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.learned_corrections = corrections;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Add a correction by hand. Upserts on the (case-insensitive) pair so adding
+/// the same correction twice bumps its count instead of duplicating it. Returns
+/// the stored entry so the UI can reflect the backend-assigned id.
+#[tauri::command]
+#[specta::specta]
+pub fn add_learned_correction(
+    app: AppHandle,
+    misheard: String,
+    intended: String,
+) -> Result<LearnedCorrection, String> {
+    let misheard = misheard.trim();
+    let intended = intended.trim();
+    if misheard.is_empty() || intended.is_empty() {
+        return Err("misheard and intended text must not be empty".to_string());
+    }
+
+    let mut settings = settings::get_settings(&app);
+    let entry = LearnedCorrection::new(
+        misheard,
+        intended,
+        CorrectionSource::Manual,
+        chrono::Utc::now().timestamp(),
+    );
+    let id = correction_learning::upsert(&mut settings.learned_corrections, entry);
+    let stored = settings
+        .learned_corrections
+        .iter()
+        .find(|correction| correction.id == id)
+        .cloned()
+        .expect("just-upserted correction is present");
+    settings::write_settings(&app, settings);
+    Ok(stored)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn remove_learned_correction(app: AppHandle, id: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    correction_learning::remove(&mut settings.learned_corrections, &id);
+    settings::write_settings(&app, settings);
+    Ok(())
 }
 
 #[tauri::command]

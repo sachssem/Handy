@@ -246,7 +246,8 @@
         "transcription": "Transcription",
         "history": "History",
         "experimental": "Experimental",
-        "textRules": "Text Rules"
+        "textRules": "Text Rules",
+        "learnedCorrections": "Learned Corrections"
       },
       "experimentalToggle": {
         "label": "Experimental Features",
@@ -393,6 +394,25 @@
           "glue": "Glue",
           "standalone": "Standalone"
         }
+      },
+      "learnedCorrections": {
+        "title": "Learned Corrections",
+        "description": "A personal dictionary of exact word fixes applied to every transcription, before optional AI post-processing. Add corrections for what the recognizer keeps getting wrong — names, jargon, umlauts — and they are replaced deterministically. Automatic learning from your edits arrives in a later update.",
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manual"
+        },
+        "count": "seen {{count}}×",
+        "add": {
+          "misheardPlaceholder": "Misheard",
+          "intendedPlaceholder": "Corrected",
+          "button": "Add",
+          "duplicate": "\"{{misheard}}\" is already corrected"
+        },
+        "enable": "Enable {{misheard}}",
+        "remove": "Remove {{misheard}}",
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",

@@ -71,6 +71,8 @@ rustfft = "6.4.0"
 # fork(voice-control): real FFT for the bench DTLN denoise stage (src/bench/denoise.rs).
 realfft = "3.5"
 strsim = "0.11.0"
+# fork(voice-control): word-level correction diffing (see `correction_learning`).
+similar = { version = "2", features = ["unicode"] }
 natural = "0.5.0"
 regex = "1"
 chrono = "0.4"

@@ -1644,7 +1644,10 @@ pub(crate) fn post_process_transcription_text(
     );
 
     // fork(voice-control): deterministic text rules
-    crate::text_rules::apply_text_rules(&filtered, settings)
+    let ruled = crate::text_rules::apply_text_rules(&filtered, settings);
+
+    // fork(voice-control): exact misheard→intended learned corrections
+    crate::correction_learning::apply_learned(&ruled, settings)
 }
 
 /// Decide a transcribe-cpp run's task + translation target from settings.

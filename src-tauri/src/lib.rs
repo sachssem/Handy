@@ -11,6 +11,8 @@ mod catalog;
 pub mod cli;
 mod clipboard;
 mod commands;
+// fork(voice-control): auto-learned corrections (exact misheard→intended dict).
+mod correction_learning;
 mod helpers;
 mod input;
 mod llm_client;
@@ -577,6 +579,10 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_text_rules_custom,
             shortcut::update_text_rules_disabled_builtins,
             shortcut::get_text_rules_builtins,
+            shortcut::change_learn_corrections_enabled_setting,
+            shortcut::update_learned_corrections,
+            shortcut::add_learned_correction,
+            shortcut::remove_learned_correction,
             shortcut::suspend_binding,
             shortcut::resume_binding,
             shortcut::change_mute_while_recording_setting,

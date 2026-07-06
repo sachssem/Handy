@@ -4,6 +4,7 @@ import { ShowOverlay } from "../ShowOverlay";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
 import { CustomWords } from "../CustomWords";
 import { TextRules } from "../TextRules";
+import { LearnedCorrections } from "../LearnedCorrections";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { StartHidden } from "../StartHidden";
 import { AutostartToggle } from "../AutostartToggle";
@@ -54,6 +55,10 @@ export const AdvancedSettings: React.FC = () => {
 
       <SettingsGroup title={t("settings.advanced.groups.textRules")}>
         <TextRules descriptionMode="tooltip" grouped />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("settings.advanced.groups.learnedCorrections")}>
+        <LearnedCorrections descriptionMode="tooltip" grouped />
       </SettingsGroup>
 
       <SettingsGroup title={t("settings.advanced.groups.history")}>

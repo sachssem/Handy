@@ -315,6 +315,38 @@ async updateTextRulesDisabledBuiltins(triggers: string[]) : Promise<Result<null,
 async getTextRulesBuiltins() : Promise<TextRule[]> {
     return await TAURI_INVOKE("get_text_rules_builtins");
 },
+async changeLearnCorrectionsEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateLearnedCorrections(corrections: LearnedCorrection[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_learned_corrections", { corrections }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async addLearnedCorrection(misheard: string, intended: string) : Promise<Result<LearnedCorrection, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_learned_correction", { misheard, intended }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeLearnedCorrection(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Temporarily unregister a binding while the user is editing it in the UI.
  * This avoids firing the action while keys are being recorded.
@@ -918,12 +950,13 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[] }
+overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learned_corrections?: LearnedCorrection[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
+export type CorrectionSource = "auto" | "manual"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 
 /**
@@ -945,6 +978,7 @@ export type ImplementationChangeResult = { success: boolean;
 reset_bindings: string[] }
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
+export type LearnedCorrection = { id: string; misheard: string; intended: string; count: number; last_seen: number; source: CorrectionSource; enabled: boolean }
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }

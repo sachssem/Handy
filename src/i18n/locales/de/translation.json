@@ -246,7 +246,8 @@
         "transcription": "Transkription",
         "history": "Verlauf",
         "experimental": "Experimentell",
-        "textRules": "Textregeln"
+        "textRules": "Textregeln",
+        "learnedCorrections": "Gelernte Korrekturen"
       },
       "experimentalToggle": {
         "label": "Experimentelle Funktionen",
@@ -393,6 +394,25 @@
           "glue": "Verbinden",
           "standalone": "Eigenständig"
         }
+      },
+      "learnedCorrections": {
+        "title": "Gelernte Korrekturen",
+        "description": "Ein persönliches Wörterbuch exakter Wortkorrekturen, das vor der optionalen KI-Nachbearbeitung auf jede Transkription angewendet wird. Füge Korrekturen für das hinzu, was die Erkennung immer wieder falsch versteht — Namen, Fachbegriffe, Umlaute — und sie werden deterministisch ersetzt. Automatisches Lernen aus deinen Korrekturen folgt in einem späteren Update.",
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manuell"
+        },
+        "count": "{{count}}× gesehen",
+        "add": {
+          "misheardPlaceholder": "Falsch gehört",
+          "intendedPlaceholder": "Korrigiert",
+          "button": "Hinzufügen",
+          "duplicate": "\"{{misheard}}\" wird bereits korrigiert"
+        },
+        "enable": "{{misheard}} aktivieren",
+        "remove": "{{misheard}} entfernen",
+        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
