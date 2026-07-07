@@ -1,9 +1,9 @@
 //! `record`: interactive corpus recording from the default microphone.
 //!
-//! Walks the manifest and, for each case/variant without a WAV yet, shows the
-//! sentence and records from the default mic between two Enter presses, saving a
-//! 16 kHz mono WAV to the corpus path. Reuses the app's [`AudioRecorder`], which
-//! already resamples capture to 16 kHz mono frames.
+//! Walks the manifest in fixed variant passes and, for each case/variant without
+//! a WAV yet, shows the sentence and records from the default mic between two
+//! Enter presses, saving a 16 kHz mono WAV to the corpus path. Reuses the app's
+//! [`AudioRecorder`], which already resamples capture to 16 kHz mono frames.
 
 use std::io::Write;
 use std::path::Path;
@@ -13,6 +13,8 @@ use anyhow::{anyhow, Result};
 use crate::audio_toolkit::{save_wav_file, AudioRecorder, VadPolicy};
 
 use super::corpus::Corpus;
+
+const RECORDING_PASSES: [&str; 3] = ["normal", "fast", "noise"];
 
 /// Record missing corpus audio. `only` limits to one case id; `overwrite`
 /// re-records even when the WAV already exists.
@@ -28,21 +30,41 @@ pub fn record(corpus_root: &Path, only: Option<&str>, overwrite: bool) -> Result
 
     println!(
         "Recording corpus at {}. Read each sentence aloud; press Enter to start, Enter to stop.\n\
-         Tip: per case do normal / fast / noise. For the noise take, play music or ambient noise (speaker music, café ambience) while dictating. Ctrl-C to quit anytime.\n",
+         Tip: recording runs in passes: all normal takes first, then fast, then noise. Start background music or ambience for the noise pass only. Ctrl-C to quit anytime.\n",
         corpus.root.display()
     );
 
     let mut recorded = 0usize;
     let mut skipped = 0usize;
 
-    for case in &corpus.manifest.cases {
-        if let Some(filter) = only {
-            if case.id != filter {
-                continue;
-            }
+    for (pass_index, variant) in RECORDING_PASSES.iter().enumerate() {
+        println!(
+            "── Pass {}/{}: {} ──",
+            pass_index + 1,
+            RECORDING_PASSES.len(),
+            variant
+        );
+        if *variant == "noise" {
+            println!(
+                "   Start background music or ambience now; you can stop it after this pass.\n"
+            );
         }
 
-        for variant in &case.variants {
+        for case in &corpus.manifest.cases {
+            if let Some(filter) = only {
+                if case.id != filter {
+                    continue;
+                }
+            }
+
+            if !case
+                .variants
+                .iter()
+                .any(|case_variant| case_variant == variant)
+            {
+                continue;
+            }
+
             let path = corpus.audio_path(&case.id, variant);
             if path.exists() && !overwrite {
                 skipped += 1;

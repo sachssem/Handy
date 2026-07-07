@@ -101,10 +101,10 @@ paths + casing, short-English "Cyrillic-killers", and filler/self-correction.
 4. `[Enter]` to stop — saves a 16 kHz mono WAV.
 
 Already-recorded takes are skipped (use `--overwrite` to redo, `--only <case-id>`
-to focus). One session of ~15 min covers the full corpus. Do three takes per
-case: `normal` (natural pace), `fast` (rushed), `noise` (dictation while
-background audio is playing, e.g. speaker music or café ambience). The noise
-take benchmarks robustness against real background audio.
+to focus). One session of ~15 min covers the full corpus. Recording runs in
+three passes: all sentences `normal` (natural pace), then `fast` (rushed), then
+`noise` (dictation while background audio is playing, e.g. speaker music or café
+ambience). The noise take benchmarks robustness against real background audio.
 
 Requires microphone permission for your terminal.
 
