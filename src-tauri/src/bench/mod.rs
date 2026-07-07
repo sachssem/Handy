@@ -109,6 +109,12 @@ struct RecordArgs {
     /// Only record this case id.
     #[arg(long)]
     only: Option<String>,
+    /// Re-record this case id, or one case/variant take. Repeatable.
+    ///
+    /// With --only, the effective set is the intersection. Without --only, only
+    /// the requested takes are recorded.
+    #[arg(long = "re-record")]
+    re_record: Vec<String>,
     /// Re-record even if the WAV already exists.
     #[arg(long)]
     overwrite: bool,
@@ -122,7 +128,12 @@ pub fn run() -> Result<()> {
         Command::ExportHistory(args) => {
             history_export::export(&resolve_app_data(args.app_data)?, &args.out, args.limit)
         }
-        Command::Record(args) => record::record(&args.corpus, args.only.as_deref(), args.overwrite),
+        Command::Record(args) => record::record(
+            &args.corpus,
+            args.only.as_deref(),
+            args.overwrite,
+            &args.re_record,
+        ),
     }
 }
 
