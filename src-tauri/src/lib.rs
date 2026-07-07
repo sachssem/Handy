@@ -316,9 +316,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
 
-    // fork(voice-control): create the learned-correction toast window (hidden
-    // until a correction is auto-learned).
-    correction_learning::toast::create_learned_toast(app_handle);
+    // fork(voice-control): the learned-correction toast window is created lazily
+    // on the first auto-learned correction (see correction_learning::toast), so
+    // installs that never trigger it pay for no extra webview.
 }
 
 #[tauri::command]
@@ -591,6 +591,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::add_learned_correction,
             shortcut::remove_learned_correction,
             correction_learning::toast::hide_learned_toast,
+            correction_learning::toast::take_pending_learned_toast,
             shortcut::suspend_binding,
             shortcut::resume_binding,
             shortcut::change_mute_while_recording_setting,

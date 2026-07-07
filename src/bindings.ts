@@ -379,6 +379,9 @@ async hideLearnedToast() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async takePendingLearnedToast() : Promise<LearnedCorrectionEvent | null> {
+    return await TAURI_INVOKE("take_pending_learned_toast");
+},
 /**
  * Temporarily unregister a binding while the user is editing it in the UI.
  * This avoids firing the action while keys are being recorded.

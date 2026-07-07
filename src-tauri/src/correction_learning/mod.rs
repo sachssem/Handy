@@ -37,6 +37,7 @@ pub use session::{begin_session, LearnedCorrectionEvent, LearnedCorrectionsChang
 pub use store::{remove, upsert, CorrectionSource, LearnedCorrection};
 
 use crate::settings::AppSettings;
+use crate::text_rules::{lex, Token};
 
 /// Apply enabled learned corrections to `text`.
 ///
@@ -177,79 +178,6 @@ fn match_pair(tokens: &[Token], start: usize, pair: &CompiledPair) -> Option<usi
         }
     }
     Some(ti)
-}
-
-/// A Unicode-aware lexical token. Kept local to this module (rather than shared
-/// with `text_rules`) so the feature stays independently droppable.
-enum Token {
-    /// A maximal run of alphanumeric (Unicode-aware) characters.
-    Word(String),
-    /// A maximal run of whitespace.
-    Space(String),
-    /// A maximal run of any other characters (existing punctuation/symbols).
-    Other(String),
-}
-
-impl Token {
-    fn text(&self) -> &str {
-        match self {
-            Token::Word(t) | Token::Space(t) | Token::Other(t) => t,
-        }
-    }
-}
-
-/// Split `text` into [`Token`]s, preserving the original characters exactly.
-/// Splitting on Unicode character classes keeps umlauts and `ß` inside their
-/// words, so a learned `Müller` never matches inside `Müllerstraße`.
-fn lex(text: &str) -> Vec<Token> {
-    #[derive(PartialEq, Clone, Copy)]
-    enum Class {
-        Word,
-        Space,
-        Other,
-    }
-
-    fn classify(c: char) -> Class {
-        if c.is_alphanumeric() {
-            Class::Word
-        } else if c.is_whitespace() {
-            Class::Space
-        } else {
-            Class::Other
-        }
-    }
-
-    fn make_token(class: Class, text: String) -> Token {
-        match class {
-            Class::Word => Token::Word(text),
-            Class::Space => Token::Space(text),
-            Class::Other => Token::Other(text),
-        }
-    }
-
-    let mut tokens = Vec::new();
-    let mut current = String::new();
-    let mut current_class: Option<Class> = None;
-
-    for c in text.chars() {
-        let class = classify(c);
-        match current_class {
-            Some(existing) if existing == class => current.push(c),
-            _ => {
-                if let Some(existing) = current_class {
-                    tokens.push(make_token(existing, std::mem::take(&mut current)));
-                }
-                current.push(c);
-                current_class = Some(class);
-            }
-        }
-    }
-
-    if let Some(existing) = current_class {
-        tokens.push(make_token(existing, current));
-    }
-
-    tokens
 }
 
 #[cfg(test)]

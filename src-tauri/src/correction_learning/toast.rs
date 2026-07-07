@@ -30,6 +30,8 @@
 //! ([`super::session`]), so in practice the toast never shows elsewhere; the
 //! non-macOS path exists only to keep the build whole.
 
+use crate::correction_learning::LearnedCorrectionEvent;
+use std::sync::Mutex;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 
 #[cfg(target_os = "macos")]
@@ -187,19 +189,57 @@ pub fn create_learned_toast(app_handle: &AppHandle) {
     }
 }
 
+/// The correction awaiting display, set just before [`show_learned_toast`]. The
+/// toast webview is created lazily on the first learned correction, so the
+/// `LearnedCorrectionEvent` emitted alongside can reach a listener that has not
+/// mounted yet; the freshly loaded webview reads this on mount instead of
+/// relying on that event ([`take_pending_learned_toast`]).
+static PENDING: Mutex<Option<LearnedCorrectionEvent>> = Mutex::new(None);
+
+/// Record the correction the toast should show next. Called from the learning
+/// session ([`super::session`]) right before [`show_learned_toast`].
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn set_pending_learned_toast(event: LearnedCorrectionEvent) {
+    if let Ok(mut pending) = PENDING.lock() {
+        *pending = Some(event);
+    }
+}
+
+/// Take the correction waiting to be shown, if any. The toast webview calls this
+/// on mount to render the pair that triggered its (possibly lazy) creation.
+#[tauri::command]
+#[specta::specta]
+pub fn take_pending_learned_toast() -> Option<LearnedCorrectionEvent> {
+    PENDING.lock().ok().and_then(|mut pending| pending.take())
+}
+
 /// Position the toast bottom-center on the active screen and show it without
 /// activating Handy. Called from the learning session ([`super::session`]) right
-/// after the `LearnedCorrectionEvent` is emitted, so the webview has already
-/// received its content by the time the window becomes visible.
+/// after the `LearnedCorrectionEvent` is emitted.
+///
+/// The webview is created lazily on first use — the feature is default-off, so
+/// most installs never build it — which is why the run is dispatched to the main
+/// thread (window creation is main-thread only) and idempotent. Its content
+/// arrives via the emitted event when it is already open, or via
+/// [`take_pending_learned_toast`] on the cold first mount.
 ///
 /// Only the macOS learning session calls this; elsewhere the toast never fires.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn show_learned_toast(app_handle: &AppHandle) {
-    if let Some(window) = app_handle.get_webview_window(TOAST_LABEL) {
-        if let Some((x, y)) = toast_position(app_handle, TOAST_WIDTH, TOAST_HEIGHT) {
-            let _ = window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+    let app = app_handle.clone();
+    if let Err(e) = app_handle.run_on_main_thread(move || {
+        if app.get_webview_window(TOAST_LABEL).is_none() {
+            create_learned_toast(&app);
         }
-        let _ = window.show();
+        if let Some(window) = app.get_webview_window(TOAST_LABEL) {
+            if let Some((x, y)) = toast_position(&app, TOAST_WIDTH, TOAST_HEIGHT) {
+                let _ =
+                    window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+            }
+            let _ = window.show();
+        }
+    }) {
+        log::error!("Failed to show learned-correction toast: {}", e);
     }
 }
 

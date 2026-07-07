@@ -438,11 +438,7 @@
         },
         "enable": "Enable {{misheard}}",
         "remove": "Remove {{misheard}}",
-        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription.",
-        "toast": {
-          "title": "Learned: “{{misheard}}” → “{{intended}}”",
-          "undo": "Undo"
-        }
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -700,5 +696,9 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing..."
+  },
+  "learnedToast": {
+    "title": "Learned: “{{misheard}}” → “{{intended}}”",
+    "undo": "Undo"
   }
 }

@@ -438,11 +438,7 @@
         },
         "enable": "{{misheard}} aktivieren",
         "remove": "{{misheard}} entfernen",
-        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet.",
-        "toast": {
-          "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
-          "undo": "Rückgängig"
-        }
+        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -697,6 +693,10 @@
   "overlay": {
     "transcribing": "Transkribiere...",
     "processing": "Verarbeite..."
+  },
+  "learnedToast": {
+    "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
+    "undo": "Rückgängig"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"
