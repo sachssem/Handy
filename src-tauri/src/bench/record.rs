@@ -28,7 +28,7 @@ pub fn record(corpus_root: &Path, only: Option<&str>, overwrite: bool) -> Result
 
     println!(
         "Recording corpus at {}. Read each sentence aloud; press Enter to start, Enter to stop.\n\
-         Tip: one quiet room, per case do normal / fast / dialect. Ctrl-C to quit anytime.\n",
+         Tip: per case do normal / fast / noise. For the noise take, play music or ambient noise (speaker music, café ambience) while dictating. Ctrl-C to quit anytime.\n",
         corpus.root.display()
     );
 

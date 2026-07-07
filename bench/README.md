@@ -52,13 +52,13 @@ absolute paths) to the actual `.gguf` file or ONNX model directory.
 
 Comma-separated. Each entry is `[name=][engine:]path`:
 
-| Form | Example | Engine |
-| --- | --- | --- |
-| `cpp:` / `whisper:` + `.gguf`/`.bin` | `cpp:/m/turbo.gguf` | transcribe-cpp (whisper family, qwen3-asr) |
-| `parakeet:` + ONNX dir | `parakeet:/m/parakeet-tdt-0.6b-v3-int8` | Parakeet ONNX |
-| `canary:` + ONNX dir | `canary:/m/canary-int8` | Canary ONNX (uses `--language`) |
-| bare `.gguf`/`.bin` file | `/m/model.gguf` | inferred as transcribe-cpp |
-| `name=` prefix | `turbo=cpp:/m/turbo.gguf` | sets the display name |
+| Form                                 | Example                                 | Engine                                     |
+| ------------------------------------ | --------------------------------------- | ------------------------------------------ |
+| `cpp:` / `whisper:` + `.gguf`/`.bin` | `cpp:/m/turbo.gguf`                     | transcribe-cpp (whisper family, qwen3-asr) |
+| `parakeet:` + ONNX dir               | `parakeet:/m/parakeet-tdt-0.6b-v3-int8` | Parakeet ONNX                              |
+| `canary:` + ONNX dir                 | `canary:/m/canary-int8`                 | Canary ONNX (uses `--language`)            |
+| bare `.gguf`/`.bin` file             | `/m/model.gguf`                         | inferred as transcribe-cpp                 |
+| `name=` prefix                       | `turbo=cpp:/m/turbo.gguf`               | sets the display name                      |
 
 A bare directory is ambiguous (Parakeet vs Canary) and must be engine-tagged.
 Non-whisper transcribe-cpp archs (e.g. qwen3-asr) reject language hints, so the
@@ -77,7 +77,7 @@ id = "punct-basic-de"
 spoken = "Guten Tag Punkt hallo Komma wie geht es dir Fragezeichen"
 expected = "Guten Tag. Hallo, wie geht es dir?"
 tags = ["punctuation", "de"]
-variants = ["normal", "fast", "dialect"]   # audio at punct-basic-de/<variant>.wav
+variants = ["normal", "fast", "noise"]   # audio at punct-basic-de/<variant>.wav
 ```
 
 - `spoken` — read aloud; the WER/CER reference.
@@ -85,7 +85,7 @@ variants = ["normal", "fast", "dialect"]   # audio at punct-basic-de/<variant>.w
   reference. Derived from the `text_rules` semantics (see the 28 tests under
   `src-tauri/src/text_rules/`). Newlines in `expected` are real.
 - `tags` — group metrics in the report.
-- `variants` — recorded audio files (default `normal`, `fast`, `dialect`).
+- `variants` — recorded audio files (default `normal`, `fast`, `noise`).
 
 The shipped manifest ships ~15 cases covering German prose, DE punctuation
 commands, EN keywords, ITN (compounds, decimals, guards), DE/EN code-switching,
@@ -101,9 +101,10 @@ paths + casing, short-English "Cyrillic-killers", and filler/self-correction.
 4. `[Enter]` to stop — saves a 16 kHz mono WAV.
 
 Already-recorded takes are skipped (use `--overwrite` to redo, `--only <case-id>`
-to focus). One quiet-room session of ~15 min covers the full corpus. Do three
-takes per case: `normal` (natural pace), `fast` (rushed), `dialect`
-(Swabian/regional) — these are where dictation actually breaks.
+to focus). One session of ~15 min covers the full corpus. Do three takes per
+case: `normal` (natural pace), `fast` (rushed), `noise` (dictation while
+background audio is playing, e.g. speaker music or café ambience). The noise
+take benchmarks robustness against real background audio.
 
 Requires microphone permission for your terminal.
 

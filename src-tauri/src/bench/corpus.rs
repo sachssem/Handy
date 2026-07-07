@@ -16,7 +16,7 @@ pub fn default_variants() -> Vec<String> {
     vec![
         "normal".to_string(),
         "fast".to_string(),
-        "dialect".to_string(),
+        "noise".to_string(),
     ]
 }
 
@@ -109,14 +109,14 @@ id = "punct-basic-de"
 spoken = "Guten Tag Punkt hallo Komma wie geht es dir Fragezeichen"
 expected = "Guten Tag. Hallo, wie geht es dir?"
 tags = ["punctuation", "de"]
-variants = ["normal", "fast", "dialect"]
+variants = ["normal", "fast", "noise"]
 "#;
         let m = Manifest::from_toml(toml).unwrap();
         assert_eq!(m.cases.len(), 1);
         let c = &m.cases[0];
         assert_eq!(c.id, "punct-basic-de");
         assert_eq!(c.expected, "Guten Tag. Hallo, wie geht es dir?");
-        assert_eq!(c.variants, vec!["normal", "fast", "dialect"]);
+        assert_eq!(c.variants, vec!["normal", "fast", "noise"]);
     }
 
     #[test]
