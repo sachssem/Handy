@@ -457,11 +457,7 @@
         },
         "enable": "Enable {{misheard}}",
         "remove": "Remove {{misheard}}",
-        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription.",
-        "toast": {
-          "title": "Learned: “{{misheard}}” → “{{intended}}”",
-          "undo": "Undo"
-        }
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -803,5 +799,9 @@
     "learnMore": "How to fix",
     "recorderBlocked": "Can't record shortcuts right now — macOS Secure Input is blocking key events. Resolve the Secure Input warning first.",
     "dismiss": "Dismiss"
+  },
+  "learnedToast": {
+    "title": "Learned: “{{misheard}}” → “{{intended}}”",
+    "undo": "Undo"
   }
 }

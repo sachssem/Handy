@@ -65,9 +65,11 @@
 .lt-card.leaving {
   opacity: 0;
   transform: translateY(6px) scale(0.98);
+  /* Exit duration is driven by the component's EXIT_MS via `--lt-exit-ms`, so
+     the window is ordered out exactly when this animation ends. */
   transition:
-    opacity 180ms ease,
-    transform 200ms ease;
+    opacity var(--lt-exit-ms) ease,
+    transform var(--lt-exit-ms) ease;
 }
 
 /* "Learned" badge — a checkmark in a soft accent disc, echoing the overlay's

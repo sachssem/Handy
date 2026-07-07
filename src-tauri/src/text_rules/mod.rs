@@ -148,6 +148,15 @@ pub(crate) enum Token {
     Other(String),
 }
 
+impl Token {
+    /// The token's verbatim characters, regardless of class.
+    pub(crate) fn text(&self) -> &str {
+        match self {
+            Token::Word(t) | Token::Space(t) | Token::Other(t) => t,
+        }
+    }
+}
+
 /// Split `text` into [`Token`]s, preserving the original characters exactly.
 pub(crate) fn lex(text: &str) -> Vec<Token> {
     #[derive(PartialEq, Clone, Copy)]

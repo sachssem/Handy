@@ -259,12 +259,13 @@ fn is_word(token: &str) -> bool {
     token.chars().any(char::is_alphanumeric)
 }
 
-/// Lowercase and strip non-alphanumeric characters for gate comparisons.
+/// Lowercase, punctuation-stripped word list used both for gate comparisons and
+/// by the session's relatedness check.
 ///
 /// Deliberately does *not* fold `ß`/`ss` or strip diacritics, so `Muller →
-/// Müller` and `Gruss → Gruß` remain learnable rather than looking like
-/// case-only noise.
-fn normalize(text: &str) -> String {
+/// Müller` and `Gruss → Gruß` remain distinct rather than looking like case-only
+/// noise.
+pub(crate) fn normalized_words(text: &str) -> Vec<String> {
     text.split_whitespace()
         .map(|word| {
             word.chars()
@@ -273,8 +274,12 @@ fn normalize(text: &str) -> String {
                 .collect::<String>()
         })
         .filter(|word| !word.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ")
+        .collect()
+}
+
+/// The [`normalized_words`] joined into a single space-separated string.
+fn normalize(text: &str) -> String {
+    normalized_words(text).join(" ")
 }
 
 fn word_count(normalized: &str) -> usize {

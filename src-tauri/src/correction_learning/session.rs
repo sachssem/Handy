@@ -30,6 +30,8 @@
 //! Only macOS has the Accessibility read; elsewhere [`begin_session`] is a
 //! no-op.
 
+use crate::correction_learning::ax_reader::FocusRead;
+use crate::correction_learning::differ::{self, Candidate, GateProfile, PhoneticLang};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -60,11 +62,11 @@ pub struct LearnedCorrectionsChanged {}
 /// all but the fixed word). Pure and unit-tested.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn is_related_to_snapshot(original: &str, current: &str) -> bool {
-    let original_words = normalized_words(original);
+    let original_words = differ::normalized_words(original);
     if original_words.is_empty() {
         return false;
     }
-    let current_words = normalized_words(current);
+    let current_words = differ::normalized_words(current);
     if current_words.is_empty() {
         // Field cleared out entirely — not a correction, not related.
         return false;
@@ -104,26 +106,89 @@ fn contains_word_run(haystack: &[String], needle: &[String]) -> bool {
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 const RELATED_WORD_RATIO: f64 = 0.5;
 
-/// Lowercased whitespace-split word list, diacritics preserved (so `München`
-/// and `Munchen` stay distinct, matching the differ's normalization).
+/// The decision one poll tick reaches from a field read, kept pure so the poll
+/// loop is a thin driver and the branching is unit-testable. `Continue` also
+/// carries the tracked state the next tick should start from.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-fn normalized_words(text: &str) -> Vec<String> {
-    text.split_whitespace()
-        .map(|word| {
-            word.chars()
-                .filter(|c| c.is_alphanumeric())
-                .flat_map(char::to_lowercase)
-                .collect::<String>()
-        })
-        .filter(|word| !word.is_empty())
-        .collect()
+#[derive(Debug)]
+enum TickDecision {
+    /// Stop the session silently (secure field or the target app quit).
+    Teardown,
+    /// The candidate has settled — learn it, then stop.
+    Commit(Candidate),
+    /// Keep polling with this tracked state.
+    Continue {
+        last_text: Option<String>,
+        last_candidate: Option<Candidate>,
+    },
+}
+
+/// Decide what one poll tick does, given the field `read`, the pasted `original`
+/// and the state carried from the previous tick. Pure: side effects (learning,
+/// sleeping, generation/expiry checks) stay in the driver.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn decide_tick(
+    read: FocusRead,
+    original: &str,
+    last_text: Option<String>,
+    last_candidate: Option<Candidate>,
+    profile: &GateProfile,
+    lang: PhoneticLang,
+) -> TickDecision {
+    match read {
+        // Secure field or the app quit → tear the session down silently.
+        FocusRead::Secure | FocusRead::AppGone => TickDecision::Teardown,
+        // Nothing readable this tick; reset stability and force the next text
+        // read to be diffed afresh.
+        FocusRead::NoSignal => TickDecision::Continue {
+            last_text: None,
+            last_candidate: None,
+        },
+        FocusRead::Text(current) => {
+            // Byte-identical to the previous tick: the field has settled, so skip
+            // the relatedness + diff work. A candidate already pending from the
+            // previous tick is now confirmed stable.
+            if last_text.as_deref() == Some(current.as_str()) {
+                return match last_candidate {
+                    Some(candidate) => TickDecision::Commit(candidate),
+                    None => TickDecision::Continue {
+                        last_text,
+                        last_candidate: None,
+                    },
+                };
+            }
+
+            if !is_related_to_snapshot(original, &current) {
+                // Field no longer relates to the paste (navigated away).
+                return TickDecision::Continue {
+                    last_text: Some(current),
+                    last_candidate: None,
+                };
+            }
+            match differ::extract_correction(original, &current, profile, lang) {
+                // Require the same candidate on two consecutive reads so we learn
+                // only after the edit has settled.
+                Some(candidate) if last_candidate.as_ref() == Some(&candidate) => {
+                    TickDecision::Commit(candidate)
+                }
+                Some(candidate) => TickDecision::Continue {
+                    last_text: Some(current),
+                    last_candidate: Some(candidate),
+                },
+                None => TickDecision::Continue {
+                    last_text: Some(current),
+                    last_candidate: None,
+                },
+            }
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
 mod imp {
-    use super::{is_related_to_snapshot, LearnedCorrectionEvent};
-    use crate::correction_learning::ax_reader::{self, FocusRead};
-    use crate::correction_learning::differ::{self, Candidate, GateProfile, PhoneticLang};
+    use super::{decide_tick, LearnedCorrectionEvent, TickDecision};
+    use crate::correction_learning::ax_reader;
+    use crate::correction_learning::differ::{Candidate, GateProfile, PhoneticLang};
     use crate::correction_learning::resolved_language;
     use crate::correction_learning::store::{self, CorrectionSource, LearnedCorrection};
     use crate::settings::{self, AppSettings, PasteMethod};
@@ -219,8 +284,8 @@ mod imp {
         lang_code: String,
     }
 
-    /// The polling window: re-read the target field, diff, and commit a stable
-    /// gated candidate. Returns on commit, teardown, expiry, or supersession.
+    /// The polling window: re-read the target field, run [`decide_tick`], and
+    /// apply its decision. Returns on commit, teardown, expiry, or supersession.
     fn run_session(
         app: AppHandle,
         generation: u64,
@@ -244,50 +309,26 @@ mod imp {
                 return;
             }
 
-            match ax_reader::read_focused(pid, app_name.as_deref()) {
-                // Secure field or the app quit → tear the session down silently.
-                FocusRead::Secure | FocusRead::AppGone => return,
-                // Nothing readable this tick; reset stability and force the next
-                // text read to be diffed afresh.
-                FocusRead::NoSignal => {
-                    last_candidate = None;
-                    last_text = None;
+            let read = ax_reader::read_focused(pid, app_name.as_deref());
+            match decide_tick(
+                read,
+                &original,
+                last_text.take(),
+                last_candidate.take(),
+                &params.profile,
+                params.lang,
+            ) {
+                TickDecision::Teardown => return,
+                TickDecision::Commit(candidate) => {
+                    commit(&app, candidate, &params.lang_code);
+                    return;
                 }
-                FocusRead::Text(current) => {
-                    // Byte-identical to the previous tick: the field has settled,
-                    // so skip the relatedness + diff work. A candidate already
-                    // pending from the previous tick is now confirmed stable.
-                    if last_text.as_deref() == Some(current.as_str()) {
-                        if let Some(candidate) = last_candidate.take() {
-                            commit(&app, candidate, &params.lang_code);
-                            return;
-                        }
-                        continue;
-                    }
-                    last_text = Some(current.clone());
-
-                    if !is_related_to_snapshot(&original, &current) {
-                        // Field no longer relates to the paste (navigated away).
-                        last_candidate = None;
-                        continue;
-                    }
-                    match differ::extract_correction(
-                        &original,
-                        &current,
-                        &params.profile,
-                        params.lang,
-                    ) {
-                        Some(candidate) => {
-                            // Require the same candidate on two consecutive reads
-                            // so we learn only after the edit has settled.
-                            if last_candidate.as_ref() == Some(&candidate) {
-                                commit(&app, candidate, &params.lang_code);
-                                return;
-                            }
-                            last_candidate = Some(candidate);
-                        }
-                        None => last_candidate = None,
-                    }
+                TickDecision::Continue {
+                    last_text: next_text,
+                    last_candidate: next_candidate,
+                } => {
+                    last_text = next_text;
+                    last_candidate = next_candidate;
                 }
             }
         }
@@ -328,10 +369,14 @@ mod imp {
             misheard: candidate.misheard,
             intended: candidate.intended,
         };
+        // Stash the pair before showing, so the toast webview — created lazily on
+        // this very correction — can pick it up on mount even if it wasn't yet
+        // listening when the event below was emitted.
+        crate::correction_learning::toast::set_pending_learned_toast(event.clone());
         if let Err(err) = event.emit(app) {
             log::error!("Failed to emit learned-correction event: {}", err);
         }
-        // The toast webview has just received the event; reveal its window.
+        // Reveal the toast window (created on first use here).
         crate::correction_learning::toast::show_learned_toast(app);
     }
 }
@@ -346,7 +391,113 @@ pub fn begin_session(_app: &tauri::AppHandle, _original: String) {}
 
 #[cfg(test)]
 mod tests {
-    use super::is_related_to_snapshot;
+    use super::{decide_tick, is_related_to_snapshot, TickDecision};
+    use crate::correction_learning::ax_reader::FocusRead;
+    use crate::correction_learning::differ::{
+        Aggressiveness, Candidate, GateProfile, PhoneticLang,
+    };
+
+    fn profile() -> GateProfile {
+        GateProfile::for_aggressiveness(Aggressiveness::Balanced)
+    }
+
+    fn tick(read: FocusRead, last_text: Option<&str>, last: Option<Candidate>) -> TickDecision {
+        decide_tick(
+            read,
+            "send it to Jon",
+            last_text.map(str::to_string),
+            last,
+            &profile(),
+            PhoneticLang::Other,
+        )
+    }
+
+    #[test]
+    fn secure_and_gone_reads_tear_down() {
+        assert!(matches!(
+            tick(FocusRead::Secure, None, None),
+            TickDecision::Teardown
+        ));
+        assert!(matches!(
+            tick(FocusRead::AppGone, None, None),
+            TickDecision::Teardown
+        ));
+    }
+
+    #[test]
+    fn no_signal_resets_tracked_state() {
+        let candidate = Candidate {
+            misheard: "Jon".into(),
+            intended: "John".into(),
+        };
+        assert!(matches!(
+            tick(
+                FocusRead::NoSignal,
+                Some("send it to John"),
+                Some(candidate)
+            ),
+            TickDecision::Continue {
+                last_text: None,
+                last_candidate: None,
+            }
+        ));
+    }
+
+    #[test]
+    fn first_edit_is_pending_then_committed_on_stable_read() {
+        // First read of the edit: candidate pending, not yet committed.
+        let first = tick(FocusRead::Text("send it to John".into()), None, None);
+        let candidate = match first {
+            TickDecision::Continue {
+                last_candidate: Some(candidate),
+                ..
+            } => candidate,
+            other => panic!("expected a pending candidate, got {other:?}"),
+        };
+        assert_eq!(candidate.misheard, "Jon");
+        assert_eq!(candidate.intended, "John");
+        // Same candidate seen again → commit.
+        assert!(matches!(
+            tick(
+                FocusRead::Text("send it to John".into()),
+                Some("send it to John"),
+                Some(candidate),
+            ),
+            TickDecision::Commit(_)
+        ));
+    }
+
+    #[test]
+    fn byte_identical_read_confirms_pending_candidate() {
+        let candidate = Candidate {
+            misheard: "Jon".into(),
+            intended: "John".into(),
+        };
+        // Field text unchanged since the pending tick → settled → commit.
+        assert!(matches!(
+            tick(
+                FocusRead::Text("send it to John".into()),
+                Some("send it to John"),
+                Some(candidate),
+            ),
+            TickDecision::Commit(_)
+        ));
+    }
+
+    #[test]
+    fn unrelated_field_drops_candidate() {
+        assert!(matches!(
+            tick(
+                FocusRead::Text("completely different text now".into()),
+                None,
+                None,
+            ),
+            TickDecision::Continue {
+                last_candidate: None,
+                ..
+            }
+        ));
+    }
 
     #[test]
     fn single_word_correction_stays_related() {

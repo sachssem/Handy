@@ -60,27 +60,38 @@ const LearnedToast: React.FC = () => {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
+    const showCorrection = async (payload: LearnedCorrectionEvent) => {
+      await syncLanguageFromSettings();
+      clearTimers();
+      setContent(payload);
+      if (visibleRef.current) {
+        // Already on screen — swap content and restart the timer, no re-entrance.
+        setVisible(true);
+      } else {
+        // Mount hidden, then flip to visible next frame so the entrance
+        // transition actually plays (a paint has to see the hidden state first).
+        setVisible(false);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => setVisible(true)),
+        );
+      }
+      hideTimer.current = window.setTimeout(dismiss, VISIBLE_MS);
+    };
+
     events.learnedCorrectionEvent
-      .listen(async (event) => {
-        await syncLanguageFromSettings();
-        clearTimers();
-        setContent(event.payload);
-        if (visibleRef.current) {
-          // Already on screen — swap content and restart the timer, no re-entrance.
-          setVisible(true);
-        } else {
-          // Mount hidden, then flip to visible next frame so the entrance
-          // transition actually plays (a paint has to see the hidden state first).
-          setVisible(false);
-          requestAnimationFrame(() =>
-            requestAnimationFrame(() => setVisible(true)),
-          );
-        }
-        hideTimer.current = window.setTimeout(dismiss, VISIBLE_MS);
-      })
+      .listen((event) => showCorrection(event.payload))
       .then((fn) => {
         unlisten = fn;
       });
+
+    // The toast window is created lazily on the first learned correction, so the
+    // event that triggered it may have fired before this listener was ready. On
+    // mount, pick up any correction the backend stashed for exactly that case.
+    void commands.takePendingLearnedToast().then((pending) => {
+      if (pending) {
+        void showCorrection(pending);
+      }
+    });
 
     return () => {
       unlisten?.();
@@ -105,7 +116,13 @@ const LearnedToast: React.FC = () => {
   if (!content) return null;
 
   return (
-    <div dir={direction} className="lt-stage">
+    <div
+      dir={direction}
+      className="lt-stage"
+      // Single source of truth for the exit duration: the CSS `.leaving`
+      // transition reads this, so it always matches EXIT_MS.
+      style={{ "--lt-exit-ms": `${EXIT_MS}ms` } as React.CSSProperties}
+    >
       <div className={`lt-card ${isVisible ? "show" : "leaving"}`}>
         <span className="lt-badge" aria-hidden="true">
           <svg viewBox="0 0 16 16">
@@ -120,13 +137,13 @@ const LearnedToast: React.FC = () => {
           </svg>
         </span>
         <span className="lt-title">
-          {t("settings.advanced.learnedCorrections.toast.title", {
+          {t("learnedToast.title", {
             misheard: content.misheard,
             intended: content.intended,
           })}
         </span>
         <button className="lt-undo" onClick={handleUndo}>
-          {t("settings.advanced.learnedCorrections.toast.undo")}
+          {t("learnedToast.undo")}
         </button>
       </div>
     </div>
