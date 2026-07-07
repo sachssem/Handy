@@ -98,12 +98,28 @@ paths + casing, short-English "Cyrillic-killers", and filler/self-correction.
 1. prints the sentence,
 2. `[Enter]` to start recording (or `s` + Enter to skip),
 3. read it aloud,
-4. `[Enter]` to stop — saves a 16 kHz mono WAV.
+4. `[Enter]` to stop — saves a 16 kHz mono WAV,
+5. `[Enter]` for the next take, or `r` + Enter to immediately re-record the
+   same take and overwrite that WAV.
 
-Already-recorded takes are skipped (use `--overwrite` to redo, `--only <case-id>`
-to focus). One session of ~15 min covers the full corpus. Recording runs in
-three passes: all sentences `normal` (natural pace), then `fast` (rushed), then
-`noise` (dictation while background audio is playing, e.g. speaker music or café
+Recording is idempotent by default: already-recorded takes are skipped, missing
+takes are recorded, and Ctrl-C is safe for resuming later. At startup the
+recorder prints total, already-recorded, and missing counts. If the corpus is
+partially recorded, press Enter to continue missing-only, or type `all` + Enter
+to re-record every take from scratch. Existing WAVs are overwritten only after a
+new take has been captured and saved directly to the final path.
+
+Use `--only <case-id>` to focus on one case. Use repeatable
+`--re-record <spec>` for targeted redo, where `<spec>` is either `<case-id>` for
+all variants of that case or `<case-id>/<variant>` for one take. With
+`--re-record` alone, only matching takes are recorded; missing files elsewhere
+are not filled in. With both `--only` and `--re-record`, the effective set is
+their intersection. `--overwrite` remains available for re-recording all
+selected takes.
+
+One session of ~15 min covers the full corpus. Recording runs in three passes:
+all sentences `normal` (natural pace), then `fast` (rushed), then `noise`
+(dictation while background audio is playing, e.g. speaker music or café
 ambience). The noise take benchmarks robustness against real background audio.
 
 Requires microphone permission for your terminal.
