@@ -7,7 +7,6 @@ import type {
   TranscribeAcceleratorSetting,
   OrtAcceleratorSetting,
   TextRule,
-  LearnedCorrection,
 } from "@/bindings";
 import { commands } from "@/bindings";
 
@@ -137,8 +136,9 @@ const settingUpdaters: {
     commands.changeLearnCorrectionsAggressivenessSetting(value as string),
   learn_corrections_window_secs: (value) =>
     commands.changeLearnCorrectionsWindowSecsSetting(value as number),
-  learned_corrections: (value) =>
-    commands.updateLearnedCorrections(value as LearnedCorrection[]),
+  // No `learned_corrections` whole-list updater: the list is mutated only via
+  // granular commands (add / setLearnedCorrectionEnabled / remove) so a stale
+  // copy can never clobber a concurrently auto-learned pair.
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

@@ -246,7 +246,8 @@
         "transcription": "轉錄",
         "history": "歷史",
         "experimental": "實驗性",
-        "textRules": "文字規則"
+        "textRules": "文字規則",
+        "learnedCorrections": "已學習的修正"
       },
       "experimentalToggle": {
         "label": "實驗性功能",
@@ -393,6 +394,51 @@
           "glue": "黏合",
           "standalone": "獨立"
         }
+      },
+      "learnedCorrections": {
+        "title": "已學習的修正",
+        "description": "一個包含精確詞彙修正的個人詞典，會在可選的 AI 後處理之前套用於每次轉錄。為辨識器反覆聽錯的內容新增修正——姓名、行話、變音符號——它們會被確定性地替換。在 macOS 上，Handy 還能自行學習：當您在貼上後不久修正某個詞時，該修正會被自動擷取。",
+        "trialMode": {
+          "title": "試用模式（試執行）",
+          "description": "執行完整的學習流程，但僅記錄可能的修正而不儲存它們。用它在幾天內觀察 Handy 會學到什麼，然後再讓它變更您的詞典。"
+        },
+        "aggressiveness": {
+          "title": "學習積極程度",
+          "description": "編輯被接受為真正聽錯的容易程度。較寬鬆的等級學習更多，但有污染詞典的風險。",
+          "conservative": {
+            "label": "保守",
+            "description": "僅學習非常接近、發音相似的修正。對錯誤項目最安全。"
+          },
+          "balanced": {
+            "label": "均衡",
+            "description": "接受中等差異的修正；語音僅供參考。"
+          },
+          "aggressive": {
+            "label": "積極",
+            "description": "甚至學習鬆散相關的修正，包括日常詞彙。錯誤項目風險最高。"
+          }
+        },
+        "window": {
+          "title": "學習視窗",
+          "description": "貼上後 Handy 監看該欄位以擷取手動修正的時長。",
+          "seconds": "秒"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "自動",
+          "manual": "手動"
+        },
+        "count": "出現 {{count}} 次",
+        "langBadge": "已為語言學習：{{lang}}",
+        "platformHint": "自動學習僅在 macOS 上執行。您仍可在下方手動新增修正，它們會在所有平台上套用。",
+        "add": {
+          "misheardPlaceholder": "聽錯的",
+          "intendedPlaceholder": "已更正",
+          "button": "新增"
+        },
+        "enable": "啟用 {{misheard}}",
+        "remove": "刪除 {{misheard}}",
+        "empty": "還沒有修正。新增一個辨識器反覆聽錯的詞——例如姓名或技術術語——它的修正將套用於日後每次轉錄。"
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "正在轉錄...",
     "processing": "處理中..."
+  },
+  "learnedToast": {
+    "title": "已學習：「{{misheard}}」→「{{intended}}」",
+    "undo": "復原"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

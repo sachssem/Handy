@@ -246,7 +246,8 @@
         "transcription": "Transcrição",
         "history": "Histórico",
         "experimental": "Experimental",
-        "textRules": "Regras de Texto"
+        "textRules": "Regras de Texto",
+        "learnedCorrections": "Correções aprendidas"
       },
       "experimentalToggle": {
         "label": "Recursos Experimentais",
@@ -393,6 +394,51 @@
           "glue": "Colar",
           "standalone": "Independente"
         }
+      },
+      "learnedCorrections": {
+        "title": "Correções aprendidas",
+        "description": "Um dicionário pessoal de correções exatas de palavras aplicadas a cada transcrição, antes do pós-processamento opcional por IA. Adicione correções para o que o reconhecedor insiste em errar — nomes, jargões, tremas — e elas são substituídas de forma determinística. No macOS, o Handy também pode aprendê-las sozinho: quando você corrige uma palavra logo após colar, essa correção é capturada automaticamente.",
+        "trialMode": {
+          "title": "Modo de teste (simulação)",
+          "description": "Executa todo o processo de aprendizado, mas apenas registra as possíveis correções em vez de armazená-las. Use para observar o que o Handy aprenderia por alguns dias antes de deixá-lo alterar seu dicionário."
+        },
+        "aggressiveness": {
+          "title": "Agressividade do aprendizado",
+          "description": "Com que facilidade uma edição é aceita como um erro de audição genuíno. Níveis mais flexíveis aprendem mais, mas correm o risco de poluir o dicionário.",
+          "conservative": {
+            "label": "Conservador",
+            "description": "Apenas correções muito próximas e de som semelhante são aprendidas. Mais seguro contra entradas erradas."
+          },
+          "balanced": {
+            "label": "Equilibrado",
+            "description": "Aceita correções moderadamente diferentes; a fonética é apenas indicativa."
+          },
+          "aggressive": {
+            "label": "Agressivo",
+            "description": "Aprende até correções vagamente relacionadas, incluindo palavras do dia a dia. Maior risco de entradas ruins."
+          }
+        },
+        "window": {
+          "title": "Janela de aprendizado",
+          "description": "Por quanto tempo após colar o Handy observa o campo em busca de uma correção manual.",
+          "seconds": "segundos"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manual"
+        },
+        "count": "visto {{count}}×",
+        "langBadge": "Aprendido para o idioma: {{lang}}",
+        "platformHint": "O aprendizado automático funciona apenas no macOS. Você ainda pode adicionar correções manualmente abaixo, e elas são aplicadas em todas as plataformas.",
+        "add": {
+          "misheardPlaceholder": "Mal ouvido",
+          "intendedPlaceholder": "Corrigido",
+          "button": "Adicionar"
+        },
+        "enable": "Ativar {{misheard}}",
+        "remove": "Remover {{misheard}}",
+        "empty": "Ainda não há correções. Adicione uma palavra que o reconhecedor insiste em ouvir errado — como um nome ou termo técnico — e sua correção será aplicada a todas as transcrições futuras."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Transcrevendo...",
     "processing": "Processando..."
+  },
+  "learnedToast": {
+    "title": "Aprendido: “{{misheard}}” → “{{intended}}”",
+    "undo": "Desfazer"
   },
   "whatsNew": {
     "title": "Novidades no Handy v{{version}}"

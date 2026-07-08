@@ -246,7 +246,8 @@
         "transcription": "Transkrypcja",
         "history": "Historia",
         "experimental": "Eksperymentalne",
-        "textRules": "Reguły tekstu"
+        "textRules": "Reguły tekstu",
+        "learnedCorrections": "Wyuczone korekty"
       },
       "experimentalToggle": {
         "label": "Funkcje Eksperymentalne",
@@ -393,6 +394,51 @@
           "glue": "Sklej",
           "standalone": "Samodzielne"
         }
+      },
+      "learnedCorrections": {
+        "title": "Wyuczone korekty",
+        "description": "Osobisty słownik dokładnych poprawek słów stosowanych do każdej transkrypcji, przed opcjonalnym przetwarzaniem AI. Dodaj poprawki dla tego, co system rozpoznawania wciąż źle rozpoznaje — nazwy, żargon, umlauty — a zostaną one zamienione w sposób deterministyczny. Na macOS Handy może też uczyć się ich samodzielnie: gdy poprawisz słowo krótko po wklejeniu, ta poprawka zostanie zarejestrowana automatycznie.",
+        "trialMode": {
+          "title": "Tryb próbny (przebieg testowy)",
+          "description": "Uruchamia cały mechanizm uczenia, ale tylko zapisuje w logu potencjalne poprawki zamiast je przechowywać. Użyj go, aby przez kilka dni obserwować, czego Handy by się nauczył, zanim pozwolisz mu zmienić Twój słownik."
+        },
+        "aggressiveness": {
+          "title": "Agresywność uczenia",
+          "description": "Jak łatwo edycja jest akceptowana jako prawdziwe przesłyszenie. Luźniejsze poziomy uczą się więcej, ale grożą zanieczyszczeniem słownika.",
+          "conservative": {
+            "label": "Konserwatywny",
+            "description": "Uczone są tylko bardzo bliskie, podobnie brzmiące poprawki. Najbezpieczniejszy pod względem błędnych wpisów."
+          },
+          "balanced": {
+            "label": "Zrównoważony",
+            "description": "Akceptuje umiarkowanie różne poprawki; fonetyka ma jedynie charakter pomocniczy."
+          },
+          "aggressive": {
+            "label": "Agresywny",
+            "description": "Uczy się nawet luźno powiązanych poprawek, w tym codziennych słów. Najwyższe ryzyko błędnych wpisów."
+          }
+        },
+        "window": {
+          "title": "Okno uczenia",
+          "description": "Jak długo po wklejeniu Handy obserwuje pole w poszukiwaniu ręcznej poprawki.",
+          "seconds": "sekundy"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Ręcznie"
+        },
+        "count": "wykryto {{count}}×",
+        "langBadge": "Wyuczono dla języka: {{lang}}",
+        "platformHint": "Automatyczne uczenie działa tylko na macOS. Poniżej możesz nadal dodawać poprawki ręcznie, a będą stosowane na każdej platformie.",
+        "add": {
+          "misheardPlaceholder": "Przesłyszane",
+          "intendedPlaceholder": "Poprawione",
+          "button": "Dodaj"
+        },
+        "enable": "Włącz {{misheard}}",
+        "remove": "Usuń {{misheard}}",
+        "empty": "Brak poprawek. Dodaj słowo, które system rozpoznawania wciąż źle rozpoznaje — jak nazwa lub termin techniczny — a jego poprawka zostanie zastosowana do każdej przyszłej transkrypcji."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie..."
+  },
+  "learnedToast": {
+    "title": "Wyuczono: “{{misheard}}” → “{{intended}}”",
+    "undo": "Cofnij"
   },
   "whatsNew": {
     "title": "Nowości w Handy v{{version}}"

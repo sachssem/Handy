@@ -246,7 +246,8 @@
         "transcription": "文字起こし",
         "history": "履歴",
         "experimental": "実験的",
-        "textRules": "テキストルール"
+        "textRules": "テキストルール",
+        "learnedCorrections": "学習した修正"
       },
       "experimentalToggle": {
         "label": "実験的な機能",
@@ -393,6 +394,51 @@
           "glue": "連結",
           "standalone": "独立"
         }
+      },
+      "learnedCorrections": {
+        "title": "学習した修正",
+        "description": "すべての文字起こしに適用される、正確な単語修正の個人辞書です（任意のAI後処理の前に適用されます）。認識エンジンが繰り返し誤認識する単語（名前、専門用語、ウムラウトなど）の修正を追加すると、確定的に置き換えられます。macOS では Handy が自動的に学習することもできます。貼り付けた直後に単語を修正すると、その修正が自動的に記録されます。",
+        "trialMode": {
+          "title": "トライアルモード（ドライラン）",
+          "description": "学習パイプライン全体を実行しますが、修正を保存せずに記録するだけです。辞書を変更させる前に、Handy が数日間に何を学習するかを確認するために使用します。"
+        },
+        "aggressiveness": {
+          "title": "学習の積極性",
+          "description": "編集を本当の誤認識として受け入れる基準の緩さです。緩いレベルほど多く学習しますが、辞書を汚染するリスクがあります。",
+          "conservative": {
+            "label": "控えめ",
+            "description": "非常に近く、発音が似た修正のみを学習します。誤登録に対して最も安全です。"
+          },
+          "balanced": {
+            "label": "バランス",
+            "description": "適度に異なる修正も受け入れます。発音は参考程度にのみ使用されます。"
+          },
+          "aggressive": {
+            "label": "積極的",
+            "description": "日常的な単語を含め、緩やかに関連する修正も学習します。誤登録のリスクが最も高くなります。"
+          }
+        },
+        "window": {
+          "title": "学習ウィンドウ",
+          "description": "貼り付け後、Handy が手動修正を監視する時間の長さです。",
+          "seconds": "秒"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "自動",
+          "manual": "手動"
+        },
+        "count": "{{count}}回検出",
+        "langBadge": "学習された言語: {{lang}}",
+        "platformHint": "自動学習は macOS でのみ動作します。以下から手動で修正を追加でき、それらはすべてのプラットフォームで適用されます。",
+        "add": {
+          "misheardPlaceholder": "誤認識",
+          "intendedPlaceholder": "修正後",
+          "button": "追加"
+        },
+        "enable": "{{misheard}} を有効にする",
+        "remove": "{{misheard}} を削除",
+        "empty": "まだ修正がありません。認識エンジンが繰り返し誤認識する単語（名前や専門用語など）を追加すると、今後のすべての文字起こしにその修正が適用されます。"
       },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "文字起こし中…",
     "processing": "処理中…"
+  },
+  "learnedToast": {
+    "title": "学習しました: 「{{misheard}}」→「{{intended}}」",
+    "undo": "元に戻す"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

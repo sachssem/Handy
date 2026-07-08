@@ -246,7 +246,8 @@
         "transcription": "Přepis",
         "history": "Historie",
         "experimental": "Experimentální",
-        "textRules": "Textová pravidla"
+        "textRules": "Textová pravidla",
+        "learnedCorrections": "Naučené opravy"
       },
       "experimentalToggle": {
         "label": "Experimentální funkce",
@@ -393,6 +394,51 @@
           "glue": "Slepit",
           "standalone": "Samostatně"
         }
+      },
+      "learnedCorrections": {
+        "title": "Naučené opravy",
+        "description": "Osobní slovník přesných oprav slov, které se použijí na každý přepis, před volitelným následným zpracováním pomocí AI. Přidejte opravy pro to, co rozpoznávač opakovaně plete — jména, žargon, přehlásky — a nahradí se deterministicky. V systému macOS je Handy dokáže naučit i sám: když slovo opravíte krátce po vložení, tato oprava se zachytí automaticky.",
+        "trialMode": {
+          "title": "Zkušební režim (nanečisto)",
+          "description": "Spustí celý proces učení, ale místo ukládání pouze zaznamená možné opravy. Použijte jej, abyste několik dní sledovali, co by se Handy naučil, než mu dovolíte měnit váš slovník."
+        },
+        "aggressiveness": {
+          "title": "Agresivita učení",
+          "description": "Jak ochotně je úprava přijata jako skutečné přeslechnutí. Volnější úrovně se naučí více, ale hrozí zanesení slovníku chybami.",
+          "conservative": {
+            "label": "Konzervativní",
+            "description": "Učí se jen velmi blízké, podobně znějící opravy. Nejbezpečnější proti chybným záznamům."
+          },
+          "balanced": {
+            "label": "Vyvážená",
+            "description": "Přijímá i středně odlišné opravy; fonetika je pouze orientační."
+          },
+          "aggressive": {
+            "label": "Agresivní",
+            "description": "Učí se i volně související opravy, včetně běžných slov. Nejvyšší riziko chybných záznamů."
+          }
+        },
+        "window": {
+          "title": "Okno učení",
+          "description": "Jak dlouho po vložení Handy sleduje pole a čeká na ruční opravu.",
+          "seconds": "sekund"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Ručně"
+        },
+        "count": "viděno {{count}}×",
+        "langBadge": "Naučeno pro jazyk: {{lang}}",
+        "platformHint": "Automatické učení funguje pouze v systému macOS. Opravy můžete i tak přidat ručně níže a použijí se na každé platformě.",
+        "add": {
+          "misheardPlaceholder": "Špatně slyšeno",
+          "intendedPlaceholder": "Opraveno",
+          "button": "Přidat"
+        },
+        "enable": "Povolit {{misheard}}",
+        "remove": "Odebrat {{misheard}}",
+        "empty": "Zatím žádné opravy. Přidejte slovo, které rozpoznávač opakovaně špatně slyší — například jméno nebo odborný termín — a jeho oprava se použije na všechny budoucí přepisy."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám..."
+  },
+  "learnedToast": {
+    "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
+    "undo": "Zpět"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

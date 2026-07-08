@@ -246,7 +246,8 @@
         "transcription": "Transkripsiyon",
         "history": "Geçmiş",
         "experimental": "Deneysel",
-        "textRules": "Metin Kuralları"
+        "textRules": "Metin Kuralları",
+        "learnedCorrections": "Öğrenilen Düzeltmeler"
       },
       "experimentalToggle": {
         "label": "Deneysel Özellikler",
@@ -393,6 +394,51 @@
           "glue": "Yapıştır",
           "standalone": "Bağımsız"
         }
+      },
+      "learnedCorrections": {
+        "title": "Öğrenilen Düzeltmeler",
+        "description": "Her transkripsiyona, isteğe bağlı AI son işlemesinden önce uygulanan tam kelime düzeltmelerinden oluşan kişisel bir sözlük. Tanıyıcının sürekli yanlış anladığı şeyler için düzeltmeler ekleyin — isimler, jargon, özel harfler — bunlar kesin biçimde değiştirilir. macOS'ta Handy bunları kendi başına da öğrenebilir: yapıştırdıktan kısa süre sonra bir kelimeyi düzeltirseniz, o düzeltme otomatik olarak yakalanır.",
+        "trialMode": {
+          "title": "Deneme modu (kuru çalıştırma)",
+          "description": "Tüm öğrenme hattını çalıştırır ancak olası düzeltmeleri saklamak yerine yalnızca kaydeder. Sözlüğünüzü değiştirmesine izin vermeden önce Handy'nin birkaç gün boyunca ne öğreneceğini izlemek için kullanın."
+        },
+        "aggressiveness": {
+          "title": "Öğrenme agresifliği",
+          "description": "Bir düzenlemenin gerçek bir yanlış duyma olarak ne kadar kolay kabul edileceği. Daha gevşek seviyeler daha çok öğrenir ancak sözlüğü bozma riski taşır.",
+          "conservative": {
+            "label": "Muhafazakâr",
+            "description": "Yalnızca çok yakın, benzer sesli düzeltmeler öğrenilir. Yanlış girişlere karşı en güvenlisi."
+          },
+          "balanced": {
+            "label": "Dengeli",
+            "description": "Orta derecede farklı düzeltmeleri kabul eder; fonetik yalnızca yol göstericidir."
+          },
+          "aggressive": {
+            "label": "Agresif",
+            "description": "Gündelik kelimeler dahil, gevşek ilişkili düzeltmeleri bile öğrenir. Hatalı girişler için en yüksek risk."
+          }
+        },
+        "window": {
+          "title": "Öğrenme penceresi",
+          "description": "Yapıştırdıktan sonra Handy'nin alanı manuel düzeltme için ne kadar süre izleyeceği.",
+          "seconds": "saniye"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Otomatik",
+          "manual": "Manuel"
+        },
+        "count": "{{count}}× görüldü",
+        "langBadge": "Şu dil için öğrenildi: {{lang}}",
+        "platformHint": "Otomatik öğrenme yalnızca macOS'ta çalışır. Aşağıdan düzeltmeleri elle ekleyebilirsiniz ve bunlar her platformda uygulanır.",
+        "add": {
+          "misheardPlaceholder": "Yanlış duyulan",
+          "intendedPlaceholder": "Düzeltilmiş",
+          "button": "Ekle"
+        },
+        "enable": "{{misheard}} etkinleştir",
+        "remove": "{{misheard}} kaldır",
+        "empty": "Henüz düzeltme yok. Tanıyıcının sürekli yanlış duyduğu bir kelime ekleyin — bir isim veya teknik terim gibi — düzeltmesi gelecekteki her transkripsiyona uygulanacaktır."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor..."
+  },
+  "learnedToast": {
+    "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
+    "undo": "Geri Al"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

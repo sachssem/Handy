@@ -347,9 +347,9 @@ async changeLearnCorrectionsWindowSecsSetting(windowSecs: number) : Promise<Resu
     else return { status: "error", error: e  as any };
 }
 },
-async updateLearnedCorrections(corrections: LearnedCorrection[]) : Promise<Result<null, string>> {
+async setLearnedCorrectionEnabled(id: string, enabled: boolean) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("update_learned_corrections", { corrections }) };
+    return { status: "ok", data: await TAURI_INVOKE("set_learned_correction_enabled", { id, enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

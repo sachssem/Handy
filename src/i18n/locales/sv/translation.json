@@ -246,7 +246,8 @@
         "transcription": "Transkription",
         "history": "Historik",
         "experimental": "Experimentellt",
-        "textRules": "Textregler"
+        "textRules": "Textregler",
+        "learnedCorrections": "Inlärda korrigeringar"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
@@ -393,6 +394,51 @@
           "glue": "Limma",
           "standalone": "Fristående"
         }
+      },
+      "learnedCorrections": {
+        "title": "Inlärda korrigeringar",
+        "description": "En personlig ordlista med exakta ordkorrigeringar som tillämpas på varje transkription, före valfri AI-efterbearbetning. Lägg till korrigeringar för det som igenkänningen ständigt får fel — namn, jargong, omljud — så ersätts de deterministiskt. På macOS kan Handy även lära sig dem på egen hand: när du rättar ett ord strax efter att det klistrats in fångas den korrigeringen automatiskt.",
+        "trialMode": {
+          "title": "Testläge (torrkörning)",
+          "description": "Kör hela inlärningspipelinen men loggar endast tänkbara korrigeringar istället för att spara dem. Använd det för att se vad Handy skulle lära sig i några dagar innan du låter det ändra din ordlista."
+        },
+        "aggressiveness": {
+          "title": "Inlärningsaggressivitet",
+          "description": "Hur lätt en ändring godtas som en genuin felhörning. Lösare nivåer lär sig mer men riskerar att förstöra ordlistan.",
+          "conservative": {
+            "label": "Konservativ",
+            "description": "Endast mycket nära, likljudande korrigeringar lärs in. Säkrast mot felaktiga poster."
+          },
+          "balanced": {
+            "label": "Balanserad",
+            "description": "Godtar måttligt olika korrigeringar; fonetik är endast vägledande."
+          },
+          "aggressive": {
+            "label": "Aggressiv",
+            "description": "Lär sig även löst relaterade korrigeringar, inklusive vardagsord. Högst risk för felaktiga poster."
+          }
+        },
+        "window": {
+          "title": "Inlärningsfönster",
+          "description": "Hur länge efter inklistring Handy bevakar fältet efter en manuell korrigering.",
+          "seconds": "sekunder"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manuell"
+        },
+        "count": "sedd {{count}}×",
+        "langBadge": "Inlärt för språk: {{lang}}",
+        "platformHint": "Automatisk inlärning körs endast på macOS. Du kan fortfarande lägga till korrigeringar för hand nedan, och de tillämpas på alla plattformar.",
+        "add": {
+          "misheardPlaceholder": "Felhört",
+          "intendedPlaceholder": "Korrigerat",
+          "button": "Lägg till"
+        },
+        "enable": "Aktivera {{misheard}}",
+        "remove": "Ta bort {{misheard}}",
+        "empty": "Inga korrigeringar ännu. Lägg till ett ord som igenkänningen ständigt hör fel — som ett namn eller en teknisk term — så tillämpas dess korrigering på varje framtida transkription."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar..."
+  },
+  "learnedToast": {
+    "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
+    "undo": "Ångra"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

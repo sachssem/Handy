@@ -841,17 +841,25 @@ pub fn change_learn_corrections_window_secs_setting(
     Ok(())
 }
 
-/// Replace the full learned-corrections list. The review UI edits the list
-/// locally (enable toggles, deletions) and writes it back whole, mirroring
-/// `update_text_rules_custom`.
+/// Enable or disable a single learned correction by id, mutating the persisted
+/// list server-side. Unlike a whole-list write, this never clobbers a pair that
+/// was auto-learned concurrently while the review UI held a stale copy. A no-op
+/// when the id is unknown (e.g. the entry was removed in the meantime).
 #[tauri::command]
 #[specta::specta]
-pub fn update_learned_corrections(
+pub fn set_learned_correction_enabled(
     app: AppHandle,
-    corrections: Vec<LearnedCorrection>,
+    id: String,
+    enabled: bool,
 ) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
-    settings.learned_corrections = corrections;
+    if let Some(correction) = settings
+        .learned_corrections
+        .iter_mut()
+        .find(|correction| correction.id == id)
+    {
+        correction.enabled = enabled;
+    }
     settings::write_settings(&app, settings);
     Ok(())
 }
@@ -884,10 +892,9 @@ pub fn add_learned_correction(
         .learned_corrections
         .iter()
         .find(|correction| correction.id == id)
-        .cloned()
-        .expect("just-upserted correction is present");
+        .cloned();
     settings::write_settings(&app, settings);
-    Ok(stored)
+    stored.ok_or_else(|| "failed to locate the stored correction".to_string())
 }
 
 #[tauri::command]

@@ -246,7 +246,8 @@
         "transcription": "Chuyển đổi",
         "history": "Lịch sử",
         "experimental": "Thử nghiệm",
-        "textRules": "Quy tắc văn bản"
+        "textRules": "Quy tắc văn bản",
+        "learnedCorrections": "Sửa lỗi đã học"
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm",
@@ -393,6 +394,51 @@
           "glue": "Dán liền",
           "standalone": "Độc lập"
         }
+      },
+      "learnedCorrections": {
+        "title": "Sửa lỗi đã học",
+        "description": "Một từ điển cá nhân gồm các sửa lỗi từ chính xác, được áp dụng cho mọi bản phiên âm, trước bước xử lý sau bằng AI tùy chọn. Thêm các sửa lỗi cho những gì bộ nhận dạng liên tục nghe sai — tên riêng, thuật ngữ, dấu — và chúng được thay thế một cách xác định. Trên macOS, Handy cũng có thể tự học: khi bạn sửa một từ ngay sau khi dán, sửa lỗi đó được ghi lại tự động.",
+        "trialMode": {
+          "title": "Chế độ thử nghiệm (chạy thử)",
+          "description": "Chạy toàn bộ quy trình học nhưng chỉ ghi lại các sửa lỗi tiềm năng thay vì lưu chúng. Dùng nó để theo dõi những gì Handy sẽ học trong vài ngày trước khi cho phép nó thay đổi từ điển của bạn."
+        },
+        "aggressiveness": {
+          "title": "Mức độ tích cực khi học",
+          "description": "Mức độ dễ dàng mà một chỉnh sửa được chấp nhận là một trường hợp nghe sai thực sự. Các mức lỏng hơn học được nhiều hơn nhưng có nguy cơ làm hỏng từ điển.",
+          "conservative": {
+            "label": "Thận trọng",
+            "description": "Chỉ học các sửa lỗi rất gần, phát âm tương tự. An toàn nhất trước các mục sai."
+          },
+          "balanced": {
+            "label": "Cân bằng",
+            "description": "Chấp nhận các sửa lỗi khác biệt vừa phải; ngữ âm chỉ mang tính tham khảo."
+          },
+          "aggressive": {
+            "label": "Tích cực",
+            "description": "Học cả những sửa lỗi liên quan lỏng lẻo, bao gồm cả từ thông dụng. Nguy cơ mục sai cao nhất."
+          }
+        },
+        "window": {
+          "title": "Khung thời gian học",
+          "description": "Thời gian Handy theo dõi trường nhập sau khi dán để phát hiện sửa lỗi thủ công.",
+          "seconds": "giây"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Tự động",
+          "manual": "Thủ công"
+        },
+        "count": "đã thấy {{count}}×",
+        "langBadge": "Đã học cho ngôn ngữ: {{lang}}",
+        "platformHint": "Học tự động chỉ chạy trên macOS. Bạn vẫn có thể thêm sửa lỗi thủ công bên dưới, và chúng được áp dụng trên mọi nền tảng.",
+        "add": {
+          "misheardPlaceholder": "Nghe sai",
+          "intendedPlaceholder": "Đã sửa",
+          "button": "Thêm"
+        },
+        "enable": "Bật {{misheard}}",
+        "remove": "Xóa {{misheard}}",
+        "empty": "Chưa có sửa lỗi nào. Thêm một từ mà bộ nhận dạng liên tục nghe sai — như tên riêng hoặc thuật ngữ kỹ thuật — và sửa lỗi của nó sẽ được áp dụng cho mọi bản phiên âm trong tương lai."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý..."
+  },
+  "learnedToast": {
+    "title": "Đã học: “{{misheard}}” → “{{intended}}”",
+    "undo": "Hoàn tác"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

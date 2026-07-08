@@ -246,7 +246,8 @@
         "transcription": "전사",
         "history": "히스토리",
         "experimental": "실험적",
-        "textRules": "텍스트 규칙"
+        "textRules": "텍스트 규칙",
+        "learnedCorrections": "학습된 수정"
       },
       "experimentalToggle": {
         "label": "실험적 기능",
@@ -393,6 +394,51 @@
           "glue": "연결",
           "standalone": "독립"
         }
+      },
+      "learnedCorrections": {
+        "title": "학습된 수정",
+        "description": "모든 전사에 적용되는 정확한 단어 수정의 개인 사전으로, 선택적 AI 후처리 전에 적용됩니다. 인식기가 계속 잘못 인식하는 단어(이름, 전문 용어, 움라우트 등)에 대한 수정을 추가하면 결정적으로 대체됩니다. macOS에서는 Handy가 스스로 학습할 수도 있습니다. 붙여넣기 직후 단어를 수정하면 해당 수정이 자동으로 캡처됩니다.",
+        "trialMode": {
+          "title": "시험 모드(모의 실행)",
+          "description": "전체 학습 파이프라인을 실행하지만 수정을 저장하지 않고 기록만 합니다. 사전을 변경하도록 허용하기 전에 며칠 동안 Handy가 무엇을 학습할지 지켜보는 데 사용하세요."
+        },
+        "aggressiveness": {
+          "title": "학습 적극성",
+          "description": "편집을 실제 오인식으로 받아들이는 정도입니다. 느슨한 수준일수록 더 많이 학습하지만 사전을 오염시킬 위험이 있습니다.",
+          "conservative": {
+            "label": "보수적",
+            "description": "매우 유사하고 발음이 비슷한 수정만 학습합니다. 잘못된 항목에 가장 안전합니다."
+          },
+          "balanced": {
+            "label": "균형",
+            "description": "적당히 다른 수정도 허용합니다. 발음은 참고용으로만 사용됩니다."
+          },
+          "aggressive": {
+            "label": "적극적",
+            "description": "일상적인 단어를 포함해 느슨하게 관련된 수정까지 학습합니다. 잘못된 항목의 위험이 가장 높습니다."
+          }
+        },
+        "window": {
+          "title": "학습 창",
+          "description": "붙여넣은 후 Handy가 수동 수정을 감지하기 위해 입력란을 관찰하는 시간입니다.",
+          "seconds": "초"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "자동",
+          "manual": "수동"
+        },
+        "count": "{{count}}회 발견",
+        "langBadge": "학습된 언어: {{lang}}",
+        "platformHint": "자동 학습은 macOS에서만 작동합니다. 아래에서 직접 수정을 추가할 수 있으며, 모든 플랫폼에서 적용됩니다.",
+        "add": {
+          "misheardPlaceholder": "잘못 인식됨",
+          "intendedPlaceholder": "수정됨",
+          "button": "추가"
+        },
+        "enable": "{{misheard}} 활성화",
+        "remove": "{{misheard}} 제거",
+        "empty": "아직 수정이 없습니다. 인식기가 계속 잘못 인식하는 단어(이름이나 전문 용어 등)를 추가하면 앞으로의 모든 전사에 그 수정이 적용됩니다."
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -647,6 +693,10 @@
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중..."
+  },
+  "learnedToast": {
+    "title": "학습됨: “{{misheard}}” → “{{intended}}”",
+    "undo": "실행 취소"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

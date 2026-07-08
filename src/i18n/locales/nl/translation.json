@@ -246,7 +246,8 @@
         "transcription": "Transcriptie",
         "history": "Geschiedenis",
         "experimental": "Experimenteel",
-        "textRules": "Tekstregels"
+        "textRules": "Tekstregels",
+        "learnedCorrections": "Geleerde correcties"
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
@@ -393,6 +394,51 @@
           "glue": "Aaneen",
           "standalone": "Zelfstandig"
         }
+      },
+      "learnedCorrections": {
+        "title": "Geleerde correcties",
+        "description": "Een persoonlijk woordenboek met exacte woordcorrecties die op elke transcriptie worden toegepast, vóór de optionele AI-naverwerking. Voeg correcties toe voor wat de herkenner steeds verkeerd verstaat — namen, jargon, umlauten — en ze worden deterministisch vervangen. Op macOS kan Handy ze ook zelf leren: wanneer je een woord kort na het plakken corrigeert, wordt die correctie automatisch vastgelegd.",
+        "trialMode": {
+          "title": "Testmodus (proefrun)",
+          "description": "Voert de volledige leerpijplijn uit, maar registreert alleen mogelijke correcties in plaats van ze op te slaan. Gebruik dit om een paar dagen te bekijken wat Handy zou leren voordat je het je woordenboek laat aanpassen."
+        },
+        "aggressiveness": {
+          "title": "Leeragressiviteit",
+          "description": "Hoe gemakkelijk een bewerking wordt geaccepteerd als een echt verkeerd verstaan woord. Lossere niveaus leren meer, maar lopen het risico het woordenboek te vervuilen.",
+          "conservative": {
+            "label": "Conservatief",
+            "description": "Alleen zeer nauwe, gelijk klinkende correcties worden geleerd. Veiligst tegen verkeerde vermeldingen."
+          },
+          "balanced": {
+            "label": "Gebalanceerd",
+            "description": "Accepteert matig afwijkende correcties; fonetiek is slechts adviserend."
+          },
+          "aggressive": {
+            "label": "Agressief",
+            "description": "Leert zelfs losjes verwante correcties, inclusief alledaagse woorden. Hoogste risico op foute vermeldingen."
+          }
+        },
+        "window": {
+          "title": "Leervenster",
+          "description": "Hoe lang na het plakken Handy het veld in de gaten houdt voor een handmatige correctie.",
+          "seconds": "seconden"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Handmatig"
+        },
+        "count": "{{count}}× gezien",
+        "langBadge": "Geleerd voor taal: {{lang}}",
+        "platformHint": "Automatisch leren werkt alleen op macOS. Je kunt hieronder nog steeds handmatig correcties toevoegen, en die worden op elk platform toegepast.",
+        "add": {
+          "misheardPlaceholder": "Verkeerd verstaan",
+          "intendedPlaceholder": "Gecorrigeerd",
+          "button": "Toevoegen"
+        },
+        "enable": "{{misheard}} inschakelen",
+        "remove": "{{misheard}} verwijderen",
+        "empty": "Nog geen correcties. Voeg een woord toe dat de herkenner steeds verkeerd verstaat — zoals een naam of technische term — en de correctie wordt toegepast op elke toekomstige transcriptie."
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
@@ -650,5 +696,9 @@
   "overlay": {
     "transcribing": "Transcriberen...",
     "processing": "Verwerken..."
+  },
+  "learnedToast": {
+    "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
+    "undo": "Ongedaan maken"
   }
 }
