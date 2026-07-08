@@ -84,6 +84,12 @@ fn correction_id(misheard: &str, intended: &str) -> String {
         .collect()
 }
 
+/// Upper bound on stored corrections, so unattended auto-learning cannot grow
+/// the list without bound. Far above any realistic hand-curated dictionary; it
+/// only bites runaway automatic learning. When a new mishearing would exceed it,
+/// [`upsert`] evicts the least valuable entry first (see there).
+const MAX_LEARNED_CORRECTIONS: usize = 500;
+
 /// Insert `correction`, keyed on the case-folded `misheard` word alone, so a
 /// given mishearing has exactly one entry:
 ///
@@ -92,7 +98,8 @@ fn correction_id(misheard: &str, intended: &str) -> String {
 /// - same `misheard` but a **different** `intended`: replace the entry — adopt
 ///   the new `intended`/`id`/`lang`/`source`, reset `count` to 1, re-enable it
 ///   and refresh `last_seen` (the old mapping is superseded, not kept alongside);
-/// - unseen `misheard`: push it.
+/// - unseen `misheard`: push it, evicting the least valuable existing entry
+///   first if the list is already at [`MAX_LEARNED_CORRECTIONS`].
 ///
 /// Returns the id of the affected entry.
 pub fn upsert(corrections: &mut Vec<LearnedCorrection>, correction: LearnedCorrection) -> String {
@@ -116,6 +123,23 @@ pub fn upsert(corrections: &mut Vec<LearnedCorrection>, correction: LearnedCorre
             existing.lang = correction.lang;
         }
         return existing.id.clone();
+    }
+    // Cap the list before pushing a genuinely new mishearing: when full, evict
+    // the least valuable entry — lowest hit `count`, ties broken by oldest
+    // `last_seen` — an LRU-ish policy that sheds rarely-used, stale pairs first.
+    if corrections.len() >= MAX_LEARNED_CORRECTIONS {
+        if let Some(evict) = corrections
+            .iter()
+            .enumerate()
+            .min_by(|(_, a), (_, b)| {
+                a.count
+                    .cmp(&b.count)
+                    .then_with(|| a.last_seen.cmp(&b.last_seen))
+            })
+            .map(|(idx, _)| idx)
+        {
+            corrections.remove(evict);
+        }
     }
     let id = correction.id.clone();
     corrections.push(correction);
@@ -189,5 +213,57 @@ mod tests {
         assert!(remove(&mut list, &id));
         assert!(list.is_empty());
         assert!(!remove(&mut list, &id));
+    }
+
+    #[test]
+    fn upsert_caps_list_and_evicts_least_valuable() {
+        let mut list = Vec::new();
+        // Fill to the cap with distinct mishearings. Give the first entry the
+        // lowest count and oldest timestamp so it is the eviction target.
+        for i in 0..MAX_LEARNED_CORRECTIONS {
+            let mut entry = LearnedCorrection::new(
+                &format!("word{i}"),
+                &format!("fix{i}"),
+                CorrectionSource::Auto,
+                i as i64,
+            );
+            // Everyone but the first has a higher hit count.
+            entry.count = if i == 0 { 1 } else { 5 };
+            upsert(&mut list, entry);
+        }
+        assert_eq!(list.len(), MAX_LEARNED_CORRECTIONS);
+        let evicted_id = list[0].id.clone();
+
+        // A new mishearing must evict the lowest-count/oldest entry, not grow.
+        let newcomer = LearnedCorrection::new("brandnew", "shiny", CorrectionSource::Auto, 999);
+        let newcomer_id = newcomer.id.clone();
+        upsert(&mut list, newcomer);
+
+        assert_eq!(list.len(), MAX_LEARNED_CORRECTIONS);
+        assert!(!list.iter().any(|c| c.id == evicted_id));
+        assert!(list.iter().any(|c| c.id == newcomer_id));
+    }
+
+    #[test]
+    fn upsert_at_cap_does_not_evict_when_bumping_existing() {
+        let mut list = Vec::new();
+        for i in 0..MAX_LEARNED_CORRECTIONS {
+            upsert(
+                &mut list,
+                LearnedCorrection::new(
+                    &format!("word{i}"),
+                    &format!("fix{i}"),
+                    CorrectionSource::Auto,
+                    i as i64,
+                ),
+            );
+        }
+        // Re-learning an existing pair bumps in place — no eviction, no growth.
+        upsert(
+            &mut list,
+            LearnedCorrection::new("word0", "fix0", CorrectionSource::Auto, 1_000),
+        );
+        assert_eq!(list.len(), MAX_LEARNED_CORRECTIONS);
+        assert!(list.iter().any(|c| c.misheard == "word0"));
     }
 }
