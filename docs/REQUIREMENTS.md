@@ -19,20 +19,20 @@
 
 - ⚙️ **LLM-Glättung** (Sprech-/Sprachfehler bereinigen, Selbstkorrekturen auflösen, Listen formatieren):
   Ollama + Qwen3 4B Q4 (~3 GB) als Custom-Provider (`localhost:11434/v1`) in Handy, deutscher Cleanup-Prompt, Temp ~0.1. Leichtgewichtige Mac-Alternative: **Apple Intelligence on-device** (0 extra RAM, keine Windows-Portabilität). Preis: +1–2 s Latenz → A/B-testen.
-- ⚙️ **Zahlen als Ziffern** (ITN: "Fünfhundertneununddreißig" → "539"):
-  Erst testen, was Parakeet nativ ausgibt. Falls Wörter: Prompt-Zeile im LLM-Cleanup; deterministisch später als ITN-Regeln im Fork-Regel-Layer.
-- ⚙️→🍴 **Gesprochene Satzzeichen-Befehle** ("Bindestrich" → "-", "neue Zeile" → Umbruch):
-  Kurzfristig per LLM-Prompt. Sauber: deterministischer Ersetzungs-Layer im Fork (Substitutions-Map, ~0 RAM, 0 Latenz) — billigstes Fork-Feature.
-- ⚙️→🍴 **Zweisprachige Befehls-Keywords** (englische Keywords im deutschen Diktat: "dash"/"dot"/"slash" → `-` `.` `/`):
-  Erkennung macht das ASR (Code-Switching); Umsetzung = dieselbe Ersetzungstabelle, DE+EN gemischt gepflegt.
+- ✅🍴 **Zahlen als Ziffern** (ITN: "Fünfhundertneununddreißig" → "539"):
+  Umgesetzt im Fork-Regel-Layer (`src-tauri/src/text_rules/itn.rs`), per Settings-Toggle. Benchmark: mit Qwen3-ASR + Rules 100 % Format-Genauigkeit auf Zahlen/ITN-Fällen.
+- ✅🍴 **Gesprochene Satzzeichen-Befehle** ("Bindestrich" → "-", "neue Zeile" → Umbruch):
+  Umgesetzt als deterministischer Text-Rules-Layer (`src-tauri/src/text_rules/`, Settings → Advanced → Text Rules). Absorbiert ASR-Prosodie-Satzzeichen, Spacing-Policies (AttachLeft/AttachRight/Glue/Standalone), Built-ins einzeln abschaltbar, eigene Regeln möglich.
+- ✅🍴 **Zweisprachige Befehls-Keywords** (englische Keywords im deutschen Diktat: "dash"/"dot"/"slash" → `-` `.` `/`):
+  Umgesetzt in derselben Built-in-Tabelle (DE+EN gemischt, inkl. "question mark", "open/close paren" etc.).
 - ⚙️ **Technisches Diktieren** (File-Paths, camelCase/snake_case, CLI-Befehle):
   Kontextabhängig → Domäne des LLM-Cleanups; Prompt explizit auf Paths/Code-Syntax ausrichten. Ergänzend Custom Words mit Tool-/Projektnamen füttern.
 
 ## Fork-Features (bauen, wenn konkreter Bedarf bestätigt)
 
-- 🍴 **Regel-Layer in der Pipeline** — deterministische Transform-Stufe vor/statt LLM: Befehlstabelle (DE+EN), ITN-Regeln, eigene Ersetzungen. Einfügepunkt: lineare Pipeline in `actions.rs`; wenige dutzend Zeilen Rust.
-- 🔭 **Auto-Lernen aus Korrekturen** (Wispr-Flow-Loop: manuelle Nachkorrekturen im Textfeld beobachten → Dictionary automatisch füttern):
-  Gibt es in Handy NICHT und in keiner OSS-Alternative. Anspruchsvoll: Zielfeld nach Paste per Accessibility-API beobachten, Edits gegen eingefügten Text diffen, Korrektur ableiten. Stärkster Kandidat für ein echtes Alleinstellungs-Feature des Forks.
+- ✅ **Regel-Layer in der Pipeline** — geliefert, siehe oben (Einfügepunkt wurde `post_process_transcription_text` in `transcription.rs`, nicht `actions.rs`).
+- 🔨 **Auto-Lernen aus Korrekturen** (Wispr-Flow-Loop: manuelle Nachkorrekturen im Textfeld beobachten → Dictionary automatisch füttern):
+  Implementierung liegt auf `feat/correction-learning` (Store, AX-Feldleser, Toast+Undo, phonetisches Gating, Trial-Mode); Design in `docs/design/auto-learn-corrections.md`. Review vor Merge ausstehend.
 - 🔭 **Hands-free-Modus** (VAD-getriggert statt Taste) — in Handy offen (Issue #147); Silero VAD ist als Stille-Filter schon an Bord, Trigger-Modus wäre Fork-Arbeit.
 - 🔭 **Per-App-Profile** (Profil je Ziel-App: anderer Prompt/Modell/Verhalten, wie VoiceInk "Power Mode") — Handy hat nichts dergleichen; Frontmost-App-Detection + Settings-Erweiterung.
 - 🔭 **Snippets** (Sprach-Trigger → gespeicherter Text) — nicht vorhanden; als Ersetzungs-Sonderfall im Regel-Layer machbar.
@@ -44,9 +44,30 @@
 - **macOS-first, Windows-portabel** — Handy läuft bereits auf beiden; Apple-Intelligence-Pfad wäre die einzige Mac-only-Abhängigkeit.
 - **Modularität** — STT-Engine per Katalog tauschbar (65 Modelle), LLM-Provider OpenAI-kompatibel austauschbar (lokal/Cloud), Erweiterungen als eigene Pipeline-Stufen.
 
+## Benchmark-Suite & Modell-Entscheid (Stand 2026-07-08)
+
+Eigene Benchmark-Suite im Fork (`bench/`, `handy-bench` Binary): 15 Fälle × 3 Varianten
+(normal/schnell/noise) mit eigener Stimme, Metriken WER (vs. Gesagtem) und
+Format-Genauigkeit (vs. Soll-Output), Corpus/Ergebnisse lokal (gitignoriert).
+Ergebnisse des ersten Matrix-Laufs:
+
+| Modell (Kandidat)     | WER normal                                                               | WER schnell | WER noise | E2E mit Rules |
+| --------------------- | ------------------------------------------------------------------------ | ----------- | --------- | ------------- |
+| **Qwen3-ASR 1.7B Q8** | **0.104**                                                                | **0.066**   | **0.219** | **0.93**      |
+| Parakeet TDT v3       | 0.179                                                                    | 0.173       | 0.343     | 0.84          |
+| Whisper Turbo (de)    | 0.303                                                                    | 0.227       | 0.323     | 0.88          |
+| Canary 1B v2 (de)     | entgleist auf OOD-Input (Wiederholungsschleifen, ungefragte Übersetzung) |             |           | 0.81          |
+
+→ **Standard-Modell: Qwen3-ASR 1.7B** (im Fork-Katalog, Sprache auf Auto; natives
+DE/EN-Code-Switching, keine Kyrillisch-Ausrutscher mehr). RTF ~0.15 auf M2/Metal.
+Text-Rules bringen auf jedem Modell +9…+20 Punkte Format-Genauigkeit.
+**Denoising (DTLN, inkl. Mix-Back) gemessen und verworfen:** kein Setting schlägt
+die Baseline unter Noise, ohne klare Sprache zu verschlechtern (`--denoise`-Flag
+bleibt im Bench-Harness für künftige Kandidaten wie GTCRN).
+
 ## Nächste Schritte (empfohlene Reihenfolge)
 
-1. Parakeet-Zahlenausgabe + Whisper-turbo-Gegenprobe testen (Stage-1-Abschluss)
-2. Ollama + Qwen3 4B aufsetzen, deutschen Technik-Cleanup-Prompt bauen (deckt ⚙️-Punkte ab) — A/B mit/ohne LLM
-3. Apple Intelligence als LLM-Provider gegentesten (Footprint-Minimum)
-4. Alltag ein paar Tage; welche 🍴/🔭-Punkte wirklich fehlen → dann Fork (Stage 2)
+1. Alltag mit Qwen3-ASR + Text-Rules; Fehlschläge per `handy-bench export-history` in den Corpus übernehmen
+2. Apple-Intelligence-Cleanup-Prompt im Alltag A/B-testen (siehe `llm-cleanup-prompt.md`)
+3. `feat/correction-learning` reviewen und mergen (Auto-Lernen, Alleinstellungs-Feature)
+4. Bei Bedarf: Hands-free-Modus, Per-App-Profile, Snippets (🔭-Liste oben)
