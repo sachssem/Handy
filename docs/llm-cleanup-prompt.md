@@ -6,11 +6,18 @@
 
 ## Setup in Handy
 
-1. **Ollama:** `brew install ollama && ollama pull qwen3:4b-instruct-q4_K_M` (~3 GB)
-2. Handy → Settings → **Post-Processing** aktivieren
-3. Provider: **Custom (OpenAI-compatible)** → Base URL `http://localhost:11434/v1`, Model `qwen3:4b-instruct-q4_K_M`, API-Key beliebig (z. B. `ollama`)
-4. Neuen Prompt anlegen, Inhalt von unten einfügen. Temperatur, falls einstellbar: **0.1**
-5. Mac-Alternative mit 0 extra RAM: Provider **Apple Intelligence** wählen, gleicher Prompt
+**Erstwahl: Apple Intelligence** (0 extra RAM — Modell wird vom OS verwaltet, systemweit geteilt; Voraussetzungen: Apple Silicon, macOS 26, Apple Intelligence in den Systemeinstellungen aktiv):
+
+1. Handy → Settings → **Post-Processing** aktivieren
+2. Shortcut **„Transcribe with Post-processing"** belegen — Post-Processing greift NUR über diesen Shortcut, nicht über den normalen Hotkey
+3. Provider: **Apple Intelligence** (kein API-Key, kein Modellfeld), Prompt von unten einfügen
+
+Grenzen des Apple-Pfads: 4096-Token-Kontext (Prompt+Eingabe+Ausgabe → Diktate bis grob 1.000–1.500 Wörter), gelegentliche Guardrail-Blocks bei harmlosem Text (Handy fällt dann sauber auf den Rohtext zurück), 3B-Modell — fürs Glätten reicht es, komplexe Umformulierung ist nicht seine Stärke.
+
+**Fallback (nur falls Apple-Qualität nicht reicht): Ollama**
+
+1. `brew install ollama && ollama pull qwen3:4b-instruct-q4_K_M` (~3 GB resident!)
+2. Provider: **Custom (OpenAI-compatible)** → Base URL `http://localhost:11434/v1`, Model `qwen3:4b-instruct-q4_K_M`, API-Key beliebig (z. B. `ollama`), Temperatur falls einstellbar: **0.1**
 
 ## Prompt (kopierfertig)
 
