@@ -54,6 +54,9 @@ pub struct RunReport {
     pub configs: Vec<ConfigSpec>,
     pub language: String,
     pub settings_source: String,
+    /// Denoise stage applied to the audio before the engine (`none`, `dtln`,
+    /// `dtln-mix70`, `dtln-mix50`).
+    pub denoise: String,
     pub results: Vec<CaseResult>,
 }
 
@@ -137,6 +140,7 @@ impl RunReport {
         let _ = writeln!(s, "- Corpus: `{}`", self.corpus_root);
         let _ = writeln!(s, "- Language: `{}`", self.language);
         let _ = writeln!(s, "- Settings: `{}`", self.settings_source);
+        let _ = writeln!(s, "- Denoise: `{}`", self.denoise);
         let _ = writeln!(s, "- Cases scored: {}", self.results.len());
         let cfgs: Vec<String> = self.configs.iter().map(|c| c.name.clone()).collect();
         let _ = writeln!(s, "- Configs: {}\n", cfgs.join(", "));
