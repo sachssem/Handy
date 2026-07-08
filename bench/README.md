@@ -73,12 +73,12 @@ An optional speech-enhancement pass applied to the 16 kHz mono audio **before**
 the engine, to test whether denoising helps ASR (it often hurts modern models
 via artefacts, so mix-back configs are provided):
 
-| Value        | Effect                                                     |
-| ------------ | ---------------------------------------------------------- |
-| `none`       | default — raw audio reaches the engine unchanged           |
-| `dtln`       | full DTLN enhancement                                      |
-| `dtln-mix70` | `enhanced*0.70 + raw*0.30`                                 |
-| `dtln-mix50` | `enhanced*0.50 + raw*0.50`                                 |
+| Value        | Effect                                           |
+| ------------ | ------------------------------------------------ |
+| `none`       | default — raw audio reaches the engine unchanged |
+| `dtln`       | full DTLN enhancement                            |
+| `dtln-mix70` | `enhanced*0.70 + raw*0.30`                       |
+| `dtln-mix50` | `enhanced*0.50 + raw*0.50`                       |
 
 DTLN (<https://github.com/breizhn/DTLN>, MIT) is a two-stage 16 kHz real-time
 enhancer (two small stateful ONNX models). The models are downloaded and
