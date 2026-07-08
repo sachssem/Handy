@@ -65,9 +65,11 @@ tokio = "1.43.0"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "blocking"] }
 futures-util = "0.3"
 rustfft = "6.4.0"
+# fork(voice-control): real FFT for the bench DTLN denoise stage (src/bench/denoise.rs).
+realfft = "3.5"
 strsim = "0.11.0"
 natural = "0.5.0"
 regex = "1"
@@ -82,6 +84,10 @@ sha2 = "0.10"
 # Canary, Cohere). Per-platform backend features are added in the target tables.
 transcribe-rs = { version = "0.3.8", features = ["onnx"] }
 transcribe-cpp = { version = "0.1.1", default-features = false }
+# fork(voice-control): ONNX Runtime for the bench DTLN denoise stage. Pinned to
+# the exact version transcribe-rs already resolves so the shared onnxruntime link
+# is reused (src/bench/denoise.rs).
+ort = "=2.0.0-rc.12"
 handy-keys = "0.2.4"
 ferrous-opencc = "0.2.3"
 clap = { version = "4", features = ["derive"] }

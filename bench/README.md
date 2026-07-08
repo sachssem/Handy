@@ -67,6 +67,25 @@ harness passes `None` there automatically.
 Engine loading mirrors `managers/transcription.rs`; see the "KEEP IN SYNC"
 banner in `src-tauri/src/bench/engine.rs`.
 
+## Denoise stage (`--denoise`)
+
+An optional speech-enhancement pass applied to the 16 kHz mono audio **before**
+the engine, to test whether denoising helps ASR (it often hurts modern models
+via artefacts, so mix-back configs are provided):
+
+| Value        | Effect                                                     |
+| ------------ | ---------------------------------------------------------- |
+| `none`       | default — raw audio reaches the engine unchanged           |
+| `dtln`       | full DTLN enhancement                                      |
+| `dtln-mix70` | `enhanced*0.70 + raw*0.30`                                 |
+| `dtln-mix50` | `enhanced*0.50 + raw*0.50`                                 |
+
+DTLN (<https://github.com/breizhn/DTLN>, MIT) is a two-stage 16 kHz real-time
+enhancer (two small stateful ONNX models). The models are downloaded and
+sha256-pinned into `<cache>/handy-bench-models/dtln/` on first use (not
+committed). The chosen config is recorded in the JSON/MD report metadata.
+Implementation: `src-tauri/src/bench/denoise.rs`.
+
 ## Corpus format
 
 `bench/corpus/manifest.toml`:

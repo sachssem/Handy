@@ -8,6 +8,7 @@
 //! Entry point: [`run`], invoked by the `handy-bench` binary.
 
 mod corpus;
+mod denoise;
 mod engine;
 mod history_export;
 mod record;
@@ -22,6 +23,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use crate::settings::{get_default_settings, AppSettings};
 
 use self::corpus::Corpus;
+use self::denoise::{DenoiseMode, Denoiser};
 use self::engine::{load_wav_16k, LoadedModel, ModelSpec};
 use self::report::{CaseResult, ConfigOutcome, ConfigSpec, RunReport};
 
@@ -79,6 +81,11 @@ struct RunArgs {
     /// Apply inverse text normalization within the `rules` config.
     #[arg(long, default_value = "on")]
     itn: OnOff,
+    /// Speech-enhancement (denoise) stage applied to the 16 kHz audio before the
+    /// engine. `dtln` = full DTLN; `dtln-mixNN` blends `enhanced*0.NN +
+    /// raw*(1-0.NN)` to temper enhancement artefacts.
+    #[arg(long, value_enum, default_value = "none")]
+    denoise: DenoiseMode,
     /// Settings source: `default` (real settings_store.json), `none` (built-in
     /// defaults), or a path to a settings JSON file.
     #[arg(long, default_value = "default")]
@@ -172,6 +179,11 @@ fn run_bench(args: RunArgs) -> Result<()> {
         });
     }
 
+    // Build the denoise stage once (loads/downloads the DTLN models for the
+    // enhancing modes); it is reused across every utterance.
+    let mut denoiser = Denoiser::new(args.denoise)
+        .with_context(|| format!("failed to init denoise stage `{}`", args.denoise.label()))?;
+
     let mut results: Vec<CaseResult> = Vec::new();
     let mut skipped: Vec<String> = Vec::new();
 
@@ -189,6 +201,7 @@ fn run_bench(args: RunArgs) -> Result<()> {
                 }
 
                 let audio = load_wav_16k(&audio_path)?;
+                let audio = denoiser.process(&audio)?;
                 let raw = model.transcribe(&audio, language.as_deref())?;
                 let recognition = score::recognition(&case.spoken, &raw);
                 println!(
@@ -252,6 +265,7 @@ fn run_bench(args: RunArgs) -> Result<()> {
         configs,
         language: args.language.clone(),
         settings_source: args.settings.clone(),
+        denoise: args.denoise.label().to_string(),
         results,
     };
 
