@@ -7,6 +7,13 @@
 //! pid it snapshotted at paste time, so reads follow the pasted-into app rather
 //! than whatever happens to be frontmost later.
 //!
+//! It also pins the *element*, not just the app: [`snapshot_focused_element`]
+//! captures the AXUIElement that had focus at paste time, and every later read
+//! confirms (via `CFEqual`) that the same element still has focus. If the user
+//! tabs to a different field in the same app, the read returns
+//! [`FocusRead::FocusChanged`] so an unrelated field is never diffed or learned
+//! from.
+//!
 //! Hard rule: a secure (password) text field's value is **never** read — such a
 //! focus returns [`FocusRead::Secure`] so the caller tears the session down
 //! instead of diffing.
@@ -25,9 +32,23 @@ pub enum FocusRead {
     Secure,
     /// The target app's process is gone (paste target quit).
     AppGone,
+    /// Focus moved to a different element than the one snapshotted at paste time
+    /// (the user tabbed to another field in the same app). The session ends
+    /// rather than diff an unrelated field.
+    FocusChanged,
     /// No usable text signal this tick (no focused text element, AX error).
     NoSignal,
 }
+
+/// The focused AXUIElement captured at paste time, replayed to [`read_focused`]
+/// so every read can confirm the *same* element still has focus. Opaque outside
+/// the macOS reader.
+#[cfg(target_os = "macos")]
+pub use imp::FocusedSnapshot;
+
+/// Stub identity snapshot for platforms without an Accessibility API.
+#[cfg(not(target_os = "macos"))]
+pub struct FocusedSnapshot;
 
 #[cfg(target_os = "macos")]
 mod imp {
@@ -48,6 +69,18 @@ mod imp {
             value: *mut CFTypeRef,
         ) -> AXError;
     }
+
+    /// The focused element snapshotted at paste time. Holds the retained
+    /// AXUIElement so a later read can `CFEqual`-compare against the currently
+    /// focused element and confirm it is the very field that was pasted into.
+    ///
+    /// `Send` is asserted by hand: the value is created on the paste callsite
+    /// (main thread) and moved into the poll thread, where the AX element is
+    /// read/compared/released — the same cross-thread AX access the rest of the
+    /// reader already performs, and CFRetain/CFRelease/CFEqual are thread-safe.
+    pub struct FocusedSnapshot(CFType);
+
+    unsafe impl Send for FocusedSnapshot {}
 
     // AX attribute names are plain CFString keys.
     const AX_FOCUSED_UI_ELEMENT: &str = "AXFocusedUIElement";
@@ -101,6 +134,21 @@ mod imp {
             .map(|s| s.to_string())
     }
 
+    /// Resolve and retain the app's currently focused AXUIElement, so a later
+    /// read can confirm the same element still has focus. Called on the paste
+    /// callsite (main thread), right after the text lands in the field. `None`
+    /// when nothing is focused or the AX read fails — the caller then skips the
+    /// session rather than watch an unattributable field.
+    pub fn snapshot_focused_element(pid: i32) -> Option<FocusedSnapshot> {
+        let app = unsafe { AXUIElementCreateApplication(pid) };
+        if app.is_null() {
+            return None;
+        }
+        let app_cf = unsafe { CFType::wrap_under_create_rule(app) };
+        let focused = copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT)?;
+        Some(FocusedSnapshot(focused))
+    }
+
     /// Read the focused text field of the app with `pid`.
     ///
     /// The systemwide focus path fails outside a registered GUI process, so —
@@ -111,8 +159,14 @@ mod imp {
     /// `expected_name` is the app identity snapshotted at paste time (if any);
     /// when the pid now resolves to a different app the OS has recycled the
     /// number, so we report [`FocusRead::AppGone`] rather than reading a
-    /// stranger's field.
-    pub fn read_focused(pid: i32, expected_name: Option<&str>) -> FocusRead {
+    /// stranger's field. `expected_focus` is the element that had focus at paste
+    /// time; when focus has since moved to a different element we report
+    /// [`FocusRead::FocusChanged`] rather than read an unrelated field.
+    pub fn read_focused(
+        pid: i32,
+        expected_name: Option<&str>,
+        expected_focus: &FocusedSnapshot,
+    ) -> FocusRead {
         // Cheap liveness check: `kill(pid, 0)` failing with ESRCH means the
         // paste target quit, so the session can tear down silently.
         if unsafe { libc::kill(pid, 0) } != 0
@@ -141,6 +195,15 @@ mod imp {
             Some(f) => f,
             None => return FocusRead::NoSignal,
         };
+
+        // Element-identity gate: the focused element must be the very one we
+        // snapshotted at paste time. `CFEqual` on AXUIElements is the documented
+        // identity check, so tabbing to another field in the same app (same pid)
+        // is caught here and the session ends silently.
+        if focused != expected_focus.0 {
+            return FocusRead::FocusChanged;
+        }
+
         let fref = focused.as_concrete_TypeRef();
 
         // Secure fields must never be read — check both role and subrole first.
@@ -158,7 +221,7 @@ mod imp {
 }
 
 #[cfg(target_os = "macos")]
-pub use imp::{frontmost_pid, process_name, read_focused};
+pub use imp::{frontmost_pid, process_name, read_focused, snapshot_focused_element};
 
 /// Stub for platforms without an Accessibility API: no target can be resolved.
 #[cfg(not(target_os = "macos"))]
@@ -172,9 +235,19 @@ pub fn process_name(_pid: i32) -> Option<String> {
     None
 }
 
+/// Stub for platforms without an Accessibility API: no element can be pinned.
+#[cfg(not(target_os = "macos"))]
+pub fn snapshot_focused_element(_pid: i32) -> Option<FocusedSnapshot> {
+    None
+}
+
 /// Stub for platforms without an Accessibility API: the field is never readable,
 /// so the session never learns anything and degrades silently.
 #[cfg(not(target_os = "macos"))]
-pub fn read_focused(_pid: i32, _expected_name: Option<&str>) -> FocusRead {
+pub fn read_focused(
+    _pid: i32,
+    _expected_name: Option<&str>,
+    _expected_focus: &FocusedSnapshot,
+) -> FocusRead {
     FocusRead::NoSignal
 }

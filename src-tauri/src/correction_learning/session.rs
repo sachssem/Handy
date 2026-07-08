@@ -112,7 +112,8 @@ const RELATED_WORD_RATIO: f64 = 0.5;
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[derive(Debug)]
 enum TickDecision {
-    /// Stop the session silently (secure field or the target app quit).
+    /// Stop the session silently (secure field, the target app quit, or focus
+    /// moved to a different element).
     Teardown,
     /// The candidate has settled — learn it, then stop.
     Commit(Candidate),
@@ -136,8 +137,9 @@ fn decide_tick(
     lang: PhoneticLang,
 ) -> TickDecision {
     match read {
-        // Secure field or the app quit → tear the session down silently.
-        FocusRead::Secure | FocusRead::AppGone => TickDecision::Teardown,
+        // Secure field, the app quit, or focus moved to a different element →
+        // tear the session down silently.
+        FocusRead::Secure | FocusRead::AppGone | FocusRead::FocusChanged => TickDecision::Teardown,
         // Nothing readable this tick; reset stability and force the next text
         // read to be diffed afresh.
         FocusRead::NoSignal => TickDecision::Continue {
@@ -192,7 +194,7 @@ mod imp {
     use crate::correction_learning::resolved_language;
     use crate::correction_learning::store::{self, CorrectionSource, LearnedCorrection};
     use crate::settings::{self, AppSettings, PasteMethod};
-    use log::info;
+    use log::{debug, info};
     use std::sync::atomic::{AtomicU64, Ordering};
     use std::time::{Duration, Instant};
     use tauri::AppHandle;
@@ -257,6 +259,14 @@ mod imp {
         // Snapshot the target app's identity too, so a recycled pid (the app
         // quit and the OS reassigned the number) is caught on the next read.
         let app_name = ax_reader::process_name(pid);
+        // Pin the exact focused element the text was pasted into, so later reads
+        // can confirm the user is still editing that same field (not a different
+        // one in the same app). Without it we cannot attribute an edit, so skip
+        // the session silently.
+        let focus = match ax_reader::snapshot_focused_element(pid) {
+            Some(focus) => focus,
+            None => return,
+        };
 
         // Snapshot the gate configuration at paste time, alongside the text.
         let lang_code = resolved_language(&settings);
@@ -270,7 +280,7 @@ mod imp {
         let my_generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
         let app = app.clone();
         std::thread::spawn(move || {
-            run_session(app, my_generation, pid, app_name, original, params)
+            run_session(app, my_generation, pid, app_name, focus, original, params)
         });
     }
 
@@ -291,6 +301,7 @@ mod imp {
         generation: u64,
         pid: i32,
         app_name: Option<String>,
+        focus: ax_reader::FocusedSnapshot,
         original: String,
         params: SessionParams,
     ) {
@@ -309,7 +320,7 @@ mod imp {
                 return;
             }
 
-            let read = ax_reader::read_focused(pid, app_name.as_deref());
+            let read = ax_reader::read_focused(pid, app_name.as_deref(), &focus);
             match decide_tick(
                 read,
                 &original,
@@ -342,9 +353,17 @@ mod imp {
         let mut settings = settings::get_settings(app);
 
         // Dry-run soak: run the whole pipeline but only log the would-be pair.
+        // The pair is user text, so at info level it is redacted to lengths; the
+        // verbatim pair is logged only at debug! level, which reaches the log
+        // file / live viewer solely when the user has raised the log level.
         if settings.learn_corrections_log_only {
             info!(
-                "would-learn: {} -> {}",
+                "would-learn: misheard {} chars -> intended {} chars",
+                candidate.misheard.chars().count(),
+                candidate.intended.chars().count()
+            );
+            debug!(
+                "would-learn (verbatim): {} -> {}",
                 candidate.misheard, candidate.intended
             );
             return;
@@ -360,9 +379,18 @@ mod imp {
         let id = store::upsert(&mut settings.learned_corrections, entry);
         settings::write_settings(app, settings);
 
+        // Redacted at info level (the pair is user text); verbatim only at
+        // debug! level, gated by the user's log level as above. The id is a
+        // non-reversible content hash, so it is safe to log for correlation.
         info!(
-            "learned correction: {} -> {}",
-            candidate.misheard, candidate.intended
+            "learned correction {}: misheard {} chars -> intended {} chars",
+            id,
+            candidate.misheard.chars().count(),
+            candidate.intended.chars().count()
+        );
+        debug!(
+            "learned correction {} (verbatim): {} -> {}",
+            id, candidate.misheard, candidate.intended
         );
         let event = LearnedCorrectionEvent {
             id,
@@ -413,13 +441,17 @@ mod tests {
     }
 
     #[test]
-    fn secure_and_gone_reads_tear_down() {
+    fn secure_gone_and_focus_changed_reads_tear_down() {
         assert!(matches!(
             tick(FocusRead::Secure, None, None),
             TickDecision::Teardown
         ));
         assert!(matches!(
             tick(FocusRead::AppGone, None, None),
+            TickDecision::Teardown
+        ));
+        assert!(matches!(
+            tick(FocusRead::FocusChanged, None, None),
             TickDecision::Teardown
         ));
     }
