@@ -69,8 +69,9 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
     const [newMisheard, setNewMisheard] = useState("");
     const [newIntended, setNewIntended] = useState("");
     const [isAdding, setIsAdding] = useState(false);
+    const [isMutating, setIsMutating] = useState(false);
 
-    const isBusy = isUpdating("learned_corrections") || isAdding;
+    const isBusy = isAdding || isMutating;
 
     const handleAdd = async () => {
       const misheard = newMisheard.trim();
@@ -97,20 +98,37 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
       }
     };
 
-    const handleToggleEntry = (id: string, nextEnabled: boolean) => {
-      updateSetting(
-        "learned_corrections",
-        corrections.map((c) =>
-          c.id === id ? { ...c, enabled: nextEnabled } : c,
-        ),
-      );
+    // Toggle / remove go through granular backend commands that mutate the
+    // persisted list server-side, then refresh — writing the whole list back
+    // from this (possibly stale) copy would drop pairs auto-learned in the
+    // background between load and edit.
+    const handleToggleEntry = async (id: string, nextEnabled: boolean) => {
+      setIsMutating(true);
+      try {
+        const result = await commands.setLearnedCorrectionEnabled(
+          id,
+          nextEnabled,
+        );
+        if (result.status === "error") {
+          toast.error(result.error);
+        }
+        await refreshSettings();
+      } finally {
+        setIsMutating(false);
+      }
     };
 
-    const handleRemove = (id: string) => {
-      updateSetting(
-        "learned_corrections",
-        corrections.filter((c) => c.id !== id),
-      );
+    const handleRemove = async (id: string) => {
+      setIsMutating(true);
+      try {
+        const result = await commands.removeLearnedCorrection(id);
+        if (result.status === "error") {
+          toast.error(result.error);
+        }
+        await refreshSettings();
+      } finally {
+        setIsMutating(false);
+      }
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
