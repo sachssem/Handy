@@ -13,6 +13,7 @@
 #
 # Usage:  scripts/build-signed-dmg.sh
 # Override the signing identity with:  HANDY_SIGN_IDENTITY="<cert name>" scripts/build-signed-dmg.sh
+# Keep Cargo intermediates after success: HANDY_KEEP_BUILD_ARTIFACTS=1 scripts/build-signed-dmg.sh
 # List available identities with:      security find-identity -v
 #
 set -euo pipefail
@@ -48,20 +49,43 @@ codesign --verify --strict "$APP" && echo "    signature valid"
 
 VERSION="$(defaults read "$REPO_ROOT/$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "dev")"
 ARCH="$(uname -m)"
-OUT_DIR="src-tauri/target/release/bundle"
-DMG="$OUT_DIR/Handy_${VERSION}_voice-control_${ARCH}.dmg"
+BUILD_OUT_DIR="src-tauri/target/release/bundle"
+ARTIFACT_DIR="$REPO_ROOT/Handy artifacts"
+DMG_NAME="Handy_${VERSION}_voice-control_${ARCH}.dmg"
+BUILD_DMG="$BUILD_OUT_DIR/$DMG_NAME"
+FINAL_DMG="$ARTIFACT_DIR/$DMG_NAME"
 
 # Package the signed .app into a compressed DMG via hdiutil (reliable path).
-STAGE="$OUT_DIR/.dmg_stage"
+STAGE="$BUILD_OUT_DIR/.dmg_stage"
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 echo "==> Packaging DMG"
-hdiutil create -volname "Handy" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+hdiutil create -volname "Handy" -srcfolder "$STAGE" -ov -format UDZO "$BUILD_DMG" >/dev/null
 rm -rf "$STAGE"
 
+mkdir -p "$ARTIFACT_DIR"
+mv -f "$BUILD_DMG" "$FINAL_DMG"
+
+# Keep only the three newest fork DMGs. File names are generated above and
+# contain no newlines; quoting still protects the artifact directory's space.
+artifact_count=0
+while IFS= read -r artifact; do
+  artifact_count=$((artifact_count + 1))
+  if (( artifact_count > 3 )); then
+    rm -f "$artifact"
+  fi
+done < <(find "$ARTIFACT_DIR" -maxdepth 1 -type f -name 'Handy_*_voice-control_*.dmg' -print | xargs -I '{}' stat -f '%m %N' '{}' | sort -rn | cut -d ' ' -f 2-)
+
+if [[ "${HANDY_KEEP_BUILD_ARTIFACTS:-0}" != "1" ]]; then
+  echo "==> Removing Cargo build intermediates"
+  cargo clean --manifest-path "$REPO_ROOT/src-tauri/Cargo.toml"
+else
+  echo "==> Keeping Cargo build intermediates (HANDY_KEEP_BUILD_ARTIFACTS=1)"
+fi
+
 echo ""
-echo "==> Done: $REPO_ROOT/$DMG"
+echo "==> Done: $FINAL_DMG"
 echo "    First launch of a new build: right-click -> Open once (Gatekeeper, unnotarized)."
 echo "    Permissions persist across rebuilds as long as the signing cert is unchanged."

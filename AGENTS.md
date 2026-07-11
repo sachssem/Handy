@@ -273,10 +273,28 @@ Build release DMGs with the fork script, not `bun run tauri build` directly:
 scripts/build-signed-dmg.sh
 ```
 
+This is the required release-build workflow for agents and humans working on
+the fork. Finished DMGs are moved to the ignored repo-root directory
+`Handy artifacts/`; only the three newest matching voice-control DMGs are kept.
+After a successful build, Cargo intermediates are removed automatically. A
+failed build deliberately keeps them for diagnosis. For an exceptional follow-up
+build where retaining the cache is useful, opt out explicitly:
+
+```bash
+HANDY_KEEP_BUILD_ARTIFACTS=1 scripts/build-signed-dmg.sh
+```
+
+Do not invoke `bun run tauri build` for a releasable local DMG and do not move
+DMGs back under `src-tauri/target`; that tree is disposable. Dev and test
+incremental compilation are disabled in `src-tauri/Cargo.toml` to prevent
+multi-GB caches during ordinary checks and test runs. Do not re-enable them
+without a measured need.
+
 It handles two macOS-local issues that plain `tauri build` does not:
 
 - **Stable code signing.** Ad-hoc signatures have an unstable identity, so macOS TCC forgets Microphone/Accessibility grants on every rebuild (app shows the permission as granted in System Settings while Handy still reports it as pending). The script signs with a stable self-signed code-signing certificate, making the app's Designated Requirement constant so permissions persist across rebuilds. Default identity: `Voice Control / Handy Dev`; override with `HANDY_SIGN_IDENTITY="<name>"` (list via `security find-identity -v`). The cert is a free, self-signed **Code Signing** certificate created in Keychain Access → Certificate Assistant (no paid Apple Developer ID). `codesign` accepts it even though it shows as `CSSMERR_TP_NOT_TRUSTED` / not a "valid identity"; no keychain trust change is required.
 - **Reliable DMG packaging.** Tauri's `bundle_dmg.sh` (AppleScript Finder layout) fails intermittently on this machine, so the script builds only the `.app` (`--bundles app`) and packages the DMG via `hdiutil`.
+- **Bounded disk use.** The durable output lives in `Handy artifacts/`, retention is capped at three DMGs, and successful builds clean Cargo intermediates by default.
 
 Notes:
 
