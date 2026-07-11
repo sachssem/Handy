@@ -29,6 +29,8 @@ dist-ssr
 .claude/
 
 /target/
+# fork(voice-control): durable DMG output; build intermediates stay disposable.
+/Handy artifacts/
 recording_*
 .crush/
 

@@ -8,7 +8,13 @@ license = "MIT"
 default-run = "handy"
 
 [profile.dev]
-incremental = true # Compile your binary in smaller steps.
+# fork(voice-control): avoid multi-GB incremental caches during local checks.
+# Release DMG builds are cleaned by scripts/build-signed-dmg.sh after success.
+incremental = false
+
+[profile.test]
+# Tests otherwise maintain a separate incremental cache alongside dev builds.
+incremental = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
