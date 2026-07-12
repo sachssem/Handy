@@ -78,8 +78,12 @@ Gemessene Ergebnisse (Probe-Lauf 2026-07-12, auto-Language, Threshold 0.70):
 
 | Modell          | Ergebnis                                             | Limit-Eintrag              |
 | --------------- | ---------------------------------------------------- | -------------------------- |
-| Parakeet TDT v3 | gesund bis 240 s (Ratio 0.91–1.00, keine Truncation) | keiner nötig (`None`)      |
+| Parakeet TDT v3 | gesund bis 360 s (Ratio 0.91–1.00, keine Truncation) | genereller Default         |
 | Qwen3-ASR 1.7B  | ~45 s (Hand-Messung; Modell z. Zt. nicht lokal)      | 45 s, per Probe bestätigen |
+
+Modelle ohne gemessenen Eintrag bekommen einen generellen Default von **5 min**
+(`DEFAULT_RECORDING_LIMIT`) — weit über jeder realen Diktatlänge, aber ein Netz
+gegen stilles Abschneiden bei ungemessenen Modellen.
 
 ## Nächste Schritte (empfohlene Reihenfolge)
 
