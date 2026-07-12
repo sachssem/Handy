@@ -1315,10 +1315,25 @@ impl TranscriptionManager {
                                             };
                                             match session.run(&audio, &retry_options) {
                                                 Ok(retried) => {
-                                                    info!(
+                                                    // The pin is only a soft conditioning on some
+                                                    // archs (parakeet); say so when the model
+                                                    // ignored it instead of a hollow "succeeded".
+                                                    if script_outside_allowlist(
+                                                        &retried.text,
+                                                        &settings.language_allowlist,
+                                                    )
+                                                    .is_some()
+                                                    {
+                                                        warn!(
+                                                            "Language allowlist guard: retry pinned to '{}' still out of script; the model cannot honor the pin for this utterance",
+                                                            retry_lang
+                                                        );
+                                                    } else {
+                                                        info!(
                                                             "Language allowlist guard: retry pinned to '{}' succeeded",
                                                             retry_lang
                                                         );
+                                                    }
                                                     return Ok(retried.text);
                                                 }
                                                 Err(e) => {
