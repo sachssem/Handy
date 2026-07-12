@@ -8,6 +8,7 @@
 - ✅ **Komplett offline** — lokale STT (Parakeet), kein Cloud-Zwang.
   _Verifikation:_ WLAN-aus-Test; dauerhaft per LuLu (Outbound-Firewall, macOS-Bordmittel können kein Outbound-Blocking).
 - ✅ **Deutsch + Englisch mit Auto-Detect** inkl. Code-Switching — Parakeet v3 (25 Sprachen, Auto-LID).
+- ✅🍴 **Sprach-Allowlist für Auto-Detect** (gegen LID-Ausreißer wie Kyrillisch bei kurzen englischen Phrasen): erkannte Sprache außerhalb der Liste → einmaliger Retry mit auf die Primärsprache gepinnter Konditionierung (`language_allowlist`; UI unter der Sprachauswahl, nur bei „Auto").
 - ✅ **Geringer RAM-Verbrauch** — Parakeet ~1,2 GB geladen, Handy-Kern nur zweistellige MB; mit Glättungs-LLM gesamt ~4,5–5 GB (Ziel <10 GB locker erfüllt). Modelle werden bei Leerlauf entladen.
 - ✅ **Push-to-talk systemweit** (+ Toggle-Modus), Text landet in aktiver App, konfigurierbare Paste-Methode, Auto-Submit.
 - ✅ **History** — SQLite, mit Audio, Roh- + geglättete Version.

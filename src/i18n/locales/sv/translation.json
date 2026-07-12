@@ -191,7 +191,12 @@
         "description": "Välj språk för taligenkänning. Auto kommer automatiskt att bestämma språket, medan val av ett specifikt språk kan förbättra noggrannheten för det språket.",
         "searchPlaceholder": "Sök språk...",
         "noResults": "Inga språk hittades",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Begränsa automatisk igenkänning till…",
+          "description": "När Auto är valt, behåll endast dessa språk. Ett upptäckt språk utanför listan transkriberas om låst till det första (primära) språket.",
+          "primary": "Primärt"
+        }
       },
       "pushToTalk": {
         "label": "Tryck för att tala",

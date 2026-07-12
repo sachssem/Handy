@@ -209,7 +209,12 @@
         "description": "选择语音识别的语言。自动将自动确定语言，选择特定语言可以提高该语言的准确度。",
         "searchPlaceholder": "搜索语言...",
         "noResults": "未找到语言",
-        "auto": "自动"
+        "auto": "自动",
+        "allowlist": {
+          "title": "将自动检测限制为…",
+          "description": "选择“自动”时，仅保留这些语言。检测到列表之外的语言时，将固定为第一个（主要）语言重新转写。",
+          "primary": "主要"
+        }
       },
       "pushToTalk": {
         "label": "按住说话",

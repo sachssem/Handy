@@ -191,7 +191,12 @@
         "description": "選擇語音識別的語言。選擇自動將自動判定語言，選擇特定語言可以提高該語言的準確度",
         "searchPlaceholder": "搜尋語言...",
         "noResults": "未找到語言",
-        "auto": "自動"
+        "auto": "自動",
+        "allowlist": {
+          "title": "將自動偵測限制為…",
+          "description": "選擇「自動」時，僅保留這些語言。偵測到清單之外的語言時，將固定為第一個（主要）語言重新轉錄。",
+          "primary": "主要"
+        }
       },
       "pushToTalk": {
         "label": "按住說話",

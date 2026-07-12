@@ -534,6 +534,20 @@ pub fn change_selected_language_setting(app: AppHandle, language: String) -> Res
     Ok(())
 }
 
+// fork(voice-control): the allowlist that constrains "auto" language detection.
+// See the pinned-retry guard in managers/transcription.rs.
+#[tauri::command]
+#[specta::specta]
+pub fn change_language_allowlist_setting(
+    app: AppHandle,
+    allowlist: Vec<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.language_allowlist = allowlist;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Result<(), String> {

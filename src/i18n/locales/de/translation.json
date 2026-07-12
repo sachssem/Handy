@@ -209,7 +209,12 @@
         "description": "Wähle die Sprache für die Spracherkennung. Auto erkennt die Sprache automatisch, die Auswahl einer bestimmten Sprache kann die Genauigkeit verbessern.",
         "searchPlaceholder": "Sprachen suchen...",
         "noResults": "Keine Sprachen gefunden",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Automatische Erkennung beschränken auf …",
+          "description": "Wenn „Auto“ gewählt ist, nur diese Sprachen zulassen. Eine erkannte Sprache außerhalb dieser Liste wird erneut transkribiert, fest auf die erste (primäre) Sprache eingestellt.",
+          "primary": "Primär"
+        }
       },
       "pushToTalk": {
         "label": "Push-to-Talk",

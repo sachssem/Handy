@@ -191,7 +191,12 @@
         "description": "Select the language for speech recognition. Auto will automatically determine the language, while selecting a specific language can improve accuracy for that language.",
         "searchPlaceholder": "Search languages...",
         "noResults": "No languages found",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Restrict auto-detect to…",
+          "description": "When Auto is selected, only keep these languages. A detected language outside this list is re-transcribed pinned to the first (primary) language.",
+          "primary": "Primary"
+        }
       },
       "pushToTalk": {
         "label": "Push To Talk",

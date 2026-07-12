@@ -366,6 +366,13 @@ pub struct AppSettings {
     pub translate_to_english: bool,
     #[serde(default = "default_selected_language")]
     pub selected_language: String,
+    /// fork(voice-control): ISO codes the auto-detect guard is allowed to keep.
+    /// Empty (the default) leaves upstream auto-detect untouched. Only consulted
+    /// when the effective language is "auto"; the first entry is the language a
+    /// rejected detection is re-pinned to. See the guard in
+    /// `managers/transcription.rs`.
+    #[serde(default)]
+    pub language_allowlist: Vec<String>,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -856,6 +863,7 @@ pub fn get_default_settings() -> AppSettings {
         selected_output_device: None,
         translate_to_english: false,
         selected_language: "auto".to_string(),
+        language_allowlist: Vec::new(),
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),

@@ -209,7 +209,12 @@
         "description": "Scegli la lingua per il riconoscimento vocale. Auto la determinerà automaticamente, mentre scegliere una lingua specifica può migliorare l'accuratezza per quella lingua.",
         "searchPlaceholder": "Cerca lingue...",
         "noResults": "Nessuna lingua trovata",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Limita il rilevamento automatico a…",
+          "description": "Quando è selezionato Auto, mantieni solo queste lingue. Una lingua rilevata fuori da questo elenco viene ritrascritta forzando la prima lingua (principale).",
+          "primary": "Principale"
+        }
       },
       "pushToTalk": {
         "label": "Premi per Parlare",

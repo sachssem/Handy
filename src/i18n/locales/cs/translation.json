@@ -209,7 +209,12 @@
         "description": "Vyberte jazyk rozpoznávání řeči. Auto jazyk určí automaticky, zatímco výběr konkrétního jazyka může zlepšit přesnost.",
         "searchPlaceholder": "Hledat jazyky...",
         "noResults": "Žádné jazyky nenalezeny",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Omezit automatické rozpoznávání na…",
+          "description": "Když je vybráno Auto, ponechat pouze tyto jazyky. Rozpoznaný jazyk mimo tento seznam se přepíše znovu s pevně nastaveným prvním (hlavním) jazykem.",
+          "primary": "Hlavní"
+        }
       },
       "pushToTalk": {
         "label": "Stisk a mluv",

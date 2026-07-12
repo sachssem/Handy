@@ -191,7 +191,12 @@
         "description": "Selecteer de taal voor spraakherkenning. 'Automatisch' detecteert de taal vanzelf, terwijl het kiezen van een specifieke taal de nauwkeurigheid voor die taal kan verbeteren.",
         "searchPlaceholder": "Talen zoeken...",
         "noResults": "Geen talen gevonden",
-        "auto": "Automatisch"
+        "auto": "Automatisch",
+        "allowlist": {
+          "title": "Automatische detectie beperken tot…",
+          "description": "Wanneer Auto is geselecteerd, alleen deze talen behouden. Een gedetecteerde taal buiten deze lijst wordt opnieuw getranscribeerd, vastgezet op de eerste (primaire) taal.",
+          "primary": "Primair"
+        }
       },
       "pushToTalk": {
         "label": "Push-to-talk",

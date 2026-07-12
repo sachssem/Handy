@@ -209,7 +209,12 @@
         "description": "Selecciona el idioma para el reconocimiento de voz. Auto detectará automáticamente el idioma, mientras que seleccionar un idioma específico puede mejorar la precisión para ese idioma.",
         "searchPlaceholder": "Buscar idiomas...",
         "noResults": "No se encontraron idiomas",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Restringir la detección automática a…",
+          "description": "Cuando se selecciona Automático, conservar solo estos idiomas. Un idioma detectado fuera de esta lista se vuelve a transcribir fijado al primer idioma (principal).",
+          "primary": "Principal"
+        }
       },
       "pushToTalk": {
         "label": "Presionar para Hablar",

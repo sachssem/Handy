@@ -191,7 +191,12 @@
         "description": "Selecione o idioma para reconhecimento de fala. Auto detectará automaticamente o idioma, enquanto selecionar um idioma específico pode melhorar a precisão para esse idioma.",
         "searchPlaceholder": "Buscar idiomas...",
         "noResults": "Nenhum idioma encontrado",
-        "auto": "Auto"
+        "auto": "Auto",
+        "allowlist": {
+          "title": "Restringir a detecção automática a…",
+          "description": "Quando Automático está selecionado, manter apenas estes idiomas. Um idioma detetado fora desta lista é transcrito novamente fixado no primeiro idioma (principal).",
+          "primary": "Principal"
+        }
       },
       "pushToTalk": {
         "label": "Pressionar para Falar",
