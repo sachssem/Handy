@@ -705,10 +705,10 @@
     "recordingLimitWarning": "{{seconds}}초 후 녹음이 자동으로 중지됩니다"
   },
   "learnedToast": {
-    "title": "학습됨: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "학습될 내용: “{{misheard}}” → “{{intended}}”",
+    "title": "자동 수정 학습됨: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "자동 수정 체험: “{{misheard}}” → “{{intended}}”",
     "undo": "실행 취소",
-    "trialNote": "체험 — 저장되지 않음"
+    "trialNote": "저장되지 않음"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây"
   },
   "learnedToast": {
-    "title": "Đã học: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Sẽ học: “{{misheard}}” → “{{intended}}”",
+    "title": "Đã học tự động sửa: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Thử tự động sửa: “{{misheard}}” → “{{intended}}”",
     "undo": "Hoàn tác",
-    "trialNote": "Dùng thử — chưa lưu"
+    "trialNote": "Chưa lưu"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

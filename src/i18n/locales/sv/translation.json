@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder"
   },
   "learnedToast": {
-    "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
-    "trialTitle": "Skulle lära: ”{{misheard}}” → ”{{intended}}”",
+    "title": "Autokorrigering inlärd: ”{{misheard}}” → ”{{intended}}”",
+    "trialTitle": "Test av autokorrigering: ”{{misheard}}” → ”{{intended}}”",
     "undo": "Ångra",
-    "trialNote": "Testläge – inte sparat"
+    "trialNote": "Inte sparat"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

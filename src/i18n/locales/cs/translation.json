@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund"
   },
   "learnedToast": {
-    "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Naučilo by se: „{{misheard}}“ → „{{intended}}“",
+    "title": "Autokorekce naučena: „{{misheard}}“ → „{{intended}}“",
+    "trialTitle": "Zkušební autokorekce: „{{misheard}}“ → „{{intended}}“",
     "undo": "Zpět",
-    "trialNote": "Zkušební režim – neuloženo"
+    "trialNote": "Neuloženo"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Aufnahme stoppt automatisch in {{seconds}} Sekunden"
   },
   "learnedToast": {
-    "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Würde lernen: „{{misheard}}“ → „{{intended}}“",
+    "title": "Autokorrektur lernt: „{{misheard}}“ → „{{intended}}“",
+    "trialTitle": "Autokorrektur-Test: „{{misheard}}“ → „{{intended}}“",
     "undo": "Rückgängig",
-    "trialNote": "Testmodus – nicht gespeichert"
+    "trialNote": "nicht gespeichert"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

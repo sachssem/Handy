@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Запись автоматически остановится через {{seconds}} секунд"
   },
   "learnedToast": {
-    "title": "Выучено: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "Выучил бы: «{{misheard}}» → «{{intended}}»",
+    "title": "Автокоррекция выучена: «{{misheard}}» → «{{intended}}»",
+    "trialTitle": "Пробная автокоррекция: «{{misheard}}» → «{{intended}}»",
     "undo": "Отменить",
-    "trialNote": "Пробный режим — не сохранено"
+    "trialNote": "Не сохранено"
   },
   "whatsNew": {
     "title": "Новое в Handy v{{version}}"

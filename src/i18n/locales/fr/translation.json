@@ -705,10 +705,10 @@
     "recordingLimitWarning": "L’enregistrement s’arrêtera automatiquement dans {{seconds}} secondes"
   },
   "learnedToast": {
-    "title": "Appris : « {{misheard}} » → « {{intended}} »",
-    "trialTitle": "Apprendrait : « {{misheard}} » → « {{intended}} »",
+    "title": "Autocorrection apprise : « {{misheard}} » → « {{intended}} »",
+    "trialTitle": "Essai d’autocorrection : « {{misheard}} » → « {{intended}} »",
     "undo": "Annuler",
-    "trialNote": "Essai — non enregistré"
+    "trialNote": "Non enregistré"
   },
   "whatsNew": {
     "title": "Nouveautés de Handy v{{version}}"

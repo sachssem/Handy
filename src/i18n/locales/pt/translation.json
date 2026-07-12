@@ -705,10 +705,10 @@
     "recordingLimitWarning": "A gravação será interrompida automaticamente em {{seconds}} segundos"
   },
   "learnedToast": {
-    "title": "Aprendido: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Aprenderia: “{{misheard}}” → “{{intended}}”",
+    "title": "Autocorreção aprendida: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Teste de autocorreção: “{{misheard}}” → “{{intended}}”",
     "undo": "Desfazer",
-    "trialNote": "Teste — não salvo"
+    "trialNote": "Não salvo"
   },
   "whatsNew": {
     "title": "Novidades no Handy v{{version}}"

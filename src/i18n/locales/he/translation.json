@@ -705,10 +705,10 @@
     "recordingLimitWarning": "ההקלטה תיעצר אוטומטית בעוד {{seconds}} שניות"
   },
   "learnedToast": {
-    "title": "נלמד: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "היה נלמד: «{{misheard}}» → «{{intended}}»",
+    "title": "התיקון האוטומטי נלמד: «{{misheard}}» → «{{intended}}»",
+    "trialTitle": "ניסיון תיקון אוטומטי: «{{misheard}}» → «{{intended}}»",
     "undo": "בטל",
-    "trialNote": "ניסיון — לא נשמר"
+    "trialNote": "לא נשמר"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

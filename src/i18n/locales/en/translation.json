@@ -708,9 +708,9 @@
     "recordingLimitWarning": "Recording stops automatically in {{seconds}} seconds"
   },
   "learnedToast": {
-    "title": "Learned: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Would learn: “{{misheard}}” → “{{intended}}”",
+    "title": "Auto-correction learned: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Auto-correction trial: “{{misheard}}” → “{{intended}}”",
     "undo": "Undo",
-    "trialNote": "Trial — not saved"
+    "trialNote": "not saved"
   }
 }

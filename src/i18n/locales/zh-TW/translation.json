@@ -705,10 +705,10 @@
     "recordingLimitWarning": "錄音將在 {{seconds}} 秒後自動停止"
   },
   "learnedToast": {
-    "title": "已學習：「{{misheard}}」→「{{intended}}」",
-    "trialTitle": "將會學習：「{{misheard}}」→「{{intended}}」",
+    "title": "已學習自動修正：「{{misheard}}」→「{{intended}}」",
+    "trialTitle": "試用自動修正：「{{misheard}}」→「{{intended}}」",
     "undo": "復原",
-    "trialNote": "試用 — 未儲存"
+    "trialNote": "未儲存"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

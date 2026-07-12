@@ -708,9 +708,9 @@
     "recordingLimitWarning": "De opname stopt automatisch over {{seconds}} seconden"
   },
   "learnedToast": {
-    "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Zou leren: “{{misheard}}” → “{{intended}}”",
+    "title": "Autocorrectie geleerd: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Autocorrectie proef: “{{misheard}}” → “{{intended}}”",
     "undo": "Ongedaan maken",
-    "trialNote": "Proef — niet opgeslagen"
+    "trialNote": "Niet opgeslagen"
   }
 }

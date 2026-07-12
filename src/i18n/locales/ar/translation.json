@@ -705,10 +705,10 @@
     "recordingLimitWarning": "سيتوقف التسجيل تلقائيًا خلال {{seconds}} ثوانٍ"
   },
   "learnedToast": {
-    "title": "تم التعلُّم: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "سيتم التعلُّم: «{{misheard}}» → «{{intended}}»",
+    "title": "تعلّم التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
+    "trialTitle": "تجربة التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
     "undo": "تراجع",
-    "trialNote": "تجريبي — لم يُحفظ"
+    "trialNote": "لم يُحفظ"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

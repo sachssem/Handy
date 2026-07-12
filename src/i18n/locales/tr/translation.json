@@ -705,10 +705,10 @@
     "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak"
   },
   "learnedToast": {
-    "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Öğrenilecekti: “{{misheard}}” → “{{intended}}”",
+    "title": "Otomatik düzeltme öğrenildi: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Otomatik düzeltme denemesi: “{{misheard}}” → “{{intended}}”",
     "undo": "Geri Al",
-    "trialNote": "Deneme — kaydedilmedi"
+    "trialNote": "Kaydedilmedi"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"
