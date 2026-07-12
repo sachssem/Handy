@@ -146,12 +146,14 @@ impl ModelSpec {
 /// A loaded, ready-to-run model. Mirrors the subset of
 /// `managers::transcription::LoadedEngine` the harness benchmarks.
 pub enum LoadedModel {
-    /// transcribe-cpp session plus whether its arch accepts a language hint.
-    /// Non-whisper archs (e.g. qwen3-asr) reject language hints, so we pass
-    /// `None` there — matching the app's `model_is_whisper` gate.
+    /// transcribe-cpp session plus language/translation capabilities used by the
+    /// app run plan. Hints are forwarded only when the arch accepts them and the
+    /// loaded model advertises the requested language.
     Cpp {
         session: Session,
-        is_whisper: bool,
+        accepts_language_hint: bool,
+        languages: Vec<String>,
+        supports_translate: bool,
     },
     Parakeet(ParakeetModel),
     Canary(CanaryModel),
@@ -190,10 +192,17 @@ impl LoadedModel {
                 let session = model
                     .session()
                     .map_err(|e| anyhow!("failed to create transcribe-cpp session: {e}"))?;
-                let is_whisper = session.model().arch() == "whisper";
+                let model = session.model();
+                let caps = model.capabilities();
+                let accepts_language_hint =
+                    !crate::managers::transcription::arch_rejects_language_hint(&model.arch());
+                let languages = caps.languages;
+                let supports_translate = caps.supports_translate;
                 Ok(Self::Cpp {
                     session,
-                    is_whisper,
+                    accepts_language_hint,
+                    languages,
+                    supports_translate,
                 })
             }
             EngineKind::Parakeet => {
@@ -215,17 +224,21 @@ impl LoadedModel {
         match self {
             LoadedModel::Cpp {
                 session,
-                is_whisper,
+                accepts_language_hint,
+                languages,
+                supports_translate,
             } => {
-                // Non-whisper archs reject a language hint (see app's
-                // `validated_language`/`model_is_whisper` gate).
-                let language = if *is_whisper {
-                    language.map(str::to_string)
-                } else {
-                    None
-                };
+                let plan = crate::managers::transcription::transcribe_cpp_run_plan(
+                    false,
+                    language.unwrap_or("auto"),
+                    languages,
+                    *supports_translate,
+                    *accepts_language_hint,
+                );
                 let run_options = RunOptions {
-                    language,
+                    task: plan.task,
+                    language: plan.language,
+                    target_language: plan.target_language,
                     ..Default::default()
                 };
                 session

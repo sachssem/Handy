@@ -1579,10 +1579,10 @@ fn effective_language_for_model(
     }
 }
 
-struct TranscribeCppRunPlan {
-    task: Task,
-    language: Option<String>,
-    target_language: Option<String>,
+pub(crate) struct TranscribeCppRunPlan {
+    pub(crate) task: Task,
+    pub(crate) language: Option<String>,
+    pub(crate) target_language: Option<String>,
 }
 
 /// fork(voice-control): archs that publish `caps.languages` to document their
@@ -1591,13 +1591,15 @@ struct TranscribeCppRunPlan {
 /// Qwen3-ASR is the only such arch today; forwarding a pinned language fails the
 /// whole run, so its run plan must stay on auto-detect regardless of the user's
 /// language intent. Its built-in LID still handles in-audio code-switching.
-fn arch_rejects_language_hint(arch: &str) -> bool {
+pub(crate) fn arch_rejects_language_hint(arch: &str) -> bool {
     arch == "qwen3_asr"
 }
 
 /// Build the transcribe-cpp language/task options shared by batch and live
 /// streaming paths.
-fn transcribe_cpp_run_plan(
+// fork(voice-control): `pub(crate)` so the bench harness (src/bench/) uses the
+// exact production language/task gate for transcribe-cpp models.
+pub(crate) fn transcribe_cpp_run_plan(
     translate_to_english: bool,
     effective_language: &str,
     model_languages: &[String],
