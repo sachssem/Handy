@@ -28,12 +28,21 @@ pub struct RecordingLimit {
     pub warning_ms: u64,
 }
 
+/// General ceiling for models without a measured entry below: 5 minutes is
+/// beyond any realistic dictation, yet keeps an unmeasured model's token cap
+/// from silently eating a long recording's tail. Measure real ceilings with
+/// `handy-bench probe-limit` (Parakeet TDT v3: healthy through 6 min).
+const DEFAULT_RECORDING_LIMIT: RecordingLimit = RecordingLimit {
+    max_recording_ms: 300_000,
+    warning_ms: 10_000,
+};
+
 pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
     let model_id = model_id.to_ascii_lowercase();
 
-    // Qwen3-ASR currently truncates generation around the transcribe-cpp default
-    // output-token cap on long dictations. Keep this conservative until the
-    // benchmark suite has per-model measured ceilings.
+    // Qwen3-ASR truncates generation around the transcribe-cpp default
+    // output-token cap on long dictations; hand-measured at ~45s, pending a
+    // probe-limit confirmation once the model is downloaded again.
     if model_id.contains("qwen3-asr") {
         return Some(RecordingLimit {
             max_recording_ms: 45_000,
@@ -41,7 +50,7 @@ pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
         });
     }
 
-    None
+    Some(DEFAULT_RECORDING_LIMIT)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -150,8 +159,11 @@ mod recording_limit_tests {
     }
 
     #[test]
-    fn unrelated_models_do_not_get_a_recording_limit() {
-        assert!(recording_limit_for_model_id("handy-computer/parakeet-v3").is_none());
+    fn unmeasured_models_get_the_general_default_limit() {
+        let limit = recording_limit_for_model_id("handy-computer/parakeet-v3").unwrap();
+
+        assert_eq!(limit.max_recording_ms, 300_000);
+        assert_eq!(limit.warning_ms, 10_000);
     }
 }
 
