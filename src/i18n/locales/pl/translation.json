@@ -212,7 +212,12 @@
         "description": "Wybierz język rozpoznawania mowy. Opcja Auto automatycznie określi język, a wybór konkretnego języka może poprawić dokładność.",
         "searchPlaceholder": "Szukaj języka...",
         "noResults": "Nie znaleziono języków",
-        "auto": "Automatycznie"
+        "auto": "Automatycznie",
+        "allowlist": {
+          "title": "Ogranicz automatyczne wykrywanie do…",
+          "description": "Gdy wybrano Auto, zachowaj tylko te języki. Wykryty język spoza tej listy jest ponownie transkrybowany z wymuszeniem pierwszego (głównego) języka.",
+          "primary": "Główny"
+        }
       },
       "shortcutActivation": {
         "title": "Zachowanie skrótu",

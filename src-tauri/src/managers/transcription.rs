@@ -1342,7 +1342,7 @@ impl TranscriptionManager {
                             task: run_plan.task,
                             language: run_plan.language,
                             target_language: run_plan.target_language,
-                            family,
+                            family: family.clone(),
                             ..Default::default()
                         };
 
@@ -1354,11 +1354,90 @@ impl TranscriptionManager {
                         );
 
                         match session.run(&audio, &run_options) {
-                            Ok(transcript) => {
+                            Ok(first) => {
                                 // Whisper's audio-based LID (auto mode only;
                                 // `None` when a language hint was passed).
-                                model_detected_language = transcript.language;
-                                Ok(transcript.text)
+                                model_detected_language = first.language.clone();
+                                // fork(voice-control): allowlist guard for "auto" detection.
+                                // Parakeet's per-utterance LID occasionally tags a short
+                                // utterance with a language the user never dictates (e.g.
+                                // English mistaken for Russian, which prints Cyrillic).
+                                // When running on auto and the model reported a detected
+                                // language (`Transcript.language` is Some only when no hint
+                                // was pinned) that is outside the configured allowlist,
+                                // re-run the same audio once with the language pinned to the
+                                // first allowlist entry and use that text instead. An empty
+                                // allowlist, no detection, or an in-list detection keeps the
+                                // first result (upstream behavior).
+                                if validated_language == "auto"
+                                    && !settings.language_allowlist.is_empty()
+                                {
+                                    if let Some(detected) = first.language.as_deref() {
+                                        let detected_norm = normalize_lang_subtag(detected);
+                                        let in_allowlist = settings
+                                            .language_allowlist
+                                            .iter()
+                                            .any(|a| normalize_lang_subtag(a) == detected_norm);
+                                        if !in_allowlist {
+                                            let retry_lang = settings.language_allowlist[0].clone();
+                                            info!(
+                                                "Language allowlist guard: detected '{}' outside {:?}, re-running pinned to '{}'",
+                                                detected, settings.language_allowlist, retry_lang
+                                            );
+                                            // Reuse the shared plan so the pin is only
+                                            // forwarded when the arch advertises it and
+                                            // accepts hints; otherwise the retry would just
+                                            // auto-detect again and reproduce the same result.
+                                            let retry_plan = transcribe_cpp_run_plan(
+                                                settings.translate_to_english,
+                                                &retry_lang,
+                                                &model_languages,
+                                                model_supports_translate,
+                                                model_accepts_language_hint,
+                                            );
+                                            if retry_plan.language.is_some() {
+                                                let retry_hint = retry_plan.language.clone();
+                                                let retry_translated =
+                                                    retry_plan.target_language.as_deref()
+                                                        == Some("en");
+                                                let retry_options = RunOptions {
+                                                    task: retry_plan.task,
+                                                    language: retry_plan.language,
+                                                    target_language: retry_plan.target_language,
+                                                    family,
+                                                    ..Default::default()
+                                                };
+                                                match session.run(&audio, &retry_options) {
+                                                    Ok(retried) => {
+                                                        info!(
+                                                            "Language allowlist guard: retry pinned to '{}' succeeded",
+                                                            retry_lang
+                                                        );
+                                                        // The pinned retry is what produced the
+                                                        // text: its hint is the output evidence.
+                                                        applied_language_hint = retry_hint;
+                                                        output_was_translated = retry_translated;
+                                                        model_detected_language = retried.language;
+                                                        return Ok(retried.text);
+                                                    }
+                                                    Err(e) => {
+                                                        warn!(
+                                                            "Language allowlist guard: retry pinned to '{}' failed ({}); keeping original detection",
+                                                            retry_lang, e
+                                                        );
+                                                    }
+                                                }
+                                            } else {
+                                                info!(
+                                                    "Language allowlist guard: '{}' not advertised by the model or hints unsupported; keeping original detection",
+                                                    retry_lang
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Ok(first.text)
                             }
                             Err(err) => {
                                 // fork(voice-control): a run that hit the output-token
@@ -1680,6 +1759,12 @@ fn real_time_factor(audio_secs: f64, compute_secs: f64) -> f64 {
     } else {
         0.0
     }
+}
+
+/// fork(voice-control): normalize an ISO language tag for allowlist comparison:
+/// lowercase and primary subtag only ("de-DE" -> "de").
+fn normalize_lang_subtag(code: &str) -> String {
+    code.split('-').next().unwrap_or(code).to_ascii_lowercase()
 }
 
 /// Resolve the persisted language intent into the language a specific model can
