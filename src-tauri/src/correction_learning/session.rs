@@ -141,9 +141,17 @@ fn decide_tick(
     lang: PhoneticLang,
 ) -> TickDecision {
     match read {
-        // Secure field, the app quit, or focus moved to a different element →
-        // tear the session down silently.
-        FocusRead::Secure | FocusRead::AppGone | FocusRead::FocusChanged => TickDecision::Teardown,
+        // Secure field or the app quit → tear the session down silently.
+        FocusRead::Secure | FocusRead::AppGone => TickDecision::Teardown,
+        // Focus moved to a different element (blur/submit). The field's last
+        // observed state is final — nothing can edit it in place anymore — so a
+        // candidate that already passed the gates on the previous read no
+        // longer needs its confirming second read: commit it now. This is what
+        // makes "correct, then immediately submit" learnable.
+        FocusRead::FocusChanged => match last_candidate {
+            Some(candidate) => TickDecision::Commit(candidate),
+            None => TickDecision::Teardown,
+        },
         // Nothing readable this tick; reset stability and force the next text
         // read to be diffed afresh.
         FocusRead::NoSignal => TickDecision::Continue {
@@ -206,7 +214,9 @@ mod imp {
 
     /// How often the snapshotted field is re-read within the window. Const (the
     /// window length itself is the user-facing `learn_corrections_window_secs`).
-    const POLL_INTERVAL: Duration = Duration::from_secs(4);
+    /// 2s keeps the type-fix-then-submit flow inside one confirming read; the
+    /// AX read is cheap (single element attribute fetch).
+    const POLL_INTERVAL: Duration = Duration::from_secs(2);
     /// Bounds for the configurable learning window, clamped so a stray setting
     /// value can neither close the window instantly nor keep the poll thread
     /// alive indefinitely.
@@ -535,6 +545,36 @@ mod tests {
         ));
         assert!(matches!(
             tick(FocusRead::FocusChanged, None, None),
+            TickDecision::Teardown
+        ));
+    }
+
+    #[test]
+    fn focus_change_commits_a_pending_candidate() {
+        // Blur/submit after the fix was seen once: the field state is final,
+        // so the pending candidate commits instead of being torn down.
+        let candidate = Candidate {
+            misheard: "Jon".into(),
+            intended: "John".into(),
+        };
+        match tick(
+            FocusRead::FocusChanged,
+            Some("send it to John"),
+            Some(candidate.clone()),
+        ) {
+            TickDecision::Commit(committed) => assert_eq!(committed, candidate),
+            other => panic!("expected commit, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn secure_field_never_commits_a_pending_candidate() {
+        let candidate = Candidate {
+            misheard: "Jon".into(),
+            intended: "John".into(),
+        };
+        assert!(matches!(
+            tick(FocusRead::Secure, Some("send it to John"), Some(candidate)),
             TickDecision::Teardown
         ));
     }
