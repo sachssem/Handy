@@ -1421,9 +1421,8 @@ impl TranscriptionManager {
                                             );
                                             // Announce the second pass so the overlay
                                             // can explain the extra latency.
-                                            let _ = self
-                                                .app_handle
-                                                .emit("fallback-transcription", ());
+                                            let _ =
+                                                self.app_handle.emit("fallback-transcription", ());
                                             return Ok(self
                                                 .run_allowlist_fallback(
                                                     fallback_model,
