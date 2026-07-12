@@ -493,6 +493,14 @@ async changeChineseScriptSetting(script: ChineseScript) : Promise<Result<null, s
     else return { status: "error", error: e  as any };
 }
 },
+async changeAutoStopRecordingOnLimitSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_auto_stop_recording_on_limit_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async changeAppLanguageSetting(language: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_app_language_setting", { language }) };
@@ -1117,7 +1125,7 @@ transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_e
 /**
  * Experimental detector implementation. Silero remains the stable default.
  */
-vad_backend?: VadBackend; 
+vad_backend?: VadBackend; auto_stop_recording_on_limit?: boolean; 
 /**
  * Which recording overlay to show: None / Minimal / Live. Streaming mode is
  * not gated on this — that follows model capability. Migrated from the old

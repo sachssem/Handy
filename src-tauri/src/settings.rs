@@ -527,6 +527,8 @@ pub struct AppSettings {
     /// Experimental detector implementation. Silero remains the stable default.
     #[serde(default)]
     pub vad_backend: VadBackend,
+    #[serde(default = "default_auto_stop_recording_on_limit")]
+    pub auto_stop_recording_on_limit: bool,
     /// Which recording overlay to show: None / Minimal / Live. Streaming mode is
     /// not gated on this — that follows model capability. Migrated from the old
     /// `overlay_position` (position `none` → style `None`).
@@ -637,6 +639,10 @@ fn default_chinese_script() -> ChineseScript {
     tauri_plugin_os::locale()
         .and_then(|locale| crate::chinese_script::chinese_script_for_locale(&locale))
         .unwrap_or_default()
+}
+
+fn default_auto_stop_recording_on_limit() -> bool {
+    true
 }
 
 fn default_debug_mode() -> bool {
@@ -1024,6 +1030,7 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         vad_backend: VadBackend::default(),
+        auto_stop_recording_on_limit: default_auto_stop_recording_on_limit(),
         overlay_style: default_overlay_style(),
         text_rules_enabled: false,
         text_rules_itn_enabled: false,
@@ -1595,6 +1602,7 @@ mod tests {
         let settings = get_default_settings();
         assert!(!settings.auto_submit);
         assert_eq!(settings.auto_submit_key, AutoSubmitKey::Enter);
+        assert!(settings.auto_stop_recording_on_limit);
         assert_eq!(
             settings.settings_schema_version,
             CURRENT_SETTINGS_SCHEMA_VERSION
