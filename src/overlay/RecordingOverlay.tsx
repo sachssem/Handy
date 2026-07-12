@@ -47,6 +47,10 @@ const RecordingOverlay: React.FC = () => {
   const [workKind, setWorkKind] = useState<StreamWorkKind>("transcribing");
   const [recordingLimit, setRecordingLimit] =
     useState<RecordingLimitState | null>(null);
+  // fork(voice-control): true while the language-allowlist guard re-runs the
+  // audio with the configured fallback model, so the work label says why the
+  // transcription takes a second pass.
+  const [fallbackActive, setFallbackActive] = useState(false);
   const [nowMs, setNowMs] = useState(() => Date.now());
   // Bumped on each new streaming session so the Live card remounts fresh (replays
   // the pop-in, and never animates in from the previous panel's open size).
@@ -81,6 +85,7 @@ const RecordingOverlay: React.FC = () => {
           // fork(voice-control): clear the previous session's recording limit
           // here too — its recording-limit event can land during the awaits.
           setRecordingLimit(null);
+          setFallbackActive(false);
           setNowMs(Date.now());
         }
 
@@ -110,6 +115,7 @@ const RecordingOverlay: React.FC = () => {
         setIsVisible(false);
         setCaptureReady(false);
         setRecordingLimit(null);
+        setFallbackActive(false);
       });
 
       const unlistenReady = await listen("recording-ready", () => {
@@ -128,6 +134,12 @@ const RecordingOverlay: React.FC = () => {
           setNowMs(Date.now());
         },
       );
+
+      // fork(voice-control): the allowlist guard announces its fallback-model
+      // pass so the extra latency is visibly explained.
+      const unlistenFallback = await listen("fallback-transcription", () => {
+        setFallbackActive(true);
+      });
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
@@ -156,6 +168,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenHide();
         unlistenReady();
         unlistenRecordingLimit();
+        unlistenFallback();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -337,9 +350,11 @@ const RecordingOverlay: React.FC = () => {
           </div>
           {working
             ? workingRow(
-                workKind === "polishing"
-                  ? t("overlay.processing")
-                  : t("overlay.transcribing"),
+                fallbackActive
+                  ? t("overlay.fallbackModel")
+                  : workKind === "polishing"
+                    ? t("overlay.processing")
+                    : t("overlay.transcribing"),
                 true,
               )
             : listeningRow(true)}
@@ -352,8 +367,9 @@ const RecordingOverlay: React.FC = () => {
   // spinner + label (transcribing / processing). Never both. The pill animates its
   // width between them; the cancel button is in both rows so it stays put.
   const working = state === "transcribing" || state === "processing";
-  const workLabel =
-    state === "processing"
+  const workLabel = fallbackActive
+    ? t("overlay.fallbackModel")
+    : state === "processing"
       ? t("overlay.processing")
       : t("overlay.transcribing");
 

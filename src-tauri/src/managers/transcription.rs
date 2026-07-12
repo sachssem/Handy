@@ -1510,6 +1510,10 @@ impl TranscriptionManager {
                                                 "Language allowlist guard: {} outside {:?}, escalating to fallback model '{}'",
                                                 reason, settings.language_allowlist, fallback_model
                                             );
+                                            // Announce the second pass so the overlay
+                                            // can explain the extra latency.
+                                            let _ =
+                                                self.app_handle.emit("fallback-transcription", ());
                                             if let Some(text) = self.run_allowlist_fallback(
                                                 fallback_model,
                                                 &audio,

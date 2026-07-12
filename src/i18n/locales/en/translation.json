@@ -802,6 +802,7 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
+    "fallbackModel": "Checking with fallback model…",
     "recordingLimitWarning": "Recording stops automatically in {{seconds}} seconds"
   },
   "secureInput": {
