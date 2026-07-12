@@ -74,6 +74,13 @@ gibt eine `recommended_max_recording_ms` samt einfügefertigem Match-Arm aus —
 Neubewertung eines Modells soll ihn laufen lassen, um
 `recording_limit_for_model_id` (`src-tauri/src/managers/model.rs`) zu füllen.
 
+Gemessene Ergebnisse (Probe-Lauf 2026-07-12, auto-Language, Threshold 0.70):
+
+| Modell          | Ergebnis                                             | Limit-Eintrag              |
+| --------------- | ---------------------------------------------------- | -------------------------- |
+| Parakeet TDT v3 | gesund bis 240 s (Ratio 0.91–1.00, keine Truncation) | keiner nötig (`None`)      |
+| Qwen3-ASR 1.7B  | ~45 s (Hand-Messung; Modell z. Zt. nicht lokal)      | 45 s, per Probe bestätigen |
+
 ## Nächste Schritte (empfohlene Reihenfolge)
 
 1. Alltag mit Qwen3-ASR + Text-Rules; Fehlschläge per `handy-bench export-history` in den Corpus übernehmen
