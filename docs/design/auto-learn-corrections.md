@@ -118,7 +118,7 @@ Reihenfolge: Case/Punktuation normalisieren → nur **Substitutionen** (reine In
 
 **Implementiert (Abweichungen vom Plan):**
 
-- **Polling statt Key-Hook** (Risiko #5 aufgelöst): Die Session pollt das Zielfeld alle ~4 s per AX-Read, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Details im Modul-Doc von `session.rs`.
+- **Feld-Events statt Key-Hook** (Risiko #5 aufgelöst): Die Session hängt einen `AXObserver` an das gepinnte Feld und wacht bei jeder Wertänderung (und beim Zerstören des Elements) auf, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Ein 2-s-Poll bleibt als Fallback (Apps ohne verlässliche AX-Notifications; kein Observer erstellbar → reines Polling wie zuvor). Damit wird auch die Korrektur-dann-sofort-Submit-Lücke geschlossen, die reines Polling nie sah. Wakeup-Bursts werden auf max. einen Read pro 100 ms zusammengefasst. Details im Modul-Doc von `session.rs`.
 - **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event` (nicht `learned-correction`).
 - **i18n-Namespace**: sämtliche Strings liegen unter `settings.advanced.learnedCorrections.*` (inkl. `trialMode`, `aggressiveness`, `window`), nicht unter einem Top-Level `learnedCorrection.*`.
 
