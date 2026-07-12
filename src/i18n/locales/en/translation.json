@@ -812,6 +812,8 @@
   },
   "learnedToast": {
     "title": "Learned: “{{misheard}}” → “{{intended}}”",
-    "undo": "Undo"
+    "trialTitle": "Would learn: “{{misheard}}” → “{{intended}}”",
+    "undo": "Undo",
+    "trialNote": "Trial — not saved"
   }
 }

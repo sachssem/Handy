@@ -812,6 +812,8 @@
   },
   "learnedToast": {
     "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
-    "undo": "Ongedaan maken"
+    "trialTitle": "Zou leren: “{{misheard}}” → “{{intended}}”",
+    "undo": "Ongedaan maken",
+    "trialNote": "Proef — niet opgeslagen"
   }
 }

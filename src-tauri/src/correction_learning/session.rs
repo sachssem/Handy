@@ -42,6 +42,10 @@ pub struct LearnedCorrectionEvent {
     pub id: String,
     pub misheard: String,
     pub intended: String,
+    /// Dry-run soak (`learn_corrections_log_only`): the pair was *not* persisted,
+    /// so the toast marks it as a trial and hides Undo. `false` for real
+    /// learned pairs that were stored.
+    pub trial: bool,
 }
 
 /// Fired when the learned-corrections list changes behind the review UI's back —
@@ -238,6 +242,7 @@ mod imp {
     pub fn begin_session(app: &AppHandle, original: String) {
         let settings = settings::get_settings(app);
         if !settings.learn_corrections_enabled {
+            debug!("learn: no session — feature disabled");
             return;
         }
         // Only paste methods that actually insert into the focused field can be
@@ -247,6 +252,10 @@ mod imp {
             settings.paste_method,
             PasteMethod::None | PasteMethod::ExternalScript
         ) {
+            debug!(
+                "learn: no session — paste method {:?} leaves no editable field",
+                settings.paste_method
+            );
             return;
         }
         // Resolve the paste target now, on the main thread. Thereafter the AX
@@ -254,7 +263,10 @@ mod imp {
         // snapshotted app rather than whatever becomes frontmost later.
         let pid = match ax_reader::frontmost_pid() {
             Some(pid) => pid,
-            None => return,
+            None => {
+                debug!("learn: no session — no frontmost pid resolved");
+                return;
+            }
         };
         // Snapshot the target app's identity too, so a recycled pid (the app
         // quit and the OS reassigned the number) is caught on the next read.
@@ -265,7 +277,16 @@ mod imp {
         // the session silently.
         let focus = match ax_reader::snapshot_focused_element(pid) {
             Some(focus) => focus,
-            None => return,
+            None => {
+                // Most often an AX-permission gap: no focused element could be
+                // read for the pasted-into app. This is the quiet failure that
+                // makes the whole feature look dead, so it is logged.
+                debug!(
+                    "learn: no session — focused-element snapshot failed for pid {} (AX permission?)",
+                    pid
+                );
+                return;
+            }
         };
 
         // Snapshot the gate configuration at paste time, alongside the text.
@@ -278,6 +299,16 @@ mod imp {
         };
 
         let my_generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+        // Content-redacted: only the pasted length and the window/poll timing,
+        // never the pasted text itself.
+        debug!(
+            "learn: session {} started — pid {}, {} pasted chars, window {}s, poll {}s",
+            my_generation,
+            pid,
+            original.chars().count(),
+            params.window.as_secs(),
+            POLL_INTERVAL.as_secs()
+        );
         let app = app.clone();
         std::thread::spawn(move || {
             run_session(app, my_generation, pid, app_name, focus, original, params)
@@ -314,12 +345,18 @@ mod imp {
 
             // A newer paste opened a fresh session — drop this one.
             if GENERATION.load(Ordering::SeqCst) != generation {
+                debug!(
+                    "learn: session {} teardown — superseded by a newer paste",
+                    generation
+                );
                 return;
             }
             if started.elapsed() >= params.window {
+                debug!("learn: session {} teardown — window elapsed", generation);
                 return;
             }
 
+            let had_candidate = last_candidate.is_some();
             let read = ax_reader::read_focused(pid, app_name.as_deref(), &focus);
             match decide_tick(
                 read,
@@ -329,8 +366,18 @@ mod imp {
                 &params.profile,
                 params.lang,
             ) {
-                TickDecision::Teardown => return,
+                TickDecision::Teardown => {
+                    debug!(
+                        "learn: session {} teardown — focus lost, secure field, or app gone",
+                        generation
+                    );
+                    return;
+                }
                 TickDecision::Commit(candidate) => {
+                    debug!(
+                        "learn: session {} candidate stable — committing",
+                        generation
+                    );
                     commit(&app, candidate, &params.lang_code);
                     return;
                 }
@@ -338,6 +385,21 @@ mod imp {
                     last_text: next_text,
                     last_candidate: next_candidate,
                 } => {
+                    // Content-redacted stability transitions: a fresh candidate
+                    // now awaits a confirming read, or a pending one fell away.
+                    match (had_candidate, &next_candidate) {
+                        (false, Some(candidate)) => debug!(
+                            "learn: session {} candidate found (pending confirmation) — misheard {} chars -> intended {} chars",
+                            generation,
+                            candidate.misheard.chars().count(),
+                            candidate.intended.chars().count()
+                        ),
+                        (true, None) => debug!(
+                            "learn: session {} pending candidate dropped before confirmation",
+                            generation
+                        ),
+                        _ => {}
+                    }
                     last_text = next_text;
                     last_candidate = next_candidate;
                 }
@@ -366,6 +428,26 @@ mod imp {
                 "would-learn (verbatim): {} -> {}",
                 candidate.misheard, candidate.intended
             );
+            // A soak you can't observe reads as a broken feature, so still show
+            // the toast — marked as a trial. We persist nothing and, crucially,
+            // emit no `LearnedCorrectionEvent`: the settings window refreshes its
+            // stored list on that event, and nothing was stored. The id is the
+            // pair's would-be content hash, purely so the payload is well-formed;
+            // the trial toast hides Undo, so it is never used to remove anything.
+            let event = LearnedCorrectionEvent {
+                id: LearnedCorrection::new(
+                    &candidate.misheard,
+                    &candidate.intended,
+                    CorrectionSource::Auto,
+                    chrono::Utc::now().timestamp(),
+                )
+                .id,
+                misheard: candidate.misheard,
+                intended: candidate.intended,
+                trial: true,
+            };
+            crate::correction_learning::toast::set_pending_learned_toast(event);
+            crate::correction_learning::toast::show_learned_toast(app);
             return;
         }
 
@@ -396,6 +478,7 @@ mod imp {
             id,
             misheard: candidate.misheard,
             intended: candidate.intended,
+            trial: false,
         };
         // Stash the pair before showing, so the toast webview — created lazily on
         // this very correction — can pick it up on mount even if it wasn't yet
