@@ -257,6 +257,10 @@
         "label": "전사 사이에 마이크 열어 두기",
         "description": "녹음 중지 후 30초 동안 마이크 스트림을 열어 두어 연속 전사 시 지연을 줄입니다. 활성화 중 블루투스 오디오 품질이 저하될 수 있습니다."
       },
+      "recordingLimitAutoStop": {
+        "title": "긴 녹음 자동 중지",
+        "description": "선택한 모델이 안전한 받아쓰기 한도에 도달하기 전에 녹음을 중지합니다. 마지막 몇 초 동안 카운트다운 링이 표시됩니다."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper 가속",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
-    "processing": "처리 중..."
+    "processing": "처리 중...",
+    "recordingLimitWarning": "{{seconds}}초 후 녹음이 자동으로 중지됩니다"
   },
   "learnedToast": {
     "title": "학습됨: “{{misheard}}” → “{{intended}}”",

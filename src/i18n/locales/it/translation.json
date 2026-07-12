@@ -257,6 +257,10 @@
         "label": "Mantieni il microfono aperto tra le trascrizioni",
         "description": "Mantiene lo stream del microfono aperto per 30 secondi dopo l'arresto della registrazione, riducendo la latenza per trascrizioni consecutive. Potrebbe degradare la qualità audio Bluetooth."
       },
+      "recordingLimitAutoStop": {
+        "title": "Interrompi automaticamente le registrazioni lunghe",
+        "description": "Interrompe la registrazione prima che il modello selezionato raggiunga il limite sicuro per la dettatura. Negli ultimi secondi viene visualizzato un anello di conto alla rovescia."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Accelerazione Whisper",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Trascrizione...",
-    "processing": "Elaborazione..."
+    "processing": "Elaborazione...",
+    "recordingLimitWarning": "La registrazione si interromperà automaticamente tra {{seconds}} secondi"
   },
   "learnedToast": {
     "title": "Appreso: «{{misheard}}» → «{{intended}}»",

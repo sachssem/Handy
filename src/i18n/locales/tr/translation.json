@@ -257,6 +257,10 @@
         "label": "Transkripsiyonlar arasında mikrofonu açık tut",
         "description": "Kayıt durdurulduktan sonra mikrofon akışını 30 saniye açık tutar, ardışık transkripsiyonlarda gecikmeyi azaltır. Etkinken Bluetooth ses kalitesini düşürebilir."
       },
+      "recordingLimitAutoStop": {
+        "title": "Uzun kayıtları otomatik olarak durdur",
+        "description": "Seçilen model güvenli dikte sınırına ulaşmadan önce kaydı durdurur. Son saniyelerde geri sayım halkası görünür."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper Hızlandırma",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
-    "processing": "İşleniyor..."
+    "processing": "İşleniyor...",
+    "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak"
   },
   "learnedToast": {
     "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",

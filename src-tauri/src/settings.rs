@@ -435,6 +435,8 @@ pub struct AppSettings {
     pub extra_recording_buffer_ms: u64,
     #[serde(default = "default_vad_enabled")]
     pub vad_enabled: bool,
+    #[serde(default = "default_auto_stop_recording_on_limit")]
+    pub auto_stop_recording_on_limit: bool,
     /// Which recording overlay to show: None / Minimal / Live. Streaming mode is
     /// not gated on this — that follows model capability. Migrated from the old
     /// `overlay_position` (position `none` → style `None`).
@@ -530,6 +532,10 @@ fn default_overlay_style() -> OverlayStyle {
 }
 
 fn default_vad_enabled() -> bool {
+    true
+}
+
+fn default_auto_stop_recording_on_limit() -> bool {
     true
 }
 
@@ -885,6 +891,7 @@ pub fn get_default_settings() -> AppSettings {
         transcribe_gpu_device: default_transcribe_gpu_device(),
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
+        auto_stop_recording_on_limit: default_auto_stop_recording_on_limit(),
         overlay_style: default_overlay_style(),
         text_rules_enabled: false,
         text_rules_itn_enabled: false,
@@ -1111,6 +1118,7 @@ mod tests {
         let settings = get_default_settings();
         assert!(!settings.auto_submit);
         assert_eq!(settings.auto_submit_key, AutoSubmitKey::Enter);
+        assert!(settings.auto_stop_recording_on_limit);
         assert_eq!(
             settings.settings_schema_version,
             CURRENT_SETTINGS_SCHEMA_VERSION

@@ -257,6 +257,10 @@
         "label": "Mikrofon zwischen Transkriptionen offen halten",
         "description": "Hält den Mikrofon-Stream nach dem Aufnahmestopp 30 Sekunden lang offen, um die Latenz bei aufeinanderfolgenden Transkriptionen zu verringern. Kann die Bluetooth-Audioqualität beeinträchtigen."
       },
+      "recordingLimitAutoStop": {
+        "title": "Lange Aufnahmen automatisch stoppen",
+        "description": "Stoppt die Aufnahme, bevor das ausgewählte Modell sein sicheres Diktierlimit erreicht. In den letzten Sekunden erscheint ein Countdown-Kreis."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper-Beschleunigung",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Transkribiere...",
-    "processing": "Verarbeite..."
+    "processing": "Verarbeite...",
+    "recordingLimitWarning": "Aufnahme stoppt automatisch in {{seconds}} Sekunden"
   },
   "learnedToast": {
     "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",

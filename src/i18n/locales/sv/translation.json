@@ -257,6 +257,10 @@
         "label": "Håll mikrofonen öppen mellan transkriptioner",
         "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, vilket minskar latensen för transkriptioner efter varandra. Kan försämra Bluetooth-ljudkvaliteten medan den är aktiv."
       },
+      "recordingLimitAutoStop": {
+        "title": "Stoppa långa inspelningar automatiskt",
+        "description": "Stoppar inspelningen innan den valda modellen når sin säkra dikteringsgräns. En nedräkningsring visas under de sista sekunderna."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper-acceleration",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Transkriberar...",
-    "processing": "Bearbetar..."
+    "processing": "Bearbetar...",
+    "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder"
   },
   "learnedToast": {
     "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",

@@ -257,6 +257,10 @@
         "label": "在转录之间保持麦克风开启",
         "description": "录音停止后保持麦克风流开启30秒，减少连续转录时的延迟。激活时可能会降低蓝牙音频质量。"
       },
+      "recordingLimitAutoStop": {
+        "title": "自动停止长时间录音",
+        "description": "在所选模型达到安全听写限制前停止录音。最后几秒会显示倒计时圆环。"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper 加速",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "正在转录...",
-    "processing": "处理中..."
+    "processing": "处理中...",
+    "recordingLimitWarning": "录音将在 {{seconds}} 秒后自动停止"
   },
   "learnedToast": {
     "title": "已学习：“{{misheard}}” → “{{intended}}”",

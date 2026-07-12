@@ -22,6 +22,28 @@ use std::time::{Duration, Instant};
 use tar::Archive;
 use tauri::{AppHandle, Emitter, Manager};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecordingLimit {
+    pub max_recording_ms: u64,
+    pub warning_ms: u64,
+}
+
+pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
+    let model_id = model_id.to_ascii_lowercase();
+
+    // Qwen3-ASR currently truncates generation around the transcribe-cpp default
+    // output-token cap on long dictations. Keep this conservative until the
+    // benchmark suite has per-model measured ceilings.
+    if model_id.contains("qwen3-asr") {
+        return Some(RecordingLimit {
+            max_recording_ms: 45_000,
+            warning_ms: 10_000,
+        });
+    }
+
+    None
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum EngineType {
     /// Any GGML/GGUF model loaded through transcribe-cpp (Whisper, Parakeet,
@@ -113,6 +135,24 @@ fn canonicalize_supported_languages(languages: Vec<String>) -> Vec<String> {
     }
 
     canonical
+}
+
+#[cfg(test)]
+mod recording_limit_tests {
+    use super::recording_limit_for_model_id;
+
+    #[test]
+    fn qwen3_asr_models_have_conservative_recording_limit() {
+        let limit = recording_limit_for_model_id("handy-computer/Qwen3-ASR-0.6B-gguf").unwrap();
+
+        assert_eq!(limit.max_recording_ms, 45_000);
+        assert_eq!(limit.warning_ms, 10_000);
+    }
+
+    #[test]
+    fn unrelated_models_do_not_get_a_recording_limit() {
+        assert!(recording_limit_for_model_id("handy-computer/parakeet-v3").is_none());
+    }
 }
 
 /// One downloadable quantization of a model. Mirrors a `files[]` entry in

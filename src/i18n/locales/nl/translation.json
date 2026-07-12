@@ -257,6 +257,10 @@
         "label": "Microfoon openhouden tussen transcripties",
         "description": "Houdt de microfoonstream tot 30 seconden open nadat een opname stopt. Dit vermindert de vertraging bij opeenvolgende opnames, maar kan de Bluetooth-audiokwaliteit tijdelijk verminderen."
       },
+      "recordingLimitAutoStop": {
+        "title": "Lange opnames automatisch stoppen",
+        "description": "Stopt de opname voordat het geselecteerde model zijn veilige dicteerlimiet bereikt. Tijdens de laatste seconden verschijnt een aftelring."
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp-versnelling",
@@ -695,7 +699,8 @@
   },
   "overlay": {
     "transcribing": "Transcriberen...",
-    "processing": "Verwerken..."
+    "processing": "Verwerken...",
+    "recordingLimitWarning": "De opname stopt automatisch over {{seconds}} seconden"
   },
   "learnedToast": {
     "title": "Geleerd: “{{misheard}}” → “{{intended}}”",

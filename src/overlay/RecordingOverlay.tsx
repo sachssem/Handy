@@ -14,6 +14,18 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 
 type OverlayState = "recording" | "streaming" | "transcribing" | "processing";
 
+type RecordingLimitPayload = {
+  deadline_epoch_ms: number;
+  limit_ms: number;
+  warning_ms: number;
+};
+
+type RecordingLimitState = {
+  deadlineMs: number;
+  limitMs: number;
+  warningMs: number;
+};
+
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
@@ -29,7 +41,9 @@ const RecordingOverlay: React.FC = () => {
   });
   const [phase, setPhase] = useState<StreamPhase>("listening");
   const [workKind, setWorkKind] = useState<StreamWorkKind>("transcribing");
-  const [elapsed, setElapsed] = useState(0);
+  const [recordingLimit, setRecordingLimit] =
+    useState<RecordingLimitState | null>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   // Bumped on each new streaming session so the Live card remounts fresh (replays
   // the pop-in, and never animates in from the previous panel's open size).
   const [session, setSession] = useState(0);
@@ -68,11 +82,12 @@ const RecordingOverlay: React.FC = () => {
         setState(overlayState);
         if (overlayState === "recording" || overlayState === "streaming") {
           setStreamText({ committed: "", tentative: "" });
+          setRecordingLimit(null);
+          setNowMs(Date.now());
         }
         if (overlayState === "streaming") {
           setPhase("listening");
           setWorkKind("transcribing");
-          setElapsed(0);
           setSession((s) => s + 1); // remount the card fresh for this session
         }
         setIsVisible(true);
@@ -80,7 +95,21 @@ const RecordingOverlay: React.FC = () => {
 
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
+        setRecordingLimit(null);
       });
+
+      const unlistenRecordingLimit = await listen<RecordingLimitPayload>(
+        "recording-limit",
+        (event) => {
+          const payload = event.payload;
+          setRecordingLimit({
+            deadlineMs: payload.deadline_epoch_ms,
+            limitMs: payload.limit_ms,
+            warningMs: payload.warning_ms,
+          });
+          setNowMs(Date.now());
+        },
+      );
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
@@ -107,6 +136,7 @@ const RecordingOverlay: React.FC = () => {
       return () => {
         unlistenShow();
         unlistenHide();
+        unlistenRecordingLimit();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -116,12 +146,13 @@ const RecordingOverlay: React.FC = () => {
     setupEventListeners();
   }, []);
 
-  // Elapsed timer while the Live overlay is visible.
+  // Update only while a model-specific limit is active. The indicator itself is
+  // still hidden until the final warning window.
   useEffect(() => {
-    if (state !== "streaming" || !isVisible) return;
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    if (!recordingLimit || !isVisible) return;
+    const id = setInterval(() => setNowMs(Date.now()), 250);
     return () => clearInterval(id);
-  }, [state, isVisible]);
+  }, [recordingLimit, isVisible]);
 
   // Stick to the bottom as text streams in — but only while pinned, so a user who
   // has scrolled up to read history isn't yanked back down by the next chunk.
@@ -146,10 +177,47 @@ const RecordingOverlay: React.FC = () => {
     pinnedRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= 16;
   };
 
-  const fmtTime = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
   // ---- Shared building blocks (one visual language for every overlay form) ----
+  const remainingLimitMs = recordingLimit
+    ? Math.max(0, recordingLimit.deadlineMs - nowMs)
+    : null;
+  const limitWarningVisible =
+    recordingLimit !== null &&
+    remainingLimitMs !== null &&
+    remainingLimitMs <= recordingLimit.warningMs;
+  const limitWarningProgress =
+    recordingLimit && remainingLimitMs !== null
+      ? Math.max(0, Math.min(1, remainingLimitMs / recordingLimit.warningMs))
+      : 0;
+  const remainingLimitSeconds =
+    remainingLimitMs === null
+      ? 0
+      : Math.max(0, Math.ceil(remainingLimitMs / 1000));
+  const limitRingRadius = 10;
+  const limitRingCircumference = 2 * Math.PI * limitRingRadius;
+
+  const limitWarningIndicator = limitWarningVisible ? (
+    <span
+      className="slimit"
+      aria-label={t("overlay.recordingLimitWarning", {
+        seconds: remainingLimitSeconds,
+      })}
+    >
+      <svg className="slimit-ring" viewBox="0 0 24 24" aria-hidden="true">
+        <circle className="slimit-track" cx="12" cy="12" r={limitRingRadius} />
+        <circle
+          className="slimit-progress"
+          cx="12"
+          cy="12"
+          r={limitRingRadius}
+          strokeDasharray={limitRingCircumference}
+          strokeDashoffset={limitRingCircumference * (1 - limitWarningProgress)}
+        />
+      </svg>
+      <span className="slimit-value">{remainingLimitSeconds}</span>
+    </span>
+  ) : null;
+
   const waveform = (
     <div className="swave">
       {levels.map((v, i) => (
@@ -180,16 +248,16 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
-  // dot (left) | waveform (center) | timer + cancel (right) — same structure for
+  // dot (left) | waveform (center) | warning + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
-  const listeningRow = (showTimer: boolean, showCancel: boolean) => (
+  const listeningRow = (showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l">
         <span className="sdot" />
       </div>
       {waveform}
       <div className="sbase-r">
-        {showTimer && <span className="stimer">{fmtTime(elapsed)}</span>}
+        {limitWarningIndicator}
         {showCancel && cancelBtn}
       </div>
     </div>
@@ -253,7 +321,7 @@ const RecordingOverlay: React.FC = () => {
                   : t("overlay.transcribing"),
                 true,
               )
-            : listeningRow(open, true)}
+            : listeningRow(true)}
         </div>
       </div>
     );
@@ -276,7 +344,7 @@ const RecordingOverlay: React.FC = () => {
       <div
         className={`scard compact ${working && isVisible ? "cworking" : ""}`}
       >
-        {working ? workingRow(workLabel, true) : listeningRow(false, true)}
+        {working ? workingRow(workLabel, true) : listeningRow(true)}
       </div>
     </div>
   );

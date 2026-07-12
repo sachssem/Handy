@@ -1,13 +1,23 @@
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
+use crate::managers::model::recording_limit_for_model_id;
+use crate::settings::get_settings;
 use log::{debug, error, warn};
+use serde::Serialize;
 use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tauri::{AppHandle, Emitter, Manager};
 
 const DEBOUNCE: Duration = Duration::from_millis(30);
+
+#[derive(Clone, Debug, Serialize)]
+struct RecordingLimitEvent {
+    deadline_epoch_ms: u64,
+    limit_ms: u64,
+    warning_ms: u64,
+}
 
 /// Commands processed sequentially by the coordinator thread.
 enum Command {
@@ -20,13 +30,16 @@ enum Command {
     Cancel {
         recording_was_active: bool,
     },
+    AutoStop {
+        session_id: u64,
+    },
     ProcessingFinished,
 }
 
 /// Pipeline lifecycle, owned exclusively by the coordinator thread.
 enum Stage {
     Idle,
-    Recording(String), // binding_id
+    Recording { binding_id: String, session_id: u64 },
     Processing,
 }
 
@@ -44,11 +57,14 @@ pub fn is_transcribe_binding(id: &str) -> bool {
 impl TranscriptionCoordinator {
     pub fn new(app: AppHandle) -> Self {
         let (tx, rx) = mpsc::channel();
+        let worker_tx = tx.clone();
 
         thread::spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                 let mut stage = Stage::Idle;
                 let mut last_press: Option<Instant> = None;
+                let mut next_session_id: u64 = 1;
+                let tx = worker_tx.clone();
 
                 while let Ok(cmd) = rx.recv() {
                     match cmd {
@@ -71,18 +87,34 @@ impl TranscriptionCoordinator {
 
                             if push_to_talk {
                                 if is_pressed && matches!(stage, Stage::Idle) {
-                                    start(&app, &mut stage, &binding_id, &hotkey_string);
+                                    start(
+                                        &app,
+                                        &mut stage,
+                                        &tx,
+                                        &mut next_session_id,
+                                        &binding_id,
+                                        &hotkey_string,
+                                    );
                                 } else if !is_pressed
-                                    && matches!(&stage, Stage::Recording(id) if id == &binding_id)
+                                    && matches!(&stage, Stage::Recording { binding_id: id, .. } if id == &binding_id)
                                 {
                                     stop(&app, &mut stage, &binding_id, &hotkey_string);
                                 }
                             } else if is_pressed {
                                 match &stage {
                                     Stage::Idle => {
-                                        start(&app, &mut stage, &binding_id, &hotkey_string);
+                                        start(
+                                            &app,
+                                            &mut stage,
+                                            &tx,
+                                            &mut next_session_id,
+                                            &binding_id,
+                                            &hotkey_string,
+                                        );
                                     }
-                                    Stage::Recording(id) if id == &binding_id => {
+                                    Stage::Recording { binding_id: id, .. }
+                                        if id == &binding_id =>
+                                    {
                                         stop(&app, &mut stage, &binding_id, &hotkey_string);
                                     }
                                     _ => {
@@ -96,9 +128,33 @@ impl TranscriptionCoordinator {
                         } => {
                             // Don't reset during processing — wait for the pipeline to finish.
                             if !matches!(stage, Stage::Processing)
-                                && (recording_was_active || matches!(stage, Stage::Recording(_)))
+                                && (recording_was_active
+                                    || matches!(stage, Stage::Recording { .. }))
                             {
                                 stage = Stage::Idle;
+                            }
+                        }
+                        Command::AutoStop { session_id } => {
+                            if let Stage::Recording {
+                                binding_id,
+                                session_id: active_session_id,
+                            } = &stage
+                            {
+                                if *active_session_id == session_id {
+                                    let binding_id = binding_id.clone();
+                                    debug!(
+                                        "Auto-stopping recording session {session_id} before model limit"
+                                    );
+                                    stop(&app, &mut stage, &binding_id, "auto-stop");
+                                } else {
+                                    debug!(
+                                        "Ignoring stale auto-stop for session {session_id}; active session is {active_session_id}"
+                                    );
+                                }
+                            } else {
+                                debug!(
+                                    "Ignoring auto-stop for session {session_id}; not recording"
+                                );
                             }
                         }
                         Command::ProcessingFinished => {
@@ -158,7 +214,14 @@ impl TranscriptionCoordinator {
     }
 }
 
-fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &str) {
+fn start(
+    app: &AppHandle,
+    stage: &mut Stage,
+    tx: &Sender<Command>,
+    next_session_id: &mut u64,
+    binding_id: &str,
+    hotkey_string: &str,
+) {
     let Some(action) = ACTION_MAP.get(binding_id) else {
         warn!("No action in ACTION_MAP for '{binding_id}'");
         return;
@@ -168,7 +231,13 @@ fn start(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &s
         .try_state::<Arc<AudioRecordingManager>>()
         .is_some_and(|a| a.is_recording())
     {
-        *stage = Stage::Recording(binding_id.to_string());
+        let session_id = *next_session_id;
+        *next_session_id = next_session_id.saturating_add(1);
+        schedule_recording_limit(app, tx, session_id);
+        *stage = Stage::Recording {
+            binding_id: binding_id.to_string(),
+            session_id,
+        };
     } else {
         debug!("Start for '{binding_id}' did not begin recording; staying idle");
     }
@@ -181,4 +250,38 @@ fn stop(app: &AppHandle, stage: &mut Stage, binding_id: &str, hotkey_string: &st
     };
     action.stop(app, binding_id, hotkey_string);
     *stage = Stage::Processing;
+}
+
+fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u64) {
+    let settings = get_settings(app);
+    if !settings.auto_stop_recording_on_limit {
+        return;
+    }
+
+    let Some(limit) = recording_limit_for_model_id(&settings.selected_model) else {
+        return;
+    };
+
+    let deadline_epoch_ms = SystemTime::now()
+        .checked_add(Duration::from_millis(limit.max_recording_ms))
+        .and_then(|deadline| deadline.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis().min(u128::from(u64::MAX)) as u64)
+        .unwrap_or(u64::MAX);
+
+    let event = RecordingLimitEvent {
+        deadline_epoch_ms,
+        limit_ms: limit.max_recording_ms,
+        warning_ms: limit.warning_ms.min(limit.max_recording_ms),
+    };
+    if let Err(err) = app.emit_to("recording_overlay", "recording-limit", event) {
+        debug!("Failed to emit recording limit event: {err}");
+    }
+
+    let tx = tx.clone();
+    thread::spawn(move || {
+        thread::sleep(Duration::from_millis(limit.max_recording_ms));
+        if tx.send(Command::AutoStop { session_id }).is_err() {
+            warn!("Transcription coordinator channel closed before auto-stop");
+        }
+    });
 }

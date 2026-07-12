@@ -257,6 +257,10 @@
         "label": "文字起こし間でマイクを有効にする",
         "description": "録音停止後マイクを30秒間有効なままにし、連続した文字起こしの遅延を軽減します。Bluetooth 音声品質に影響する場合があります。"
       },
+      "recordingLimitAutoStop": {
+        "title": "長時間の録音を自動停止",
+        "description": "選択したモデルが安全なディクテーション上限に達する前に録音を停止します。最後の数秒間はカウントダウンリングが表示されます。"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp アクセラレーション",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "文字起こし中…",
-    "processing": "処理中…"
+    "processing": "処理中…",
+    "recordingLimitWarning": "録音はあと{{seconds}}秒で自動的に停止します"
   },
   "learnedToast": {
     "title": "学習しました: 「{{misheard}}」→「{{intended}}」",

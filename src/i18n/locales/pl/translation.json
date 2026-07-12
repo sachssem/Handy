@@ -257,6 +257,10 @@
         "label": "Pozostaw mikrofon otwarty między transkrypcjami",
         "description": "Utrzymuje strumień mikrofonu otwarty przez 30 sekund po zatrzymaniu nagrywania, zmniejszając opóźnienie przy kolejnych transkrypcjach. Może pogorszyć jakość dźwięku Bluetooth."
       },
+      "recordingLimitAutoStop": {
+        "title": "Automatycznie zatrzymuj długie nagrania",
+        "description": "Zatrzymuje nagrywanie, zanim wybrany model osiągnie bezpieczny limit dyktowania. W ostatnich sekundach pojawia się pierścień odliczania."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Akceleracja Whisper",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Transkrypcja...",
-    "processing": "Przetwarzanie..."
+    "processing": "Przetwarzanie...",
+    "recordingLimitWarning": "Nagrywanie zatrzyma się automatycznie za {{seconds}} sekund"
   },
   "learnedToast": {
     "title": "Wyuczono: “{{misheard}}” → “{{intended}}”",

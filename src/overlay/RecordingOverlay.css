@@ -17,6 +17,8 @@
      secondary/tertiary text grays (no theme equivalent). */
   --s-muted: #6e6e6e;
   --s-faint: #9a9a9a;
+  --s-warning: #d97706;
+  --s-warning-soft: color-mix(in srgb, var(--s-warning) 16%, transparent);
   --s-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
   --s-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
 
@@ -25,10 +27,10 @@
      the card's max footprint (--ov-work-w for compact, --ov-open-w for Live),
      since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
      in sync when these change. */
-  --ov-rest-w: 172px; /* resting compact pill (minimal, recording) -- roomy enough
-                         for the English working label before the grow starts */
-  --ov-pill-w: 184px; /* base width / Live pill before it opens or collapses */
-  --ov-work-w: 216px; /* working pill (transcribing / polishing) -- wide enough to
+  --ov-rest-w: 224px; /* resting compact pill (minimal, recording) -- roomy enough
+                         for countdown + cancel without compressing the waveform */
+  --ov-pill-w: 224px; /* base width / Live pill before it opens or collapses */
+  --ov-work-w: 232px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
   --ov-open-w: 392px; /* Live panel, expanded */
   --ov-base-h: 40px; /* control-row height (.sbase) */
@@ -45,6 +47,8 @@
     );
     --s-muted: #a3a09a;
     --s-faint: #6f6c66;
+    --s-warning: #fbbf24;
+    --s-warning-soft: color-mix(in srgb, var(--s-warning) 18%, transparent);
     /* Hairlines flip to the near-white text token for contrast on dark. */
     --s-border: color-mix(in srgb, var(--color-text) 12%, transparent);
     --s-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
@@ -239,28 +243,27 @@
   }
 }
 
-/* base row — dot (left) | waveform (center) | timer + cancel (right).
+/* base row — dot (left) | waveform (center) | warning + cancel (right).
    Same structure for pill & panel; the dot stays anchored left in both. */
 .sbase {
   height: var(--ov-base-h);
-  padding: 0 10px;
+  padding: 0 12px;
   display: grid;
-  /* Equal side columns (min 22px to hold the cancel button) keep the center item
-     — waveform or label — centered whether the pill is at min width or content-
-     sized. */
-  grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
+  /* Equal side columns reserve room for the countdown ring plus cancel button
+     while keeping the waveform/working label optically centered. */
+  grid-template-columns: 64px minmax(60px, 1fr) 64px;
   align-items: center;
 }
 .sbase-l {
   display: flex;
-  padding-left: 5px;
+  padding-left: 4px;
   align-items: center;
   justify-self: start;
 }
 .sbase-r {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   justify-self: end;
 }
 .sdot {
@@ -279,16 +282,46 @@
     box-shadow: 0 0 0 7px transparent;
   }
 }
-.stimer {
-  font-size: 12px;
-  color: var(--s-faint);
+.slimit {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--s-warning);
+  font-size: 10px;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 240ms ease 80ms;
+  animation: slimit-in 180ms ease-out;
 }
-.scard.open .stimer {
-  opacity: 1;
+.slimit-ring {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+.slimit-track,
+.slimit-progress {
+  fill: none;
+  stroke-width: 2;
+}
+.slimit-track {
+  stroke: var(--s-warning-soft);
+}
+.slimit-progress {
+  stroke: currentColor;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 220ms linear;
+}
+.slimit-value {
+  line-height: 1;
+}
+@keyframes slimit-in {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
 }
 
 /* Waveform — simple reactive bars, themed; heights set inline from mic levels. */
@@ -296,9 +329,9 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding-right: 8px;
   height: 18px;
   flex: none;
+  justify-self: center;
 }
 .swave i {
   width: 4px;

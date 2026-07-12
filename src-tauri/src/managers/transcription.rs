@@ -17,8 +17,8 @@ use std::time::{Duration, Instant, SystemTime};
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use transcribe_cpp::{
-    Backend, Feature, Model, ModelOptions, RunExtension, RunOptions, Session, StreamOptions, Task,
-    WhisperRunOptions,
+    Backend, Error as TranscribeCppError, Feature, Model, ModelOptions, RunExtension, RunOptions,
+    Session, StreamOptions, Task, WhisperRunOptions,
 };
 use transcribe_rs::{
     onnx::{
@@ -1155,12 +1155,6 @@ impl TranscriptionManager {
             );
         }
 
-        // Whether the loaded transcribe-cpp model advertises
-        // Feature::InitialPrompt. Informational (logged below); the whisper
-        // run extension and the fuzzy-correction skip are gated on
-        // `model_is_whisper` instead, since non-whisper archs can advertise
-        // the feature while rejecting the whisper-kind extension.
-        let mut model_takes_initial_prompt = false;
         // Whether the loaded model is actually whisper-family (arch string).
         // Non-whisper archs (e.g. Voxtral Small) can advertise
         // Feature::InitialPrompt yet reject the whisper-kind run extension
@@ -1203,7 +1197,10 @@ impl TranscriptionManager {
             if let LoadedEngine::TranscribeCpp(session) = &engine {
                 let model = session.model();
                 let caps = model.capabilities();
-                model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
+                // Informational only; actual prompt use is gated on
+                // `model_is_whisper`, because non-whisper archs can advertise
+                // the feature while rejecting the whisper-kind extension.
+                let model_takes_initial_prompt = model.supports(Feature::InitialPrompt);
                 model_is_whisper = model.arch() == "whisper";
                 model_accepts_language_hint = !arch_rejects_language_hint(&model.arch());
                 model_supports_translate = caps.supports_translate;
@@ -1258,12 +1255,28 @@ impl TranscriptionManager {
                             run_options.family.is_some()
                         );
 
-                        session
-                            .run(&audio, &run_options)
-                            .map(|t| t.text)
-                            .map_err(|e| {
-                                anyhow::anyhow!("transcribe-cpp transcription failed: {}", e)
-                            })
+                        match session.run(&audio, &run_options) {
+                            Ok(transcript) => Ok(transcript.text),
+                            Err(err) => {
+                                if matches!(&err, TranscribeCppError::OutputTruncated { .. }) {
+                                    if let Some(partial) = err.partial() {
+                                        let partial_text = partial.text.trim().to_string();
+                                        if !partial_text.is_empty() {
+                                            warn!(
+                                                "transcribe-cpp output truncated; returning partial transcript ({} chars)",
+                                                partial_text.len()
+                                            );
+                                            return Ok(partial_text);
+                                        }
+                                    }
+                                }
+
+                                Err(anyhow::anyhow!(
+                                    "transcribe-cpp transcription failed: {}",
+                                    err
+                                ))
+                            }
+                        }
                     }
                     LoadedEngine::Parakeet(parakeet_engine) => {
                         let params = ParakeetParams {

@@ -257,6 +257,10 @@
         "label": "Keep Mic Open Between Transcriptions",
         "description": "Keeps the microphone stream open for 30 seconds after recording stops, reducing latency for back-to-back transcriptions. May degrade Bluetooth audio quality while active."
       },
+      "recordingLimitAutoStop": {
+        "title": "Stop Long Recordings Automatically",
+        "description": "Stops recording before the selected model reaches its safe dictation limit. A countdown ring appears during the final seconds."
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp Acceleration",
@@ -695,7 +699,8 @@
   },
   "overlay": {
     "transcribing": "Transcribing...",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "recordingLimitWarning": "Recording stops automatically in {{seconds}} seconds"
   },
   "learnedToast": {
     "title": "Learned: “{{misheard}}” → “{{intended}}”",

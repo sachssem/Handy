@@ -257,6 +257,10 @@
         "label": "Ponechat mikrofon zapnutý mezi přepisy",
         "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, čímž se sníží latence při opakovaném přepisu. Může zhoršit kvalitu zvuku Bluetooth."
       },
+      "recordingLimitAutoStop": {
+        "title": "Automaticky zastavit dlouhé nahrávky",
+        "description": "Zastaví nahrávání dříve, než vybraný model dosáhne bezpečného limitu pro diktování. V posledních sekundách se zobrazí kruh s odpočtem."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Akcelerace Whisper",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Přepisuji...",
-    "processing": "Zpracovávám..."
+    "processing": "Zpracovávám...",
+    "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund"
   },
   "learnedToast": {
     "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",

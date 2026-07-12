@@ -257,6 +257,10 @@
         "label": "Giữ micro mở giữa các lần phiên âm",
         "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, giảm độ trễ khi phiên âm liên tiếp. Có thể làm giảm chất lượng âm thanh Bluetooth khi đang hoạt động."
       },
+      "recordingLimitAutoStop": {
+        "title": "Tự động dừng bản ghi dài",
+        "description": "Dừng ghi âm trước khi mô hình đã chọn đạt đến giới hạn đọc chính tả an toàn. Vòng đếm ngược xuất hiện trong những giây cuối cùng."
+      },
       "acceleration": {
         "transcribe": {
           "title": "Tăng tốc Whisper",
@@ -692,7 +696,8 @@
   },
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
-    "processing": "Đang xử lý..."
+    "processing": "Đang xử lý...",
+    "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây"
   },
   "learnedToast": {
     "title": "Đã học: “{{misheard}}” → “{{intended}}”",
