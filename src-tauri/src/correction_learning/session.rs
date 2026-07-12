@@ -7,25 +7,28 @@
 //! edit against the snapshot ([`super::differ`]) and, when a gated candidate is
 //! stable, learns the `misheard → intended` pair.
 //!
-//! ## Trigger strategy: poll, don't hook
+//! ## Trigger strategy: field events, poll as fallback
 //!
-//! The window could be driven either by subscribing to "user typed after paste"
-//! key events or by re-reading the field on a timer. We poll, deliberately:
+//! We never stand up a second global key listener — the existing shortcut
+//! backend (`handy_keys`) exposes no general key-event callback to piggyback on,
+//! and a second global input tap is exactly the conflict the design doc warns
+//! against (risk #5). Instead the session watches the *pinned field itself*:
 //!
-//! - The existing shortcut backend (`handy_keys`) exposes **no** general
-//!   key-event callback we could piggyback on — its `HotkeyManager` only
-//!   dispatches the specific hotkeys it has registered. The one general-key
-//!   source, `KeyboardListener`, is a *second* global listener created on
-//!   demand; standing one up for the whole window is exactly the second global
-//!   input tap the design doc warns can conflict with the shortcut backend
-//!   (risk #5).
-//! - Reading a single AX value every few seconds is cheap and conflict-free.
+//! - An `AXObserver` on the snapshotted element (see
+//!   [`ax_reader::create_value_change_observer`]) wakes the session on every
+//!   value change (and on the element's destruction), so a correction typed and
+//!   submitted **inside one poll interval** is still read before the field
+//!   blurs/clears — the failure a pure timer could never close.
+//! - A [`POLL_INTERVAL`] timer remains as a fallback: some apps don't emit AX
+//!   notifications reliably, and if the observer can't be created at all (no AX
+//!   permission, odd app) the session degrades to pure polling.
 //!
-//! So a background thread re-reads the snapshotted app's focused field every
-//! [`POLL_INTERVAL`] for up to [`WINDOW`], running the differ each tick. It
-//! finishes early when a gated candidate is seen twice in a row (stable), or
-//! when the field goes secure / the app quits. A newer paste supersedes any
-//! in-flight session (single active session, tracked by [`GENERATION`]).
+//! So a background thread waits for either signal, then re-reads the field and
+//! runs the differ, for up to [`WINDOW`]. A burst of per-keystroke wakeups is
+//! coalesced to at most one read per [`DEBOUNCE`]. It finishes early when a gated
+//! candidate settles, or when the field goes secure / the app quits. A newer
+//! paste supersedes any in-flight session (single active session, tracked by
+//! [`GENERATION`]).
 //!
 //! Only macOS has the Accessibility read; elsewhere [`begin_session`] is a
 //! no-op.
@@ -34,6 +37,7 @@ use crate::correction_learning::ax_reader::FocusRead;
 use crate::correction_learning::differ::{self, Candidate, GateProfile, PhoneticLang};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::time::Duration;
 
 /// Emitted when a correction is learned automatically, for the Phase C toast.
 /// No frontend listener exists yet — this ships the event contract only.
@@ -198,9 +202,21 @@ fn decide_tick(
     }
 }
 
+/// How long to wait before the next field read so a burst of value-change
+/// wakeups collapses into at most one read per `debounce`. `None` (no prior
+/// read) or a gap already `>= debounce` means read immediately. Pure and
+/// unit-tested; the event-driven loop can otherwise wake once per keystroke.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn coalesce_delay(since_last_read: Option<Duration>, debounce: Duration) -> Duration {
+    match since_last_read {
+        Some(elapsed) if elapsed < debounce => debounce - elapsed,
+        _ => Duration::ZERO,
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod imp {
-    use super::{decide_tick, LearnedCorrectionEvent, TickDecision};
+    use super::{coalesce_delay, decide_tick, LearnedCorrectionEvent, TickDecision};
     use crate::correction_learning::ax_reader;
     use crate::correction_learning::differ::{Candidate, GateProfile, PhoneticLang};
     use crate::correction_learning::resolved_language;
@@ -217,6 +233,11 @@ mod imp {
     /// 2s keeps the type-fix-then-submit flow inside one confirming read; the
     /// AX read is cheap (single element attribute fetch).
     const POLL_INTERVAL: Duration = Duration::from_secs(2);
+    /// Minimum spacing between two field reads. The AX observer can wake the loop
+    /// on every keystroke; this coalesces such a burst into at most one read per
+    /// 100 ms (a read is one AX fetch + a cheap diff) without adding latency to
+    /// the common single-edit case.
+    const DEBOUNCE: Duration = Duration::from_millis(100);
     /// Bounds for the configurable learning window, clamped so a stray setting
     /// value can neither close the window instantly nor keep the poll thread
     /// alive indefinitely.
@@ -349,9 +370,35 @@ mod imp {
         let started = Instant::now();
         let mut last_candidate: Option<Candidate> = None;
         let mut last_text: Option<String> = None;
+        let mut last_read: Option<Instant> = None;
+
+        // Wake on every value change of the pinned field so a correction typed
+        // and submitted inside one poll interval is still read before it blurs.
+        // Created on this (session) thread because its run-loop source attaches
+        // to this thread's run loop. `None` → the app emits no usable AX signal
+        // or has no permission, so we fall back to pure `POLL_INTERVAL` polling.
+        let observer = ax_reader::create_value_change_observer(pid, &focus);
+        if observer.is_some() {
+            debug!(
+                "learn: session {} watching field via AX observer (poll fallback {}s)",
+                generation,
+                POLL_INTERVAL.as_secs()
+            );
+        } else {
+            debug!(
+                "learn: session {} AX observer unavailable — polling every {}s",
+                generation,
+                POLL_INTERVAL.as_secs()
+            );
+        }
 
         loop {
-            std::thread::sleep(POLL_INTERVAL);
+            // Wait for a field value change or the poll interval, whichever comes
+            // first. Without an observer this is a plain interval sleep.
+            match &observer {
+                Some(observer) => observer.wait(POLL_INTERVAL),
+                None => std::thread::sleep(POLL_INTERVAL),
+            }
 
             // A newer paste opened a fresh session — drop this one.
             if GENERATION.load(Ordering::SeqCst) != generation {
@@ -365,6 +412,15 @@ mod imp {
                 debug!("learn: session {} teardown — window elapsed", generation);
                 return;
             }
+
+            // Coalesce a burst of per-keystroke wakeups: keep at least DEBOUNCE
+            // between actual reads. On a plain poll tick the gap already exceeds
+            // it, so this only bites during event storms.
+            let delay = coalesce_delay(last_read.map(|at| at.elapsed()), DEBOUNCE);
+            if !delay.is_zero() {
+                std::thread::sleep(delay);
+            }
+            last_read = Some(Instant::now());
 
             let had_candidate = last_candidate.is_some();
             let read = ax_reader::read_focused(pid, app_name.as_deref(), &focus);
@@ -512,11 +568,12 @@ pub fn begin_session(_app: &tauri::AppHandle, _original: String) {}
 
 #[cfg(test)]
 mod tests {
-    use super::{decide_tick, is_related_to_snapshot, TickDecision};
+    use super::{coalesce_delay, decide_tick, is_related_to_snapshot, TickDecision};
     use crate::correction_learning::ax_reader::FocusRead;
     use crate::correction_learning::differ::{
         Aggressiveness, Candidate, GateProfile, PhoneticLang,
     };
+    use std::time::Duration;
 
     fn profile() -> GateProfile {
         GateProfile::for_aggressiveness(Aggressiveness::Balanced)
@@ -694,5 +751,31 @@ mod tests {
         // `yes` must not count as contained in `yesterday`: token containment,
         // not raw substring.
         assert!(!is_related_to_snapshot("yes", "yesterday afternoon"));
+    }
+
+    #[test]
+    fn coalesce_delay_waits_out_the_remaining_debounce() {
+        // A wakeup 30 ms after the last read waits the remaining 70 ms.
+        assert_eq!(
+            coalesce_delay(Some(Duration::from_millis(30)), Duration::from_millis(100)),
+            Duration::from_millis(70)
+        );
+    }
+
+    #[test]
+    fn coalesce_delay_is_zero_once_debounce_has_passed() {
+        assert_eq!(
+            coalesce_delay(Some(Duration::from_millis(250)), Duration::from_millis(100)),
+            Duration::ZERO
+        );
+    }
+
+    #[test]
+    fn coalesce_delay_is_zero_on_the_first_read() {
+        // No prior read (a plain poll tick, or the first wakeup) reads at once.
+        assert_eq!(
+            coalesce_delay(None, Duration::from_millis(100)),
+            Duration::ZERO
+        );
     }
 }

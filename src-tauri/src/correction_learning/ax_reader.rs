@@ -54,12 +54,27 @@ pub struct FocusedSnapshot;
 mod imp {
     use super::FocusRead;
     use core_foundation::base::{CFType, CFTypeRef, TCFType};
+    use core_foundation::runloop::{
+        kCFRunLoopDefaultMode, CFRunLoop, CFRunLoopSource, CFRunLoopSourceRef,
+    };
     use core_foundation::string::{CFString, CFStringRef};
     use log::debug;
     use objc2_app_kit::{NSRunningApplication, NSWorkspace};
+    use std::os::raw::c_void;
+    use std::time::Duration;
 
     type AXUIElementRef = CFTypeRef;
+    type AXObserverRef = CFTypeRef;
     type AXError = i32;
+
+    /// Signature of the C callback an `AXObserver` invokes when a subscribed
+    /// notification fires on the run loop its source is attached to.
+    type AXObserverCallback = extern "C" fn(
+        observer: AXObserverRef,
+        element: AXUIElementRef,
+        notification: CFStringRef,
+        refcon: *mut c_void,
+    );
 
     #[link(name = "ApplicationServices", kind = "framework")]
     extern "C" {
@@ -69,6 +84,23 @@ mod imp {
             attribute: CFStringRef,
             value: *mut CFTypeRef,
         ) -> AXError;
+        fn AXObserverCreate(
+            application: libc::pid_t,
+            callback: AXObserverCallback,
+            out_observer: *mut AXObserverRef,
+        ) -> AXError;
+        fn AXObserverAddNotification(
+            observer: AXObserverRef,
+            element: AXUIElementRef,
+            notification: CFStringRef,
+            refcon: *mut c_void,
+        ) -> AXError;
+        fn AXObserverRemoveNotification(
+            observer: AXObserverRef,
+            element: AXUIElementRef,
+            notification: CFStringRef,
+        ) -> AXError;
+        fn AXObserverGetRunLoopSource(observer: AXObserverRef) -> CFRunLoopSourceRef;
     }
 
     /// The focused element snapshotted at paste time. Holds the retained
@@ -90,6 +122,12 @@ mod imp {
     const AX_SUBROLE: &str = "AXSubrole";
     /// Both the role and the subrole of a password field carry this value.
     const SECURE_ROLE: &str = "AXSecureTextField";
+    /// The pinned field's value changed — the session's primary wake signal, so
+    /// a correction typed and submitted inside one poll interval is still seen.
+    const AX_VALUE_CHANGED_NOTIFICATION: &str = "AXValueChanged";
+    /// The pinned element was destroyed (field torn down) — wakes the session for
+    /// an immediate teardown check instead of waiting out the poll interval.
+    const AX_UI_ELEMENT_DESTROYED_NOTIFICATION: &str = "AXUIElementDestroyed";
 
     /// Copy an AX attribute value (+1 retained, released when the `CFType`
     /// drops). `None` on any AX error or a null value.
@@ -162,6 +200,155 @@ mod imp {
                 None
             }
         }
+    }
+
+    /// AXObserver callback. Deliberately a no-op: handling the run-loop source is
+    /// itself the wake signal (`CFRunLoopRunInMode` returns once a source is
+    /// handled), and all reading/diffing stays in the session loop so its state
+    /// machine is unchanged.
+    extern "C" fn value_changed_callback(
+        _observer: AXObserverRef,
+        _element: AXUIElementRef,
+        _notification: CFStringRef,
+        _refcon: *mut c_void,
+    ) {
+    }
+
+    /// An `AXObserver` pinned to the snapshotted field, whose run-loop source is
+    /// attached to the current thread's run loop. While alive it wakes that run
+    /// loop on every value change (and on destruction) of the field, so the
+    /// session can read+diff immediately instead of only on the poll tick.
+    ///
+    /// Thread-affine on purpose: it is created and dropped on the session thread
+    /// (whose run loop owns the source), and never moved off it — hence no
+    /// `Send`. [`Drop`] detaches the source and removes the notifications so a
+    /// superseded session's observer never outlives the session.
+    pub struct ValueChangeObserver {
+        /// The AXObserver itself (released when this `CFType` drops).
+        observer: CFType,
+        /// The pinned element, retained so notification removal has a live ref.
+        element: CFType,
+        /// The observer's run-loop source, attached to `run_loop`.
+        source: CFRunLoopSource,
+        /// The session thread's run loop the source is attached to.
+        run_loop: CFRunLoop,
+        /// The notifications actually registered, removed one-for-one on drop.
+        notifications: Vec<CFString>,
+    }
+
+    impl ValueChangeObserver {
+        /// Block up to `timeout`, returning as soon as a subscribed notification
+        /// wakes the run loop or the timeout elapses. The observer's source keeps
+        /// the run loop from returning immediately, so this behaves like a
+        /// "sleep, but wake early on a value change".
+        pub fn wait(&self, timeout: Duration) {
+            CFRunLoop::run_in_mode(unsafe { kCFRunLoopDefaultMode }, timeout, true);
+        }
+    }
+
+    impl Drop for ValueChangeObserver {
+        fn drop(&mut self) {
+            // Detach the source from this thread's run loop, then unsubscribe the
+            // notifications, before the observer is released by `CFType`'s drop.
+            self.run_loop
+                .remove_source(&self.source, unsafe { kCFRunLoopDefaultMode });
+            let observer_ref = self.observer.as_concrete_TypeRef();
+            let element_ref = self.element.as_concrete_TypeRef();
+            for notification in &self.notifications {
+                unsafe {
+                    AXObserverRemoveNotification(
+                        observer_ref,
+                        element_ref,
+                        notification.as_concrete_TypeRef(),
+                    );
+                }
+            }
+        }
+    }
+
+    /// Create an [`ValueChangeObserver`] watching the snapshotted `focus` element
+    /// for value changes, attaching its source to the **current thread's** run
+    /// loop (so this must be called on the session thread). `None` on any AX
+    /// failure — no permission, an app that emits no notifications — so the
+    /// caller cleanly falls back to pure polling. Never panics.
+    pub fn create_value_change_observer(
+        pid: i32,
+        focus: &FocusedSnapshot,
+    ) -> Option<ValueChangeObserver> {
+        let mut observer_ref: AXObserverRef = std::ptr::null();
+        let err = unsafe {
+            AXObserverCreate(
+                pid as libc::pid_t,
+                value_changed_callback,
+                &mut observer_ref,
+            )
+        };
+        if err != 0 || observer_ref.is_null() {
+            debug!(
+                "learn: AX observer create failed for pid {} (err {})",
+                pid, err
+            );
+            return None;
+        }
+        // +1 owned by AXObserverCreate; released when this `CFType` drops.
+        let observer = unsafe { CFType::wrap_under_create_rule(observer_ref) };
+        // Retain the pinned element so notification removal on drop has a live ref.
+        let element = focus.0.clone();
+        let element_ref = element.as_concrete_TypeRef();
+
+        // Register the notifications we care about; keep only the ones that took
+        // so drop removes exactly those.
+        let mut notifications = Vec::new();
+        for name in [
+            AX_VALUE_CHANGED_NOTIFICATION,
+            AX_UI_ELEMENT_DESTROYED_NOTIFICATION,
+        ] {
+            let notification = CFString::new(name);
+            let err = unsafe {
+                AXObserverAddNotification(
+                    observer_ref,
+                    element_ref,
+                    notification.as_concrete_TypeRef(),
+                    std::ptr::null_mut(),
+                )
+            };
+            if err == 0 {
+                notifications.push(notification);
+            } else {
+                debug!(
+                    "learn: AX observer add-notification {} failed (err {})",
+                    name, err
+                );
+            }
+        }
+        if notifications.is_empty() {
+            // Nothing to wake on — the observer would never fire. `observer`
+            // drops here and releases; the caller polls instead.
+            debug!(
+                "learn: AX observer registered no notifications for pid {}",
+                pid
+            );
+            return None;
+        }
+
+        // Get-rule: the source is owned by the observer, so it stays valid as
+        // long as `observer` is held in the returned struct.
+        let source_ref = unsafe { AXObserverGetRunLoopSource(observer_ref) };
+        if source_ref.is_null() {
+            debug!("learn: AX observer has no run-loop source for pid {}", pid);
+            return None;
+        }
+        let source = unsafe { CFRunLoopSource::wrap_under_get_rule(source_ref) };
+        let run_loop = CFRunLoop::get_current();
+        run_loop.add_source(&source, unsafe { kCFRunLoopDefaultMode });
+
+        Some(ValueChangeObserver {
+            observer,
+            element,
+            source,
+            run_loop,
+            notifications,
+        })
     }
 
     /// Read the focused text field of the app with `pid`.
@@ -243,7 +430,10 @@ mod imp {
 }
 
 #[cfg(target_os = "macos")]
-pub use imp::{frontmost_pid, process_name, read_focused, snapshot_focused_element};
+pub use imp::{
+    create_value_change_observer, frontmost_pid, process_name, read_focused,
+    snapshot_focused_element,
+};
 
 /// Stub for platforms without an Accessibility API: no target can be resolved.
 #[cfg(not(target_os = "macos"))]
