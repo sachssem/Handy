@@ -11,6 +11,7 @@ mod corpus;
 mod denoise;
 mod engine;
 mod history_export;
+mod probe;
 mod record;
 mod report;
 mod score;
@@ -25,6 +26,7 @@ use crate::settings::{get_default_settings, AppSettings};
 use self::corpus::Corpus;
 use self::denoise::{DenoiseMode, Denoiser};
 use self::engine::{load_wav_16k, LoadedModel, ModelSpec};
+use self::probe::ProbeArgs;
 use self::report::{CaseResult, ConfigOutcome, ConfigSpec, RunReport};
 
 /// On/off flag used by `--text-rules` and `--itn`.
@@ -58,6 +60,8 @@ enum Command {
     ExportHistory(ExportArgs),
     /// Interactively record the corpus audio from the default microphone.
     Record(RecordArgs),
+    /// Measure the audio duration at which a model starts truncating output.
+    ProbeLimit(ProbeArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -141,6 +145,7 @@ pub fn run() -> Result<()> {
             args.overwrite,
             &args.re_record,
         ),
+        Command::ProbeLimit(args) => probe::probe_limit(args),
     }
 }
 

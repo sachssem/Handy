@@ -65,6 +65,15 @@ Text-Rules bringen auf jedem Modell +9…+20 Punkte Format-Genauigkeit.
 die Baseline unter Noise, ohne klare Sprache zu verschlechtern (`--denoise`-Flag
 bleibt im Bench-Harness für künftige Kandidaten wie GTCRN).
 
+**Recording-Limit-Probe (`handy-bench probe-limit`):** manche Modelle brechen ihre
+Ausgabe ab langer Audiodauer ab (Qwen3-ASR ~45 s am transcribe-cpp-Token-Cap). Der
+Probe verkettet 2–3 Corpus-Samples im Round-Robin zu immer längerem Audio, misst pro
+Länge das Wortzahl-Verhältnis und findet per Verdopplungs- plus Feinsuche die reale
+Decke. Beispiel: `handy-bench probe-limit --models qwen=...gguf --max-secs 120`. Er
+gibt eine `recommended_max_recording_ms` samt einfügefertigem Match-Arm aus — jede
+Neubewertung eines Modells soll ihn laufen lassen, um
+`recording_limit_for_model_id` (`src-tauri/src/managers/model.rs`) zu füllen.
+
 ## Nächste Schritte (empfohlene Reihenfolge)
 
 1. Alltag mit Qwen3-ASR + Text-Rules; Fehlschläge per `handy-bench export-history` in den Corpus übernehmen
