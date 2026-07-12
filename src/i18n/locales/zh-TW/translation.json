@@ -707,6 +707,7 @@
   "overlay": {
     "transcribing": "正在轉錄...",
     "processing": "處理中...",
+    "fallbackModel": "正在使用備用模型檢查…",
     "recordingLimitWarning": "錄音將在 {{seconds}} 秒後自動停止"
   },
   "learnedToast": {

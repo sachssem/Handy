@@ -707,6 +707,7 @@
   "overlay": {
     "transcribing": "Транскрибиране...",
     "processing": "Обработка...",
+    "fallbackModel": "Проверка с резервен модел…",
     "recordingLimitWarning": "Записът ще спре автоматично след {{seconds}} секунди"
   },
   "learnedToast": {

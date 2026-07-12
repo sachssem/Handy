@@ -707,6 +707,7 @@
   "overlay": {
     "transcribing": "Transcrevendo...",
     "processing": "Processando...",
+    "fallbackModel": "Verificando com o modelo de reserva…",
     "recordingLimitWarning": "A gravação será interrompida automaticamente em {{seconds}} segundos"
   },
   "learnedToast": {

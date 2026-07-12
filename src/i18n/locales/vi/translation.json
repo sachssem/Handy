@@ -707,6 +707,7 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
+    "fallbackModel": "Đang kiểm tra bằng mô hình dự phòng…",
     "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây"
   },
   "learnedToast": {

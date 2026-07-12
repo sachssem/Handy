@@ -710,6 +710,7 @@
   "overlay": {
     "transcribing": "Transcriberen...",
     "processing": "Verwerken...",
+    "fallbackModel": "Controleren met fallbackmodel…",
     "recordingLimitWarning": "De opname stopt automatisch over {{seconds}} seconden"
   },
   "learnedToast": {
