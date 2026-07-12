@@ -1261,68 +1261,78 @@ impl TranscriptionManager {
                                 // Parakeet's per-utterance LID occasionally tags a short
                                 // utterance with a language the user never dictates (e.g.
                                 // English mistaken for Russian, which prints Cyrillic).
-                                // When running on auto and the model reported a detected
-                                // language (`Transcript.language` is Some only when no hint
-                                // was pinned) that is outside the configured allowlist,
-                                // re-run the same audio once with the language pinned to the
-                                // first allowlist entry and use that text instead. An empty
-                                // allowlist, no detection, or an in-list detection keeps the
-                                // first result (upstream behavior).
+                                // When running on auto with a non-empty allowlist and the
+                                // result is out of bounds, re-run the same audio once with
+                                // the language pinned to the first allowlist entry and use
+                                // that text instead. "Out of bounds" is either a reported
+                                // detected language outside the list, or — for archs like
+                                // parakeet that never report one — a dominant output script
+                                // no allowlisted language is written in. An empty allowlist
+                                // or an in-bounds result keeps the first transcript
+                                // (upstream behavior).
                                 if validated_language == "auto"
                                     && !settings.language_allowlist.is_empty()
                                 {
-                                    if let Some(detected) = first.language.as_deref() {
-                                        let detected_norm = normalize_lang_subtag(detected);
-                                        let in_allowlist = settings
-                                            .language_allowlist
-                                            .iter()
-                                            .any(|a| normalize_lang_subtag(a) == detected_norm);
-                                        if !in_allowlist {
-                                            let retry_lang = settings.language_allowlist[0].clone();
-                                            info!(
-                                                "Language allowlist guard: detected '{}' outside {:?}, re-running pinned to '{}'",
-                                                detected, settings.language_allowlist, retry_lang
+                                    let mismatch = match first.language.as_deref() {
+                                        Some(detected) => {
+                                            let detected_norm = normalize_lang_subtag(detected);
+                                            settings
+                                                .language_allowlist
+                                                .iter()
+                                                .all(|a| normalize_lang_subtag(a) != detected_norm)
+                                                .then(|| format!("detected language '{detected}'"))
+                                        }
+                                        None => script_outside_allowlist(
+                                            &first.text,
+                                            &settings.language_allowlist,
+                                        )
+                                        .map(|script| format!("dominant {script} script")),
+                                    };
+                                    if let Some(reason) = mismatch {
+                                        let retry_lang = settings.language_allowlist[0].clone();
+                                        info!(
+                                                "Language allowlist guard: {} outside {:?}, re-running pinned to '{}'",
+                                                reason, settings.language_allowlist, retry_lang
                                             );
-                                            // Reuse the shared plan so the pin is only
-                                            // forwarded when the arch advertises it and
-                                            // accepts hints; otherwise the retry would just
-                                            // auto-detect again and reproduce the same result.
-                                            let retry_plan = transcribe_cpp_run_plan(
-                                                settings.translate_to_english,
-                                                &retry_lang,
-                                                &model_languages,
-                                                model_supports_translate,
-                                                model_accepts_language_hint,
-                                            );
-                                            if retry_plan.language.is_some() {
-                                                let retry_options = RunOptions {
-                                                    task: retry_plan.task,
-                                                    language: retry_plan.language,
-                                                    target_language: retry_plan.target_language,
-                                                    family,
-                                                    ..Default::default()
-                                                };
-                                                match session.run(&audio, &retry_options) {
-                                                    Ok(retried) => {
-                                                        info!(
+                                        // Reuse the shared plan so the pin is only
+                                        // forwarded when the arch advertises it and
+                                        // accepts hints; otherwise the retry would just
+                                        // auto-detect again and reproduce the same result.
+                                        let retry_plan = transcribe_cpp_run_plan(
+                                            settings.translate_to_english,
+                                            &retry_lang,
+                                            &model_languages,
+                                            model_supports_translate,
+                                            model_accepts_language_hint,
+                                        );
+                                        if retry_plan.language.is_some() {
+                                            let retry_options = RunOptions {
+                                                task: retry_plan.task,
+                                                language: retry_plan.language,
+                                                target_language: retry_plan.target_language,
+                                                family,
+                                                ..Default::default()
+                                            };
+                                            match session.run(&audio, &retry_options) {
+                                                Ok(retried) => {
+                                                    info!(
                                                             "Language allowlist guard: retry pinned to '{}' succeeded",
                                                             retry_lang
                                                         );
-                                                        return Ok(retried.text);
-                                                    }
-                                                    Err(e) => {
-                                                        warn!(
+                                                    return Ok(retried.text);
+                                                }
+                                                Err(e) => {
+                                                    warn!(
                                                             "Language allowlist guard: retry pinned to '{}' failed ({}); keeping original detection",
                                                             retry_lang, e
                                                         );
-                                                    }
                                                 }
-                                            } else {
-                                                info!(
+                                            }
+                                        } else {
+                                            info!(
                                                     "Language allowlist guard: '{}' not advertised by the model or hints unsupported; keeping original detection",
                                                     retry_lang
                                                 );
-                                            }
                                         }
                                     }
                                 }
@@ -1631,6 +1641,113 @@ fn real_time_factor(audio_secs: f64, compute_secs: f64) -> f64 {
 /// lowercase and primary subtag only ("de-DE" -> "de").
 fn normalize_lang_subtag(code: &str) -> String {
     code.split('-').next().unwrap_or(code).to_ascii_lowercase()
+}
+
+/// fork(voice-control): writing-system buckets for the allowlist guard's script
+/// fallback, used when the model reports no detected language (parakeet never
+/// does).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Script {
+    Latin,
+    Cyrillic,
+    Greek,
+    Hebrew,
+    Arabic,
+    Cjk,
+    Hangul,
+}
+
+const SCRIPTS: [Script; 7] = [
+    Script::Latin,
+    Script::Cyrillic,
+    Script::Greek,
+    Script::Hebrew,
+    Script::Arabic,
+    Script::Cjk,
+    Script::Hangul,
+];
+
+impl Script {
+    fn name(self) -> &'static str {
+        match self {
+            Script::Latin => "Latin",
+            Script::Cyrillic => "Cyrillic",
+            Script::Greek => "Greek",
+            Script::Hebrew => "Hebrew",
+            Script::Arabic => "Arabic",
+            Script::Cjk => "CJK",
+            Script::Hangul => "Hangul",
+        }
+    }
+}
+
+/// The script a language (primary subtag) is written in. Covers the languages
+/// Handy's model catalog advertises; unknown codes fall back to Latin, which
+/// keeps the guard from ever retrying Latin output of an unmapped language.
+fn script_for_language(lang: &str) -> Script {
+    match normalize_lang_subtag(lang).as_str() {
+        "ru" | "uk" | "bg" | "be" | "sr" | "mk" | "kk" => Script::Cyrillic,
+        "el" => Script::Greek,
+        "he" | "yi" => Script::Hebrew,
+        "ar" | "fa" | "ur" => Script::Arabic,
+        "zh" | "yue" | "ja" => Script::Cjk,
+        "ko" => Script::Hangul,
+        _ => Script::Latin,
+    }
+}
+
+/// The bucket of one script-carrying character; None for anything the guard
+/// ignores (digits, punctuation, whitespace, symbols).
+fn char_script(c: char) -> Option<Script> {
+    match c as u32 {
+        // ASCII letters plus Latin-1/Extended (umlauts, accents, …).
+        0x0041..=0x005A | 0x0061..=0x007A | 0x00C0..=0x024F => Some(Script::Latin),
+        0x0370..=0x03FF => Some(Script::Greek),
+        0x0400..=0x052F => Some(Script::Cyrillic),
+        0x0590..=0x05FF => Some(Script::Hebrew),
+        0x0600..=0x06FF | 0x0750..=0x077F => Some(Script::Arabic),
+        // Kana + CJK unified ideographs (incl. extension A).
+        0x3040..=0x30FF | 0x3400..=0x4DBF | 0x4E00..=0x9FFF => Some(Script::Cjk),
+        0x1100..=0x11FF | 0xAC00..=0xD7AF => Some(Script::Hangul),
+        _ => None,
+    }
+}
+
+/// If the text's dominant script cannot be produced by any allowlisted
+/// language, return its name — the stand-in for a detected language on archs
+/// that do not report one. Demands a clear majority (>60%) over at least four
+/// script-carrying characters, so short or genuinely mixed outputs never
+/// trigger a retry.
+fn script_outside_allowlist(text: &str, allowlist: &[String]) -> Option<&'static str> {
+    const MIN_CHARS: usize = 4;
+    let mut counts = [0usize; SCRIPTS.len()];
+    let mut total = 0usize;
+    for c in text.chars() {
+        if let Some(script) = char_script(c) {
+            counts[SCRIPTS.iter().position(|&s| s == script)?] += 1;
+            total += 1;
+        }
+    }
+    if total < MIN_CHARS {
+        return None;
+    }
+    let (idx, &n) = counts
+        .iter()
+        .enumerate()
+        .max_by_key(|(_, &n)| n)
+        .expect("SCRIPTS is non-empty");
+    // Majority check: n / total > 0.6.
+    if n * 5 <= total * 3 {
+        return None;
+    }
+    let dominant = SCRIPTS[idx];
+    if allowlist
+        .iter()
+        .any(|lang| script_for_language(lang) == dominant)
+    {
+        return None;
+    }
+    Some(dominant.name())
 }
 
 fn normalize_cjk_language(language: &str) -> &str {
@@ -2013,6 +2130,45 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    #[test]
+    fn cyrillic_output_against_latin_allowlist_is_flagged() {
+        // The real-world failure: an English phrase transcribed in Cyrillic.
+        let text = "Фит слэш ватсап даш лайфсайкл.";
+        assert_eq!(
+            script_outside_allowlist(text, &languages(&["de", "en"])),
+            Some("Cyrillic")
+        );
+    }
+
+    #[test]
+    fn latin_output_with_umlauts_is_in_bounds_for_german() {
+        let text = "Größenordnung geändert, äußerst zügig!";
+        assert_eq!(
+            script_outside_allowlist(text, &languages(&["de", "en"])),
+            None
+        );
+    }
+
+    #[test]
+    fn cyrillic_output_is_fine_when_russian_is_allowlisted() {
+        let text = "Привет как дела";
+        assert_eq!(
+            script_outside_allowlist(text, &languages(&["ru", "de"])),
+            None
+        );
+    }
+
+    #[test]
+    fn short_or_mixed_output_never_triggers_the_script_guard() {
+        // Below the minimum letter count.
+        assert_eq!(script_outside_allowlist("Да!", &languages(&["de"])), None);
+        // No clear (>60%) majority.
+        assert_eq!(
+            script_outside_allowlist("Hello Привет hi да", &languages(&["de"])),
+            None
+        );
     }
 
     #[test]
