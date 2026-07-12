@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "자동 감지를 다음 언어로 제한…",
           "description": "'자동'을 선택하면 이 언어들만 유지합니다. 목록에 없는 언어가 감지되면 첫 번째(기본) 언어로 고정하여 다시 변환합니다.",
-          "primary": "기본"
+          "primary": "기본",
+          "fallbackModel": {
+            "label": "대체 모델",
+            "none": "없음",
+            "description": "목록에 없는 감지는 기본 언어 재시도 대신 이 모델로 다시 변환됩니다."
+          }
         }
       },
       "pushToTalk": {

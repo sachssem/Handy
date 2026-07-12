@@ -119,6 +119,12 @@ const settingUpdaters: {
   // fork(voice-control): allowlist that constrains "auto" language detection.
   language_allowlist: (value) =>
     commands.changeLanguageAllowlistSetting(value as string[]),
+  // fork(voice-control): model the allowlist guard escalates to on an
+  // out-of-bounds "auto" detection.
+  language_allowlist_fallback_model: (value) =>
+    commands.changeLanguageAllowlistFallbackModelSetting(
+      (value as string | null) || null,
+    ),
   overlay_position: (value) =>
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),

@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Otomatik algılamayı şununla sınırla…",
           "description": "Otomatik seçiliyken yalnızca bu diller korunur. Bu listenin dışında algılanan bir dil, ilk (birincil) dile sabitlenerek yeniden yazıya dökülür.",
-          "primary": "Birincil"
+          "primary": "Birincil",
+          "fallbackModel": {
+            "label": "Yedek model",
+            "none": "Yok",
+            "description": "Liste dışı algılamalar, birincil dilde yeniden denemek yerine bu modelle yeniden yazıya dökülür."
+          }
         }
       },
       "pushToTalk": {

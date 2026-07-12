@@ -470,26 +470,8 @@ impl TranscriptionManager {
             },
         );
 
-        let model_info = self
-            .model_manager
-            .get_model_info(model_id)
-            .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
-
-        if !model_info.is_downloaded {
-            let error_msg = "Model not downloaded";
-            let _ = self.app_handle.emit(
-                "model-state-changed",
-                ModelStateEvent {
-                    event_type: "loading_failed".to_string(),
-                    model_id: Some(model_id.to_string()),
-                    model_name: Some(model_info.name.clone()),
-                    error: Some(error_msg.to_string()),
-                },
-            );
-            return Err(anyhow::anyhow!(error_msg));
-        }
-
-        let model_path = self.model_manager.get_model_path(model_id)?;
+        // Model name for the lifecycle events (None if the id is unknown).
+        let model_name = self.model_manager.get_model_info(model_id).map(|m| m.name);
 
         // Drop the current engine BEFORE building the new one so transcribe-cpp
         // frees the previous native context first — avoids holding two models at
@@ -504,154 +486,38 @@ impl TranscriptionManager {
             *current_model = None;
         }
 
-        // Create appropriate engine based on model type
-        let emit_loading_failed = |error_msg: &str| {
-            let _ = self.app_handle.emit(
-                "model-state-changed",
-                ModelStateEvent {
-                    event_type: "loading_failed".to_string(),
-                    model_id: Some(model_id.to_string()),
-                    model_name: Some(model_info.name.clone()),
-                    error: Some(error_msg.to_string()),
-                },
-            );
+        let loaded_engine = match self.build_engine_for_model(model_id, device_index) {
+            Ok(engine) => engine,
+            Err(e) => {
+                let _ = self.app_handle.emit(
+                    "model-state-changed",
+                    ModelStateEvent {
+                        event_type: "loading_failed".to_string(),
+                        model_id: Some(model_id.to_string()),
+                        model_name: model_name.clone(),
+                        error: Some(e.to_string()),
+                    },
+                );
+                return Err(e);
+            }
         };
 
-        let loaded_engine = match model_info.engine_type {
-            EngineType::TranscribeCpp => {
-                // The whisper backend is chosen at load time (transcribe-cpp has
-                // no runtime global). With an explicit `device_index` (the
-                // --device-index flag) hard-select that registered device;
-                // otherwise re-read the persisted accelerator preference (so an
-                // accelerator change marked for reload takes effect here).
-                let (backend, gpu_device) = match device_index {
-                    Some(index) => resolve_device_index(index).inspect_err(|e| {
-                        emit_loading_failed(&e.to_string());
-                    })?,
-                    None => {
-                        let settings = get_settings(&self.app_handle);
-                        let accelerator = settings.transcribe_accelerator;
-                        (
-                            select_transcribe_backend(accelerator),
-                            resolve_gpu_device(accelerator, settings.transcribe_gpu_device),
-                        )
-                    }
-                };
-                let model_options = ModelOptions {
-                    backend,
-                    gpu_device,
-                };
-                let model = Model::load_with(&model_path, &model_options).map_err(|e| {
-                    let error_msg = format!("Failed to load whisper model {}: {}", model_id, e);
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                // The bound backend may differ from the request (e.g. CPU
-                // fallback under Auto); log what actually loaded.
-                let bound_backend = model.backend();
-                let session = model.session().map_err(|e| {
-                    let error_msg = format!(
-                        "Failed to create session for whisper model {}: {}",
-                        model_id, e
-                    );
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                // Reconcile the registry's advertised capabilities with the
-                // loaded model's real ones (GGUF metadata) so badges/gating
-                // reflect runtime truth, not the pre-download probe. The
-                // load-completed event below triggers the frontend refresh.
-                let caps = session.model().capabilities();
-                self.model_manager.set_runtime_capabilities(
-                    model_id,
-                    caps.supports_streaming,
-                    caps.supports_translate,
-                    caps.supports_language_detect,
-                    caps.languages.clone(),
-                );
-                info!(
-                    "Loaded whisper model '{}' (requested {:?}, gpu_device {}, bound backend '{}', \
-                     supports_streaming={}, supports_translate={}, supports_language_detect={})",
-                    model_id,
-                    backend,
-                    gpu_device,
-                    bound_backend,
-                    caps.supports_streaming,
-                    caps.supports_translate,
-                    caps.supports_language_detect
-                );
-                LoadedEngine::TranscribeCpp(session)
-            }
-            EngineType::Parakeet => {
-                let engine =
-                    ParakeetModel::load(&model_path, &Quantization::Int8).map_err(|e| {
-                        let error_msg =
-                            format!("Failed to load parakeet model {}: {}", model_id, e);
-                        emit_loading_failed(&error_msg);
-                        anyhow::anyhow!(error_msg)
-                    })?;
-                LoadedEngine::Parakeet(engine)
-            }
-            EngineType::Moonshine => {
-                let engine = MoonshineModel::load(
-                    &model_path,
-                    MoonshineVariant::Base,
-                    &Quantization::default(),
-                )
-                .map_err(|e| {
-                    let error_msg = format!("Failed to load moonshine model {}: {}", model_id, e);
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                LoadedEngine::Moonshine(engine)
-            }
-            EngineType::MoonshineStreaming => {
-                let engine = StreamingModel::load(&model_path, 0, &Quantization::default())
-                    .map_err(|e| {
-                        let error_msg = format!(
-                            "Failed to load moonshine streaming model {}: {}",
-                            model_id, e
-                        );
-                        emit_loading_failed(&error_msg);
-                        anyhow::anyhow!(error_msg)
-                    })?;
-                LoadedEngine::MoonshineStreaming(engine)
-            }
-            EngineType::SenseVoice => {
-                let engine =
-                    SenseVoiceModel::load(&model_path, &Quantization::Int8).map_err(|e| {
-                        let error_msg =
-                            format!("Failed to load SenseVoice model {}: {}", model_id, e);
-                        emit_loading_failed(&error_msg);
-                        anyhow::anyhow!(error_msg)
-                    })?;
-                LoadedEngine::SenseVoice(engine)
-            }
-            EngineType::GigaAM => {
-                let engine = GigaAMModel::load(&model_path, &Quantization::Int8).map_err(|e| {
-                    let error_msg = format!("Failed to load gigaam model {}: {}", model_id, e);
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                LoadedEngine::GigaAM(engine)
-            }
-            EngineType::Canary => {
-                let engine = CanaryModel::load(&model_path, &Quantization::Int8).map_err(|e| {
-                    let error_msg = format!("Failed to load canary model {}: {}", model_id, e);
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                LoadedEngine::Canary(engine)
-            }
-            EngineType::Cohere => {
-                let engine = CohereModel::load(&model_path, &Quantization::Int8).map_err(|e| {
-                    let error_msg = format!("Failed to load cohere model {}: {}", model_id, e);
-                    emit_loading_failed(&error_msg);
-                    anyhow::anyhow!(error_msg)
-                })?;
-                LoadedEngine::Cohere(engine)
-            }
-        };
+        // Reconcile the registry's advertised capabilities with the loaded
+        // model's real ones (GGUF metadata) so badges/gating reflect runtime
+        // truth, not the pre-download probe. Only transcribe-cpp exposes these;
+        // the load-completed event below triggers the frontend refresh. This
+        // step mutates ManagerState, so it lives here rather than in the shared
+        // build helper (which the allowlist fallback guard reuses read-only).
+        if let LoadedEngine::TranscribeCpp(session) = &loaded_engine {
+            let caps = session.model().capabilities();
+            self.model_manager.set_runtime_capabilities(
+                model_id,
+                caps.supports_streaming,
+                caps.supports_translate,
+                caps.supports_language_detect,
+                caps.languages.clone(),
+            );
+        }
 
         // Update the current engine and model ID
         {
@@ -672,7 +538,7 @@ impl TranscriptionManager {
             ModelStateEvent {
                 event_type: "loading_completed".to_string(),
                 model_id: Some(model_id.to_string()),
-                model_name: Some(model_info.name.clone()),
+                model_name,
                 error: None,
             },
         );
@@ -684,6 +550,247 @@ impl TranscriptionManager {
             load_duration.as_millis()
         );
         Ok(())
+    }
+
+    /// fork(voice-control): Build a fresh [`LoadedEngine`] for `model_id` without
+    /// touching any manager state — no current-engine swap, no runtime-capability
+    /// reconciliation, and no `model-state-changed` events. Reads the persisted
+    /// accelerator preference (or the explicit `device_index`) exactly like a
+    /// normal load. [`load_model_with_device`](Self::load_model_with_device) wraps
+    /// this to install the engine and emit the lifecycle events; the allowlist
+    /// fallback guard uses it to build a scoped engine it runs once and drops.
+    fn build_engine_for_model(
+        &self,
+        model_id: &str,
+        device_index: Option<usize>,
+    ) -> Result<LoadedEngine> {
+        let model_info = self
+            .model_manager
+            .get_model_info(model_id)
+            .ok_or_else(|| anyhow::anyhow!("Model not found: {}", model_id))?;
+
+        if !model_info.is_downloaded {
+            return Err(anyhow::anyhow!("Model not downloaded"));
+        }
+
+        let model_path = self.model_manager.get_model_path(model_id)?;
+
+        let loaded_engine = match model_info.engine_type {
+            EngineType::TranscribeCpp => {
+                // The whisper backend is chosen at load time (transcribe-cpp has
+                // no runtime global). With an explicit `device_index` (the
+                // --device-index flag) hard-select that registered device;
+                // otherwise re-read the persisted accelerator preference (so an
+                // accelerator change marked for reload takes effect here).
+                let (backend, gpu_device) = match device_index {
+                    Some(index) => resolve_device_index(index)?,
+                    None => {
+                        let settings = get_settings(&self.app_handle);
+                        let accelerator = settings.transcribe_accelerator;
+                        (
+                            select_transcribe_backend(accelerator),
+                            resolve_gpu_device(accelerator, settings.transcribe_gpu_device),
+                        )
+                    }
+                };
+                let model_options = ModelOptions {
+                    backend,
+                    gpu_device,
+                };
+                let model = Model::load_with(&model_path, &model_options).map_err(|e| {
+                    anyhow::anyhow!("Failed to load whisper model {}: {}", model_id, e)
+                })?;
+                // The bound backend may differ from the request (e.g. CPU
+                // fallback under Auto); log what actually loaded.
+                let bound_backend = model.backend();
+                let session = model.session().map_err(|e| {
+                    anyhow::anyhow!(
+                        "Failed to create session for whisper model {}: {}",
+                        model_id,
+                        e
+                    )
+                })?;
+                let caps = session.model().capabilities();
+                info!(
+                    "Loaded whisper model '{}' (requested {:?}, gpu_device {}, bound backend '{}', \
+                     supports_streaming={}, supports_translate={}, supports_language_detect={})",
+                    model_id,
+                    backend,
+                    gpu_device,
+                    bound_backend,
+                    caps.supports_streaming,
+                    caps.supports_translate,
+                    caps.supports_language_detect
+                );
+                LoadedEngine::TranscribeCpp(session)
+            }
+            EngineType::Parakeet => {
+                let engine =
+                    ParakeetModel::load(&model_path, &Quantization::Int8).map_err(|e| {
+                        anyhow::anyhow!("Failed to load parakeet model {}: {}", model_id, e)
+                    })?;
+                LoadedEngine::Parakeet(engine)
+            }
+            EngineType::Moonshine => {
+                let engine = MoonshineModel::load(
+                    &model_path,
+                    MoonshineVariant::Base,
+                    &Quantization::default(),
+                )
+                .map_err(|e| {
+                    anyhow::anyhow!("Failed to load moonshine model {}: {}", model_id, e)
+                })?;
+                LoadedEngine::Moonshine(engine)
+            }
+            EngineType::MoonshineStreaming => {
+                let engine = StreamingModel::load(&model_path, 0, &Quantization::default())
+                    .map_err(|e| {
+                        anyhow::anyhow!(
+                            "Failed to load moonshine streaming model {}: {}",
+                            model_id,
+                            e
+                        )
+                    })?;
+                LoadedEngine::MoonshineStreaming(engine)
+            }
+            EngineType::SenseVoice => {
+                let engine =
+                    SenseVoiceModel::load(&model_path, &Quantization::Int8).map_err(|e| {
+                        anyhow::anyhow!("Failed to load SenseVoice model {}: {}", model_id, e)
+                    })?;
+                LoadedEngine::SenseVoice(engine)
+            }
+            EngineType::GigaAM => {
+                let engine = GigaAMModel::load(&model_path, &Quantization::Int8).map_err(|e| {
+                    anyhow::anyhow!("Failed to load gigaam model {}: {}", model_id, e)
+                })?;
+                LoadedEngine::GigaAM(engine)
+            }
+            EngineType::Canary => {
+                let engine = CanaryModel::load(&model_path, &Quantization::Int8).map_err(|e| {
+                    anyhow::anyhow!("Failed to load canary model {}: {}", model_id, e)
+                })?;
+                LoadedEngine::Canary(engine)
+            }
+            EngineType::Cohere => {
+                let engine = CohereModel::load(&model_path, &Quantization::Int8).map_err(|e| {
+                    anyhow::anyhow!("Failed to load cohere model {}: {}", model_id, e)
+                })?;
+                LoadedEngine::Cohere(engine)
+            }
+        };
+
+        Ok(loaded_engine)
+    }
+
+    /// fork(voice-control): Run the allowlist fallback. Loads `fallback_model`
+    /// scoped, transcribes the same `audio` once, and returns its text only when
+    /// the output is in bounds for the allowlist; otherwise returns `None` so the
+    /// caller keeps the original transcript. The scoped engine is dropped on
+    /// return — a second model lives in RAM briefly, but the guard fires rarely,
+    /// so this deliberately builds a throwaway engine and never touches the engine
+    /// cache or the idle-unload timers.
+    ///
+    /// Batch-only: the guard lives in the TranscribeCpp batch arm, so only
+    /// transcribe-cpp fallbacks are wired here. Any other engine type is logged
+    /// and the original transcript kept — supporting them would mean duplicating
+    /// each ONNX arm's run wiring, which this narrow escalation does not warrant.
+    fn run_allowlist_fallback(
+        &self,
+        fallback_model: &str,
+        audio: &[f32],
+        settings: &AppSettings,
+    ) -> Option<String> {
+        let engine = match self.build_engine_for_model(fallback_model, None) {
+            Ok(engine) => engine,
+            Err(e) => {
+                warn!(
+                    "Language allowlist guard: fallback model '{}' failed to load ({}); keeping original detection",
+                    fallback_model, e
+                );
+                return None;
+            }
+        };
+
+        let LoadedEngine::TranscribeCpp(mut session) = engine else {
+            warn!(
+                "Language allowlist guard: fallback model '{}' is not a transcribe-cpp model; keeping original detection",
+                fallback_model
+            );
+            return None;
+        };
+
+        let (model_languages, model_supports_translate, model_is_whisper, accepts_language_hint) = {
+            let model = session.model();
+            let caps = model.capabilities();
+            (
+                caps.languages,
+                caps.supports_translate,
+                model.arch() == "whisper",
+                !arch_rejects_language_hint(&model.arch()),
+            )
+        };
+
+        // Custom words become an initial prompt only for the whisper family (the
+        // whisper run extension is rejected by other archs), mirroring the main
+        // batch path.
+        let family = if settings.custom_words.is_empty() || !model_is_whisper {
+            None
+        } else {
+            Some(RunExtension::Whisper(WhisperRunOptions {
+                initial_prompt: Some(settings.custom_words.join(", ")),
+                ..Default::default()
+            }))
+        };
+
+        // Forward the allowlist's primary language as a hint only where the arch
+        // accepts one and advertises it; the shared run plan drops it to auto
+        // otherwise. Qwen3-ASR rejects hints, so it always runs auto and relies on
+        // its own LID — which is exactly why it rescues these utterances.
+        let pin = &settings.language_allowlist[0];
+        let run_plan = transcribe_cpp_run_plan(
+            settings.translate_to_english,
+            pin,
+            &model_languages,
+            model_supports_translate,
+            accepts_language_hint,
+        );
+        let run_options = RunOptions {
+            task: run_plan.task,
+            language: run_plan.language,
+            target_language: run_plan.target_language,
+            family,
+            ..Default::default()
+        };
+
+        let retried = match session.run(audio, &run_options) {
+            Ok(retried) => retried,
+            Err(e) => {
+                warn!(
+                    "Language allowlist guard: fallback model '{}' run failed ({}); keeping original detection",
+                    fallback_model, e
+                );
+                return None;
+            }
+        };
+
+        if fallback_output_in_bounds(
+            &retried.text,
+            retried.language.as_deref(),
+            &settings.language_allowlist,
+        ) {
+            info!(
+                "Language allowlist guard: fallback model '{}' rescued the utterance (detected {:?})",
+                fallback_model, retried.language
+            );
+            Some(retried.text)
+        } else {
+            warn!(
+                "Language allowlist guard: fallback model '{}' output still out of bounds; keeping original detection",
+                fallback_model
+            );
+            None
+        }
     }
 
     /// Kicks off the model loading in a background thread if it's not already loaded
@@ -1289,6 +1396,38 @@ impl TranscriptionManager {
                                         .map(|script| format!("dominant {script} script")),
                                     };
                                     if let Some(reason) = mismatch {
+                                        // fork(voice-control): fallback-model escalation. When a
+                                        // fallback model is configured, downloaded, and different
+                                        // from the active model, skip the same-engine pin-retry
+                                        // entirely — on archs like parakeet the pin is only soft
+                                        // conditioning and cannot fix a genuine misdetection — and
+                                        // instead transcribe the SAME audio once with the fallback
+                                        // model. Whatever the outcome, we never also fall through to
+                                        // the pin-retry (no cascade): accept the fallback text when
+                                        // in bounds, otherwise keep the original first transcript.
+                                        let fallback_model = settings
+                                            .language_allowlist_fallback_model
+                                            .as_deref()
+                                            .filter(|id| !id.is_empty() && *id != active_model)
+                                            .filter(|id| {
+                                                self.model_manager
+                                                    .get_model_info(id)
+                                                    .is_some_and(|m| m.is_downloaded)
+                                            });
+                                        if let Some(fallback_model) = fallback_model {
+                                            info!(
+                                                "Language allowlist guard: {} outside {:?}, escalating to fallback model '{}'",
+                                                reason, settings.language_allowlist, fallback_model
+                                            );
+                                            return Ok(self
+                                                .run_allowlist_fallback(
+                                                    fallback_model,
+                                                    &audio,
+                                                    &settings,
+                                                )
+                                                .unwrap_or(first.text));
+                                        }
+
                                         let retry_lang = settings.language_allowlist[0].clone();
                                         info!(
                                                 "Language allowlist guard: {} outside {:?}, re-running pinned to '{}'",
@@ -1765,6 +1904,26 @@ fn script_outside_allowlist(text: &str, allowlist: &[String]) -> Option<&'static
     Some(dominant.name())
 }
 
+/// fork(voice-control): Whether the allowlist fallback model's output should be
+/// accepted. In bounds when the fallback reports a detected language inside the
+/// allowlist, or — for archs that report none — when the output's dominant script
+/// is one an allowlisted language uses (`script_outside_allowlist` returns None).
+fn fallback_output_in_bounds(
+    text: &str,
+    detected_language: Option<&str>,
+    allowlist: &[String],
+) -> bool {
+    match detected_language {
+        Some(detected) => {
+            let detected_norm = normalize_lang_subtag(detected);
+            allowlist
+                .iter()
+                .any(|a| normalize_lang_subtag(a) == detected_norm)
+        }
+        None => script_outside_allowlist(text, allowlist).is_none(),
+    }
+}
+
 fn normalize_cjk_language(language: &str) -> &str {
     match language {
         "zh-Hans" | "zh-Hant" => "zh",
@@ -2184,6 +2343,40 @@ mod tests {
             script_outside_allowlist("Hello Привет hi да", &languages(&["de"])),
             None
         );
+    }
+
+    #[test]
+    fn fallback_output_accepted_when_detected_language_is_allowlisted() {
+        // Reported detected language inside the allowlist (region subtag ignored).
+        assert!(fallback_output_in_bounds(
+            "Feed slash WhatsApp dash lifecycle",
+            Some("en-US"),
+            &languages(&["de", "en"]),
+        ));
+    }
+
+    #[test]
+    fn fallback_output_rejected_when_detected_language_is_out_of_bounds() {
+        assert!(!fallback_output_in_bounds(
+            "Привет как дела",
+            Some("ru"),
+            &languages(&["de", "en"]),
+        ));
+    }
+
+    #[test]
+    fn fallback_output_falls_back_to_script_when_no_language_reported() {
+        // Parakeet-style: no detected language, so the dominant script decides.
+        assert!(fallback_output_in_bounds(
+            "Feed slash WhatsApp dash lifecycle",
+            None,
+            &languages(&["de", "en"]),
+        ));
+        assert!(!fallback_output_in_bounds(
+            "Фит слэш ватсап даш лайфсайкл.",
+            None,
+            &languages(&["de", "en"]),
+        ));
     }
 
     #[test]

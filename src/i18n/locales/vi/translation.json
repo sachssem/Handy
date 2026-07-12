@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Giới hạn tự động nhận diện ở…",
           "description": "Khi chọn Tự động, chỉ giữ các ngôn ngữ này. Ngôn ngữ được nhận diện ngoài danh sách sẽ được phiên âm lại, ghim vào ngôn ngữ đầu tiên (chính).",
-          "primary": "Chính"
+          "primary": "Chính",
+          "fallbackModel": {
+            "label": "Mô hình dự phòng",
+            "none": "Không có",
+            "description": "Các nhận diện ngoài danh sách được phiên âm lại bằng mô hình này thay vì thử lại bằng ngôn ngữ chính."
+          }
         }
       },
       "pushToTalk": {

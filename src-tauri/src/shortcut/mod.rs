@@ -548,6 +548,21 @@ pub fn change_language_allowlist_setting(
     Ok(())
 }
 
+// fork(voice-control): the model the allowlist guard escalates to on an
+// out-of-bounds "auto" detection. An empty selection clears the fallback (back to
+// the same-engine pin-retry). See the guard in managers/transcription.rs.
+#[tauri::command]
+#[specta::specta]
+pub fn change_language_allowlist_fallback_model_setting(
+    app: AppHandle,
+    model: Option<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.language_allowlist_fallback_model = model.filter(|m| !m.is_empty());
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Result<(), String> {

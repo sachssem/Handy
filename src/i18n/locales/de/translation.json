@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Automatische Erkennung beschränken auf …",
           "description": "Wenn „Auto“ gewählt ist, nur diese Sprachen zulassen. Eine erkannte Sprache außerhalb dieser Liste wird erneut transkribiert, fest auf die erste (primäre) Sprache eingestellt.",
-          "primary": "Primär"
+          "primary": "Primär",
+          "fallbackModel": {
+            "label": "Ausweichmodell",
+            "none": "Keins",
+            "description": "Erkennungen außerhalb der Liste werden mit diesem Modell neu transkribiert statt mit dem Wiederholungsversuch in der Primärsprache."
+          }
         }
       },
       "pushToTalk": {

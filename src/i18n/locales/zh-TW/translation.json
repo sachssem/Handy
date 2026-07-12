@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "將自動偵測限制為…",
           "description": "選擇「自動」時，僅保留這些語言。偵測到清單之外的語言時，將固定為第一個（主要）語言重新轉錄。",
-          "primary": "主要"
+          "primary": "主要",
+          "fallbackModel": {
+            "label": "備用模型",
+            "none": "無",
+            "description": "清單之外的偵測將使用此模型重新轉錄，而非以主要語言重試。"
+          }
         }
       },
       "pushToTalk": {

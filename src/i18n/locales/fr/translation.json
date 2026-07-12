@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Restreindre la détection automatique à…",
           "description": "Lorsque « Auto » est sélectionné, ne conserver que ces langues. Une langue détectée hors de cette liste est retranscrite en la forçant sur la première langue (principale).",
-          "primary": "Principale"
+          "primary": "Principale",
+          "fallbackModel": {
+            "label": "Modèle de secours",
+            "none": "Aucun",
+            "description": "Les détections hors liste sont retranscrites avec ce modèle au lieu de la nouvelle tentative dans la langue principale."
+          }
         }
       },
       "pushToTalk": {

@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Omezit automatické rozpoznávání na…",
           "description": "Když je vybráno Auto, ponechat pouze tyto jazyky. Rozpoznaný jazyk mimo tento seznam se přepíše znovu s pevně nastaveným prvním (hlavním) jazykem.",
-          "primary": "Hlavní"
+          "primary": "Hlavní",
+          "fallbackModel": {
+            "label": "Záložní model",
+            "none": "Žádný",
+            "description": "Rozpoznání mimo seznam se přepíší tímto modelem místo opakování s hlavním jazykem."
+          }
         }
       },
       "pushToTalk": {

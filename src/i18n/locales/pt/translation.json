@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "Restringir a detecção automática a…",
           "description": "Quando Automático está selecionado, manter apenas estes idiomas. Um idioma detetado fora desta lista é transcrito novamente fixado no primeiro idioma (principal).",
-          "primary": "Principal"
+          "primary": "Principal",
+          "fallbackModel": {
+            "label": "Modelo de reserva",
+            "none": "Nenhum",
+            "description": "As deteções fora da lista são transcritas novamente com este modelo em vez da nova tentativa no idioma principal."
+          }
         }
       },
       "pushToTalk": {

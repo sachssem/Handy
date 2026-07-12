@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "将自动检测限制为…",
           "description": "选择“自动”时，仅保留这些语言。检测到列表之外的语言时，将固定为第一个（主要）语言重新转写。",
-          "primary": "主要"
+          "primary": "主要",
+          "fallbackModel": {
+            "label": "备用模型",
+            "none": "无",
+            "description": "列表之外的检测将使用此模型重新转写，而不是用主要语言重试。"
+          }
         }
       },
       "pushToTalk": {

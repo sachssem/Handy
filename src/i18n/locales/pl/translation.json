@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Ogranicz automatyczne wykrywanie do…",
           "description": "Gdy wybrano Auto, zachowaj tylko te języki. Wykryty język spoza tej listy jest ponownie transkrybowany z wymuszeniem pierwszego (głównego) języka.",
-          "primary": "Główny"
+          "primary": "Główny",
+          "fallbackModel": {
+            "label": "Model zapasowy",
+            "none": "Brak",
+            "description": "Wykrycia spoza listy są ponownie transkrybowane tym modelem zamiast ponawiania w głównym języku."
+          }
         }
       },
       "pushToTalk": {

@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Limita il rilevamento automatico a…",
           "description": "Quando è selezionato Auto, mantieni solo queste lingue. Una lingua rilevata fuori da questo elenco viene ritrascritta forzando la prima lingua (principale).",
-          "primary": "Principale"
+          "primary": "Principale",
+          "fallbackModel": {
+            "label": "Modello di riserva",
+            "none": "Nessuno",
+            "description": "I rilevamenti fuori elenco vengono ritrascritti con questo modello invece del nuovo tentativo nella lingua principale."
+          }
         }
       },
       "pushToTalk": {

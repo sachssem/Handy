@@ -373,6 +373,14 @@ pub struct AppSettings {
     /// `managers/transcription.rs`.
     #[serde(default)]
     pub language_allowlist: Vec<String>,
+    /// fork(voice-control): optional model id the allowlist guard escalates to
+    /// when an "auto" detection lands out of bounds. When set, downloaded, and
+    /// different from the active model, the guard re-transcribes the same audio
+    /// with it (skipping the same-engine pin-retry) and keeps the result only if
+    /// it is in bounds. `None` (the default) keeps the pin-retry behavior. See the
+    /// guard in `managers/transcription.rs`.
+    #[serde(default)]
+    pub language_allowlist_fallback_model: Option<String>,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -864,6 +872,7 @@ pub fn get_default_settings() -> AppSettings {
         translate_to_english: false,
         selected_language: "auto".to_string(),
         language_allowlist: Vec::new(),
+        language_allowlist_fallback_model: None,
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),

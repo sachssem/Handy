@@ -213,7 +213,12 @@
         "allowlist": {
           "title": "Restringir la detección automática a…",
           "description": "Cuando se selecciona Automático, conservar solo estos idiomas. Un idioma detectado fuera de esta lista se vuelve a transcribir fijado al primer idioma (principal).",
-          "primary": "Principal"
+          "primary": "Principal",
+          "fallbackModel": {
+            "label": "Modelo de reserva",
+            "none": "Ninguno",
+            "description": "Las detecciones fuera de la lista se vuelven a transcribir con este modelo en lugar del reintento con el idioma principal."
+          }
         }
       },
       "pushToTalk": {

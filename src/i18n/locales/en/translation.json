@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "Restrict auto-detect to…",
           "description": "When Auto is selected, only keep these languages. A detected language outside this list is re-transcribed pinned to the first (primary) language.",
-          "primary": "Primary"
+          "primary": "Primary",
+          "fallbackModel": {
+            "label": "Fallback model",
+            "none": "None",
+            "description": "Out-of-list detections are re-transcribed with this model instead of the primary-language retry."
+          }
         }
       },
       "pushToTalk": {

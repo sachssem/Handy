@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "Begränsa automatisk igenkänning till…",
           "description": "När Auto är valt, behåll endast dessa språk. Ett upptäckt språk utanför listan transkriberas om låst till det första (primära) språket.",
-          "primary": "Primärt"
+          "primary": "Primärt",
+          "fallbackModel": {
+            "label": "Reservmodell",
+            "none": "Ingen",
+            "description": "Igenkänningar utanför listan transkriberas om med den här modellen i stället för det nya försöket på det primära språket."
+          }
         }
       },
       "pushToTalk": {

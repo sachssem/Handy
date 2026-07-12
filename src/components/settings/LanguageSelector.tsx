@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SettingContainer } from "../ui/SettingContainer";
 import { ResetButton } from "../ui/ResetButton";
 import { useSettings } from "../../hooks/useSettings";
+import { useModelStore } from "../../stores/modelStore";
 import {
   getLanguageLabel,
   recognitionLanguage,
@@ -64,6 +65,21 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   // effective language is "auto"; the first entry is the language a rejected
   // detection is re-pinned to (see the guard in managers/transcription.rs).
   const allowlist = getSetting("language_allowlist") || [];
+
+  // fork(voice-control): optional fallback model the guard escalates to on an
+  // out-of-bounds detection, chosen from the downloaded models. Empty selection
+  // ("None") clears it, keeping the same-engine pin-retry.
+  const fallbackModel = getSetting("language_allowlist_fallback_model") ?? null;
+  const models = useModelStore((state) => state.models);
+  const initializeModels = useModelStore((state) => state.initialize);
+  const downloadedModels = useMemo(
+    () => models.filter((model) => model.is_downloaded),
+    [models],
+  );
+
+  useEffect(() => {
+    void initializeModels();
+  }, [initializeModels]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -134,6 +150,14 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
       ? [...allowlist.filter((c) => c !== code), code]
       : allowlist.filter((c) => c !== code);
     updateSetting("language_allowlist", next);
+  };
+
+  // fork(voice-control): select (or clear, via "") the fallback model.
+  const handleFallbackModelChange = (value: string) => {
+    updateSetting(
+      "language_allowlist_fallback_model",
+      value === "" ? null : value,
+    );
   };
 
   const handleToggle = () => {
@@ -287,6 +311,32 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                   </label>
                 );
               })}
+            </div>
+
+            <div className="pt-1 space-y-1">
+              <div className="text-sm font-semibold">
+                {t("settings.general.language.allowlist.fallbackModel.label")}
+              </div>
+              <div className="text-xs text-mid-gray">
+                {t(
+                  "settings.general.language.allowlist.fallbackModel.description",
+                )}
+              </div>
+              <select
+                value={fallbackModel ?? ""}
+                disabled={isUpdating("language_allowlist_fallback_model")}
+                onChange={(e) => handleFallbackModelChange(e.target.value)}
+                className="px-2 py-1 text-sm bg-mid-gray/10 border border-mid-gray/80 rounded min-w-[200px] focus:outline-none focus:ring-1 focus:ring-logo-primary focus:border-logo-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {t("settings.general.language.allowlist.fallbackModel.none")}
+                </option>
+                {downloadedModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}

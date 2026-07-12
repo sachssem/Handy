@@ -195,7 +195,12 @@
         "allowlist": {
           "title": "Automatische detectie beperken tot…",
           "description": "Wanneer Auto is geselecteerd, alleen deze talen behouden. Een gedetecteerde taal buiten deze lijst wordt opnieuw getranscribeerd, vastgezet op de eerste (primaire) taal.",
-          "primary": "Primair"
+          "primary": "Primair",
+          "fallbackModel": {
+            "label": "Terugvalmodel",
+            "none": "Geen",
+            "description": "Detecties buiten de lijst worden met dit model opnieuw getranscribeerd in plaats van de nieuwe poging in de primaire taal."
+          }
         }
       },
       "pushToTalk": {
