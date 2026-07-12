@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Đã học: “{{misheard}}” → “{{intended}}”",
-    "undo": "Hoàn tác"
+    "trialTitle": "Sẽ học: “{{misheard}}” → “{{intended}}”",
+    "undo": "Hoàn tác",
+    "trialNote": "Dùng thử — chưa lưu"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

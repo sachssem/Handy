@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Appreso: «{{misheard}}» → «{{intended}}»",
-    "undo": "Annulla"
+    "trialTitle": "Apprenderebbe: «{{misheard}}» → «{{intended}}»",
+    "undo": "Annulla",
+    "trialNote": "Prova — non salvato"
   },
   "whatsNew": {
     "title": "Novità in Handy v{{version}}"

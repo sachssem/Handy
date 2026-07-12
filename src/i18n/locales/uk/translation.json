@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Вивчено: «{{misheard}}» → «{{intended}}»",
-    "undo": "Повернути"
+    "trialTitle": "Вивчило б: «{{misheard}}» → «{{intended}}»",
+    "undo": "Повернути",
+    "trialNote": "Пробний режим — не збережено"
   },
   "whatsNew": {
     "title": "Нове в Handy v{{version}}"

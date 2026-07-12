@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "已学习：“{{misheard}}” → “{{intended}}”",
-    "undo": "撤销"
+    "trialTitle": "将会学习：“{{misheard}}” → “{{intended}}”",
+    "undo": "撤销",
+    "trialNote": "试用 — 未保存"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

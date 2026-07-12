@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "تم التعلُّم: «{{misheard}}» → «{{intended}}»",
-    "undo": "تراجع"
+    "trialTitle": "سيتم التعلُّم: «{{misheard}}» → «{{intended}}»",
+    "undo": "تراجع",
+    "trialNote": "تجريبي — لم يُحفظ"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

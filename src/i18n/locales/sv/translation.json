@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
-    "undo": "Ångra"
+    "trialTitle": "Skulle lära: ”{{misheard}}” → ”{{intended}}”",
+    "undo": "Ångra",
+    "trialNote": "Testläge – inte sparat"
   },
   "whatsNew": {
     "title": "Nytt i Handy v{{version}}"

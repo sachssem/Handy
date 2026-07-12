@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
-    "undo": "Geri Al"
+    "trialTitle": "Öğrenilecekti: “{{misheard}}” → “{{intended}}”",
+    "undo": "Geri Al",
+    "trialNote": "Deneme — kaydedilmedi"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

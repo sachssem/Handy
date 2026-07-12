@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "נלמד: «{{misheard}}» → «{{intended}}»",
-    "undo": "בטל"
+    "trialTitle": "היה נלמד: «{{misheard}}» → «{{intended}}»",
+    "undo": "בטל",
+    "trialNote": "ניסיון — לא נשמר"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

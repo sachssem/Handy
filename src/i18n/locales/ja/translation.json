@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "学習しました: 「{{misheard}}」→「{{intended}}」",
-    "undo": "元に戻す"
+    "trialTitle": "学習される内容: 「{{misheard}}」→「{{intended}}」",
+    "undo": "元に戻す",
+    "trialNote": "試用 — 保存されません"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"

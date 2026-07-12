@@ -55,6 +55,7 @@ mod imp {
     use super::FocusRead;
     use core_foundation::base::{CFType, CFTypeRef, TCFType};
     use core_foundation::string::{CFString, CFStringRef};
+    use log::debug;
     use objc2_app_kit::{NSRunningApplication, NSWorkspace};
 
     type AXUIElementRef = CFTypeRef;
@@ -142,11 +143,25 @@ mod imp {
     pub fn snapshot_focused_element(pid: i32) -> Option<FocusedSnapshot> {
         let app = unsafe { AXUIElementCreateApplication(pid) };
         if app.is_null() {
+            debug!(
+                "ax: snapshot failed — no application element for pid {}",
+                pid
+            );
             return None;
         }
         let app_cf = unsafe { CFType::wrap_under_create_rule(app) };
-        let focused = copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT)?;
-        Some(FocusedSnapshot(focused))
+        match copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT) {
+            Some(focused) => Some(FocusedSnapshot(focused)),
+            None => {
+                // No focused element readable — usually the Accessibility grant
+                // has not reached this process. Logged once per paste, not per tick.
+                debug!(
+                    "ax: snapshot failed — no focused element for pid {} (AX permission?)",
+                    pid
+                );
+                None
+            }
+        }
     }
 
     /// Read the focused text field of the app with `pid`.
@@ -187,13 +202,20 @@ mod imp {
 
         let app = unsafe { AXUIElementCreateApplication(pid) };
         if app.is_null() {
+            debug!("ax: read failed — no application element for pid {}", pid);
             return FocusRead::NoSignal;
         }
         let app_cf = unsafe { CFType::wrap_under_create_rule(app) };
 
         let focused = match copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT) {
             Some(f) => f,
-            None => return FocusRead::NoSignal,
+            None => {
+                debug!(
+                    "ax: read failed — no focused element for pid {} (AX permission?)",
+                    pid
+                );
+                return FocusRead::NoSignal;
+            }
         };
 
         // Element-identity gate: the focused element must be the very one we

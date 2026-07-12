@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "학습됨: “{{misheard}}” → “{{intended}}”",
-    "undo": "실행 취소"
+    "trialTitle": "학습될 내용: “{{misheard}}” → “{{intended}}”",
+    "undo": "실행 취소",
+    "trialNote": "체험 — 저장되지 않음"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

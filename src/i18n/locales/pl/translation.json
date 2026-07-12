@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Wyuczono: “{{misheard}}” → “{{intended}}”",
-    "undo": "Cofnij"
+    "trialTitle": "Nauczyłoby się: “{{misheard}}” → “{{intended}}”",
+    "undo": "Cofnij",
+    "trialNote": "Tryb próbny — nie zapisano"
   },
   "whatsNew": {
     "title": "Nowości w Handy v{{version}}"

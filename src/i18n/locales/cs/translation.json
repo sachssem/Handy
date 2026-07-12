@@ -706,7 +706,9 @@
   },
   "learnedToast": {
     "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
-    "undo": "Zpět"
+    "trialTitle": "Naučilo by se: „{{misheard}}“ → „{{intended}}“",
+    "undo": "Zpět",
+    "trialNote": "Zkušební režim – neuloženo"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

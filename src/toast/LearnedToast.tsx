@@ -137,14 +137,20 @@ const LearnedToast: React.FC = () => {
           </svg>
         </span>
         <span className="lt-title">
-          {t("learnedToast.title", {
+          {t(content.trial ? "learnedToast.trialTitle" : "learnedToast.title", {
             misheard: content.misheard,
             intended: content.intended,
           })}
         </span>
-        <button className="lt-undo" onClick={handleUndo}>
-          {t("learnedToast.undo")}
-        </button>
+        {content.trial ? (
+          // Dry-run soak: nothing was persisted, so there is nothing to undo —
+          // show a "not saved" note instead of the Undo button.
+          <span className="lt-trial">{t("learnedToast.trialNote")}</span>
+        ) : (
+          <button className="lt-undo" onClick={handleUndo}>
+            {t("learnedToast.undo")}
+          </button>
+        )}
       </div>
     </div>
   );
