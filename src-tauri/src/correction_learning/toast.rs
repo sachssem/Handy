@@ -31,7 +31,9 @@
 //! non-macOS path exists only to keep the build whole.
 
 use crate::correction_learning::LearnedCorrectionEvent;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize};
 
 #[cfg(target_os = "macos")]
@@ -45,6 +47,16 @@ use tauri_nspanel::{tauri_panel, CollectionBehavior, PanelBuilder, PanelLevel, S
 
 /// Window label; also used by the frontend `hide_learned_toast` command target.
 const TOAST_LABEL: &str = "learned_toast";
+
+/// Bumped on every reveal; the failsafe hide fires only when no newer reveal
+/// has restarted the clock.
+static SHOW_GENERATION: AtomicU64 = AtomicU64::new(0);
+
+/// The webview owns the pretty 5s auto-dismiss; this is the guarantee behind
+/// it. A lazily created panel's webview can stall its timers (and rAF) while
+/// the compositor still considers it occluded, which left the toast stuck on
+/// screen — Rust orders it out regardless.
+const FAILSAFE_HIDE: Duration = Duration::from_secs(8);
 
 /// Toast window size (logical points). The pill card is centered inside this
 /// frame, with vertical slack for the slide-in/out animation; keep it at least
@@ -227,14 +239,21 @@ pub fn toast_stage(stage: String) {
 /// stash, lazy window creation, positioning, reveal — without needing a real
 /// dictation + manual correction round trip.
 pub fn debug_show_learned_toast(app: &AppHandle) {
+    use tauri_specta::Event as _;
     log::info!("debug-toast: staging sample trial toast");
-    set_pending_learned_toast(LearnedCorrectionEvent {
+    let event = LearnedCorrectionEvent {
         id: "debug-toast".to_string(),
         misheard: "raha".to_string(),
         intended: "waha".to_string(),
         trial: true,
         extra: 1,
-    });
+    };
+    set_pending_learned_toast(event.clone());
+    // Mirror the real trial path: the stash feeds a cold first mount, the event
+    // refreshes an already-open webview.
+    if let Err(err) = event.emit(app) {
+        log::error!("Failed to emit debug toast event: {}", err);
+    }
     show_learned_toast(app);
 }
 
@@ -281,7 +300,27 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
         }
     }) {
         log::error!("Failed to show learned-correction toast: {}", e);
+        return;
     }
+
+    // Failsafe hide, independent of the webview's own timers.
+    let generation = SHOW_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    let app = app_handle.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(FAILSAFE_HIDE);
+        if SHOW_GENERATION.load(Ordering::SeqCst) != generation {
+            return; // a newer reveal restarted the clock
+        }
+        let app_main = app.clone();
+        let _ = app.run_on_main_thread(move || {
+            if let Some(window) = app_main.get_webview_window(TOAST_LABEL) {
+                if window.is_visible().unwrap_or(false) {
+                    log::info!("toast-hide: failsafe");
+                    let _ = window.hide();
+                }
+            }
+        });
+    });
 }
 
 /// Hide the toast window. Invoked by the frontend after the 5 s auto-hide timer
@@ -290,6 +329,7 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
 #[tauri::command]
 #[specta::specta]
 pub fn hide_learned_toast(app: AppHandle) -> Result<(), String> {
+    log::info!("toast-hide: webview dismiss");
     if let Some(window) = app.get_webview_window(TOAST_LABEL) {
         window.hide().map_err(|e| e.to_string())?;
     }
