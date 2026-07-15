@@ -595,7 +595,14 @@ mod imp {
                 }
             }
             if let Some(event) = first_event {
-                crate::correction_learning::toast::set_pending_learned_toast(event);
+                crate::correction_learning::toast::set_pending_learned_toast(event.clone());
+                // Also emit: an already-created toast webview refreshes its
+                // content through the event, not the stash (which only the cold
+                // first mount consumes). The settings window reacting with a
+                // redundant refetch of an unchanged list is harmless.
+                if let Err(err) = event.emit(app) {
+                    log::error!("Failed to emit learned-correction trial event: {}", err);
+                }
                 crate::correction_learning::toast::show_learned_toast(app);
             }
             return;

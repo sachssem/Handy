@@ -77,10 +77,16 @@ const LearnedToast: React.FC = () => {
       } else {
         // Mount hidden, then flip to visible next frame so the entrance
         // transition actually plays (a paint has to see the hidden state first).
+        // rAF can stall in a freshly created panel webview the compositor still
+        // considers occluded — a timer fallback guarantees the flip happens (the
+        // flip is idempotent, so both firing is fine).
         setVisible(false);
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => setVisible(true)),
-        );
+        const flip = () => {
+          void commands.toastStage("visible-flip");
+          setVisible(true);
+        };
+        requestAnimationFrame(() => requestAnimationFrame(flip));
+        window.setTimeout(flip, 120);
       }
       hideTimer.current = window.setTimeout(dismiss, VISIBLE_MS);
     };
