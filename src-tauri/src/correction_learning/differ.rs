@@ -151,15 +151,26 @@ pub fn change_run_counts(original: &str, corrected: &str) -> (usize, usize) {
 
 /// A contiguous change run collapsed from the word diff.
 struct Run {
-    deleted: Vec<String>,
-    inserted: Vec<String>,
+    /// Verbatim concatenation of the run's deleted tokens — whitespace and
+    /// punctuation included, so a span like `Waha-Flow` survives with its
+    /// hyphen instead of being re-joined word-by-word as `Waha Flow`.
+    deleted: String,
+    /// Verbatim concatenation of the run's inserted tokens (see `deleted`).
+    inserted: String,
+    /// Whether each side contains at least one word token. Pure
+    /// whitespace/punctuation churn is neither a substitution nor a run worth
+    /// counting toward the reformulation cap.
+    deleted_has_word: bool,
+    inserted_has_word: bool,
 }
 
 impl Run {
     fn new() -> Self {
         Run {
-            deleted: Vec::new(),
-            inserted: Vec::new(),
+            deleted: String::new(),
+            inserted: String::new(),
+            deleted_has_word: false,
+            inserted_has_word: false,
         }
     }
 
@@ -167,18 +178,23 @@ impl Run {
         self.deleted.is_empty() && self.inserted.is_empty()
     }
 
-    /// A real substitution has content on both sides; a pure insert or delete
+    /// Whether the run carries any word at all (see `deleted_has_word`).
+    fn has_word(&self) -> bool {
+        self.deleted_has_word || self.inserted_has_word
+    }
+
+    /// A real substitution has words on both sides; a pure insert or delete
     /// does not and can never be a learnable mishearing.
     fn is_substitution(&self) -> bool {
-        !self.deleted.is_empty() && !self.inserted.is_empty()
+        self.deleted_has_word && self.inserted_has_word
     }
 
     /// The run's `(misheard, intended)` spans. Only meaningful for a run that
     /// [`is_substitution`](Run::is_substitution).
     fn into_candidate(self) -> Candidate {
         Candidate {
-            misheard: self.deleted.join(" "),
-            intended: self.inserted.join(" "),
+            misheard: self.deleted.trim().to_string(),
+            intended: self.inserted.trim().to_string(),
         }
     }
 }
@@ -207,15 +223,26 @@ fn change_runs(original: &str, corrected: &str) -> Vec<Run> {
                     runs.push(std::mem::replace(&mut current, Run::new()));
                 }
             }
-            ChangeTag::Delete if is_word(value) => current.deleted.push(value.trim().to_string()),
-            ChangeTag::Insert if is_word(value) => current.inserted.push(value.trim().to_string()),
-            // Whitespace/punctuation tokens inside a run carry no signal.
-            _ => {}
+            // Verbatim capture — whitespace and punctuation included, so a
+            // hyphenated or multi-word span survives exactly as typed.
+            ChangeTag::Delete => {
+                current.deleted.push_str(value);
+                current.deleted_has_word |= is_word(value);
+            }
+            ChangeTag::Insert => {
+                current.inserted.push_str(value);
+                current.inserted_has_word |= is_word(value);
+            }
         }
     }
     if !current.is_empty() {
         runs.push(current);
     }
+
+    // Word-less runs (whitespace/punctuation churn) are invisible to the
+    // learner: they are no substitution and must not count toward the
+    // reformulation cap either.
+    runs.retain(Run::has_word);
 
     runs
 }
@@ -415,6 +442,26 @@ mod tests {
     fn unrelated_single_rewrite_is_rejected() {
         // One region, but the words are unrelated (distance too large).
         assert_eq!(extract("meet in Munchen", "meet in Barcelona"), None);
+    }
+
+    #[test]
+    fn hyphenated_replacement_keeps_the_hyphen() {
+        // The corrected span is captured verbatim — "Waha-Flow" must not be
+        // re-joined word-by-word into "Waha Flow".
+        let candidate = extract("we use Waterflow here", "we use Waha-Flow here").unwrap();
+
+        assert_eq!(candidate.misheard, "Waterflow");
+        assert_eq!(candidate.intended, "Waha-Flow");
+    }
+
+    #[test]
+    fn whitespace_only_churn_is_no_run() {
+        // Collapsing a double space is neither a substitution nor a change
+        // region that may count toward the reformulation cap.
+        assert_eq!(extract("hello  world", "hello world"), None);
+        let candidate = extract("quik  brown fox", "quick brown fox").unwrap();
+        assert_eq!(candidate.misheard, "quik");
+        assert_eq!(candidate.intended, "quick");
     }
 
     #[test]
