@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중...",
-    "fallbackModel": "대체 모델로 확인 중…",
+    "fallbackModel": "대체 모델…",
     "recordingLimitWarning": "{{seconds}}초 후 녹음이 자동으로 중지됩니다"
   },
   "learnedToast": {

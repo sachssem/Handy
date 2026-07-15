@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
-    "fallbackModel": "Ověřování záložním modelem…",
+    "fallbackModel": "Záložní model…",
     "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund"
   },
   "learnedToast": {

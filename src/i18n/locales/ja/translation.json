@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "文字起こし中…",
     "processing": "処理中…",
-    "fallbackModel": "フォールバックモデルで確認中…",
+    "fallbackModel": "フォールバックモデル…",
     "recordingLimitWarning": "録音はあと{{seconds}}秒で自動的に停止します"
   },
   "learnedToast": {

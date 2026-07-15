@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
-    "fallbackModel": "בודק עם מודל גיבוי…",
+    "fallbackModel": "מודל גיבוי…",
     "recordingLimitWarning": "ההקלטה תיעצר אוטומטית בעוד {{seconds}} שניות"
   },
   "learnedToast": {

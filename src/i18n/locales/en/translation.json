@@ -710,7 +710,7 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
-    "fallbackModel": "Checking with fallback model…",
+    "fallbackModel": "Fallback model…",
     "recordingLimitWarning": "Recording stops automatically in {{seconds}} seconds"
   },
   "learnedToast": {

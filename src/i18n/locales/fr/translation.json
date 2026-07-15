@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "Transcription...",
     "processing": "Traitement...",
-    "fallbackModel": "Vérification avec le modèle de secours…",
+    "fallbackModel": "Modèle de secours…",
     "recordingLimitWarning": "L’enregistrement s’arrêtera automatiquement dans {{seconds}} secondes"
   },
   "learnedToast": {

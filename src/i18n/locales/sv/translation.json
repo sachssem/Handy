@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
-    "fallbackModel": "Kontrollerar med reservmodell…",
+    "fallbackModel": "Reservmodell…",
     "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder"
   },
   "learnedToast": {

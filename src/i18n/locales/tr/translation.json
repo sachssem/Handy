@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
-    "fallbackModel": "Yedek modelle kontrol ediliyor…",
+    "fallbackModel": "Yedek model…",
     "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak"
   },
   "learnedToast": {

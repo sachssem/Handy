@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "Расшифровка...",
     "processing": "Обработка...",
-    "fallbackModel": "Проверка резервной моделью…",
+    "fallbackModel": "Резервная модель…",
     "recordingLimitWarning": "Запись автоматически остановится через {{seconds}} секунд"
   },
   "learnedToast": {

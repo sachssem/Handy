@@ -707,7 +707,7 @@
   "overlay": {
     "transcribing": "...جاري التفريغ",
     "processing": "...جاري المعالجة",
-    "fallbackModel": "جارٍ التحقق بالنموذج الاحتياطي…",
+    "fallbackModel": "النموذج الاحتياطي…",
     "recordingLimitWarning": "سيتوقف التسجيل تلقائيًا خلال {{seconds}} ثوانٍ"
   },
   "learnedToast": {
