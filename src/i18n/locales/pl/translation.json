@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Nagrywanie zatrzyma się automatycznie za {{seconds}} sekund"
   },
   "learnedToast": {
-    "title": "Autokorekta wyuczona: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Próba autokorekty: “{{misheard}}” → “{{intended}}”",
+    "title": "Nauczono: „{{misheard}}“ → „{{intended}}“",
+    "trialTitle": "Dry-Run: Nauczono: „{{misheard}}“ → „{{intended}}“",
     "undo": "Cofnij",
-    "trialNote": "Nie zapisano",
     "more": "+{{count}} więcej"
   },
   "whatsNew": {

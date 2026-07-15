@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Запись автоматически остановится через {{seconds}} секунд"
   },
   "learnedToast": {
-    "title": "Автокоррекция выучена: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "Пробная автокоррекция: «{{misheard}}» → «{{intended}}»",
+    "title": "Выучено: «{{misheard}}» → «{{intended}}»",
+    "trialTitle": "Dry-Run: Выучено: «{{misheard}}» → «{{intended}}»",
     "undo": "Отменить",
-    "trialNote": "Не сохранено",
     "more": "+{{count}} ещё"
   },
   "whatsNew": {

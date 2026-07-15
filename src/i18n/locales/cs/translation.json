@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund"
   },
   "learnedToast": {
-    "title": "Autokorekce naučena: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Zkušební autokorekce: „{{misheard}}“ → „{{intended}}“",
+    "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
+    "trialTitle": "Dry-Run: Naučeno: „{{misheard}}“ → „{{intended}}“",
     "undo": "Zpět",
-    "trialNote": "Neuloženo",
     "more": "+{{count}} další"
   },
   "whatsNew": {

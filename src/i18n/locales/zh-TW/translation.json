@@ -711,10 +711,9 @@
     "recordingLimitWarning": "錄音將在 {{seconds}} 秒後自動停止"
   },
   "learnedToast": {
-    "title": "已學習自動修正：「{{misheard}}」→「{{intended}}」",
-    "trialTitle": "試用自動修正：「{{misheard}}」→「{{intended}}」",
+    "title": "已學習：「{{misheard}}」→「{{intended}}」",
+    "trialTitle": "Dry-Run：「{{misheard}}」→「{{intended}}」",
     "undo": "復原",
-    "trialNote": "未儲存",
     "more": "另 {{count}} 個"
   },
   "whatsNew": {

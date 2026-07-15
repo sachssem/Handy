@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak"
   },
   "learnedToast": {
-    "title": "Otomatik düzeltme öğrenildi: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Otomatik düzeltme denemesi: “{{misheard}}” → “{{intended}}”",
+    "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Dry-Run: Öğrenildi: “{{misheard}}” → “{{intended}}”",
     "undo": "Geri Al",
-    "trialNote": "Kaydedilmedi",
     "more": "+{{count}} daha"
   },
   "whatsNew": {

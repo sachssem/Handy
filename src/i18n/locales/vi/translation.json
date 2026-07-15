@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây"
   },
   "learnedToast": {
-    "title": "Đã học tự động sửa: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Thử tự động sửa: “{{misheard}}” → “{{intended}}”",
+    "title": "Đã học: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Dry-Run: Đã học: “{{misheard}}” → “{{intended}}”",
     "undo": "Hoàn tác",
-    "trialNote": "Chưa lưu",
     "more": "+{{count}} nữa"
   },
   "whatsNew": {

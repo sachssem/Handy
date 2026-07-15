@@ -711,10 +711,9 @@
     "recordingLimitWarning": "録音はあと{{seconds}}秒で自動的に停止します"
   },
   "learnedToast": {
-    "title": "自動修正を学習: 「{{misheard}}」→「{{intended}}」",
-    "trialTitle": "自動修正の試用: 「{{misheard}}」→「{{intended}}」",
+    "title": "学習：「{{misheard}}」→「{{intended}}」",
+    "trialTitle": "Dry-Run：「{{misheard}}」→「{{intended}}」",
     "undo": "元に戻す",
-    "trialNote": "保存されていません",
     "more": "他{{count}}件"
   },
   "whatsNew": {

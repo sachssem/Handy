@@ -711,10 +711,9 @@
     "recordingLimitWarning": "L’enregistrement s’arrêtera automatiquement dans {{seconds}} secondes"
   },
   "learnedToast": {
-    "title": "Autocorrection apprise : « {{misheard}} » → « {{intended}} »",
-    "trialTitle": "Essai d’autocorrection : « {{misheard}} » → « {{intended}} »",
+    "title": "Appris: « {{misheard}} » → « {{intended}} »",
+    "trialTitle": "Dry-Run: Appris: « {{misheard}} » → « {{intended}} »",
     "undo": "Annuler",
-    "trialNote": "Non enregistré",
     "more": "+{{count}} de plus"
   },
   "whatsNew": {

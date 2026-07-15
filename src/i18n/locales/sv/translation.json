@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder"
   },
   "learnedToast": {
-    "title": "Autokorrigering inlärd: ”{{misheard}}” → ”{{intended}}”",
-    "trialTitle": "Test av autokorrigering: ”{{misheard}}” → ”{{intended}}”",
+    "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
+    "trialTitle": "Dry-Run: Inlärt: ”{{misheard}}” → ”{{intended}}”",
     "undo": "Ångra",
-    "trialNote": "Inte sparat",
     "more": "+{{count}} till"
   },
   "whatsNew": {

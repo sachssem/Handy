@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Записът ще спре автоматично след {{seconds}} секунди"
   },
   "learnedToast": {
-    "title": "Научена автокорекция: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Проба на автокорекцията: „{{misheard}}“ → „{{intended}}“",
+    "title": "Научено: „{{misheard}}“ → „{{intended}}“",
+    "trialTitle": "Dry-Run: Научено: „{{misheard}}“ → „{{intended}}“",
     "undo": "Отмяна",
-    "trialNote": "Незапазено",
     "more": "+{{count}} още"
   },
   "whatsNew": {

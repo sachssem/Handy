@@ -711,10 +711,9 @@
     "recordingLimitWarning": "ההקלטה תיעצר אוטומטית בעוד {{seconds}} שניות"
   },
   "learnedToast": {
-    "title": "התיקון האוטומטי נלמד: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "ניסיון תיקון אוטומטי: «{{misheard}}» → «{{intended}}»",
+    "title": "נלמד: ”{{misheard}}“ ← ”{{intended}}“",
+    "trialTitle": "Dry-Run: נלמד: ”{{misheard}}“ ← ”{{intended}}“",
     "undo": "בטל",
-    "trialNote": "לא נשמר",
     "more": "+{{count}} נוספות"
   },
   "whatsNew": {

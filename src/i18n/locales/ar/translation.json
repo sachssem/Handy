@@ -711,10 +711,9 @@
     "recordingLimitWarning": "سيتوقف التسجيل تلقائيًا خلال {{seconds}} ثوانٍ"
   },
   "learnedToast": {
-    "title": "تعلّم التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "تجربة التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
+    "title": "تم التعلم: ”{{misheard}}“ ← ”{{intended}}“",
+    "trialTitle": "Dry-Run: تم التعلم: ”{{misheard}}“ ← ”{{intended}}“",
     "undo": "تراجع",
-    "trialNote": "لم يُحفظ",
     "more": "+{{count}} أخرى"
   },
   "whatsNew": {

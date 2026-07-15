@@ -711,10 +711,9 @@
     "recordingLimitWarning": "Запис автоматично зупиниться через {{seconds}} секунд"
   },
   "learnedToast": {
-    "title": "Автовиправлення вивчено: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "Пробне автовиправлення: «{{misheard}}» → «{{intended}}»",
+    "title": "Вивчено: «{{misheard}}» → «{{intended}}»",
+    "trialTitle": "Dry-Run: Вивчено: «{{misheard}}» → «{{intended}}»",
     "undo": "Повернути",
-    "trialNote": "Не збережено",
     "more": "+{{count}} ще"
   },
   "whatsNew": {
