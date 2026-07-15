@@ -30,8 +30,9 @@
   --ov-rest-w: 224px; /* resting compact pill (minimal, recording) -- roomy enough
                          for countdown + cancel without compressing the waveform */
   --ov-pill-w: 224px; /* base width / Live pill before it opens or collapses */
-  --ov-work-w: 232px; /* working pill (transcribing / polishing) -- wide enough to
-                         center longer labels; shared by Live (collapsed) + minimal */
+  --ov-work-w: 320px; /* working pill (transcribing / polishing / fallback) -- wide
+                         enough to show every work label untruncated; shared by
+                         Live (collapsed) + minimal. Keep OVERLAY_WIDTH in sync. */
   --ov-open-w: 392px; /* Live panel, expanded */
   --ov-base-h: 40px; /* control-row height (.sbase) */
   --ov-cap-max-h: 64px; /* max height of the scrolling live-text region */
