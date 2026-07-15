@@ -30,9 +30,9 @@
   --ov-rest-w: 224px; /* resting compact pill (minimal, recording) -- roomy enough
                          for countdown + cancel without compressing the waveform */
   --ov-pill-w: 224px; /* base width / Live pill before it opens or collapses */
-  --ov-work-w: 320px; /* working pill (transcribing / polishing / fallback) -- wide
-                         enough to show every work label untruncated; shared by
-                         Live (collapsed) + minimal. Keep OVERLAY_WIDTH in sync. */
+  --ov-work-w: 232px; /* minimum working-pill width (transcribing / polishing);
+                         the pill is content-sized and grows past this for longer
+                         labels (fallback pass). OVERLAY_WIDTH caps the growth. */
   --ov-open-w: 392px; /* Live panel, expanded */
   --ov-base-h: 40px; /* control-row height (.sbase) */
   --ov-cap-max-h: 64px; /* max height of the scrolling live-text region */
@@ -162,7 +162,12 @@
   border-radius: 16px;
 }
 .scard.working {
-  width: var(--ov-work-w);
+  /* fork(voice-control): content-sized so no work label ever truncates; the
+     width morph animation is sacrificed for correctness (fit-content cannot be
+     transitioned). --ov-work-w acts as the minimum so short labels keep the
+     familiar pill footprint. */
+  width: fit-content;
+  min-width: var(--ov-work-w);
   border-radius: 18px;
 }
 
@@ -176,7 +181,9 @@
   width: var(--ov-rest-w);
 }
 .scard.compact.cworking {
-  width: var(--ov-work-w);
+  /* fork(voice-control): see .scard.working — content-sized, min the old width. */
+  width: fit-content;
+  min-width: var(--ov-work-w);
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
