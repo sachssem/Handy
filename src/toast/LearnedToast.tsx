@@ -88,9 +88,9 @@ const LearnedToast: React.FC = () => {
         unlisten = fn;
       });
 
-    // The toast window is created lazily on the first learned correction, so the
-    // event that triggered it may have fired before this listener was ready. On
-    // mount, pick up any correction the backend stashed for exactly that case.
+    // The window is normally created at app startup, but a correction can still
+    // land before this listener is ready (safety-net lazy creation, or a commit
+    // racing the mount). Pick up anything the backend stashed for that case.
     void commands.takePendingLearnedToast().then((pending) => {
       void commands.toastStage(`pending: ${pending ? "some" : "none"}`);
       if (pending) {

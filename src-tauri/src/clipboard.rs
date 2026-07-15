@@ -51,6 +51,13 @@ fn finish_clipboard_paste(
     paste_result
 }
 
+/// fork(voice-control): how long after the synthesized paste keystroke the
+/// original clipboard is restored. 50 ms lost the race under load — the target
+/// app can process the keystroke *after* the restore and then paste stale
+/// content. The restore is invisible background work, so waiting longer costs
+/// nothing perceptible.
+const CLIPBOARD_RESTORE_DELAY_MS: u64 = 400;
+
 /// Pastes text using the clipboard: saves current content, writes text, sends paste keystroke, restores clipboard.
 fn paste_via_clipboard(
     text: &str,
@@ -100,13 +107,10 @@ fn paste_via_clipboard(
         Ok(())
     })();
 
-    // fork(voice-control): 50 ms lost the race under load — the target app can
-    // process the synthesized paste keystroke *after* the original clipboard is
-    // restored and then paste stale content (observed right after the allowlist
-    // fallback pass freed a multi-GB engine). The restore is invisible
-    // background work, so enforce the safe floor while retaining upstream's
-    // configurable post-paste delay for callers that need an even longer wait.
-    finish_clipboard_paste(paste_result, paste_delay_after_ms.max(400), || {
+    // fork(voice-control): keep upstream's configurable delay while enforcing
+    // the fork's safe restore floor (see CLIPBOARD_RESTORE_DELAY_MS).
+    let paste_delay_after_ms = paste_delay_after_ms.max(CLIPBOARD_RESTORE_DELAY_MS);
+    finish_clipboard_paste(paste_result, paste_delay_after_ms, || {
         // Restore original clipboard content even when key injection failed.
         // Text takes priority so this path stays identical to the previous behavior;
         // an image is only restored when the clipboard held no text at all, which is

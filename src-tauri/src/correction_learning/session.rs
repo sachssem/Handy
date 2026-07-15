@@ -39,8 +39,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::time::Duration;
 
-/// Emitted when a correction is learned automatically, for the Phase C toast.
-/// No frontend listener exists yet — this ships the event contract only.
+/// Emitted when a correction is learned automatically (real or trial). The
+/// toast window renders it; the settings window refreshes its learned list.
 #[derive(Clone, Debug, Serialize, Deserialize, Type, tauri_specta::Event)]
 pub struct LearnedCorrectionEvent {
     pub id: String,
