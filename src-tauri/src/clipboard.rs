@@ -12,6 +12,13 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 #[cfg(target_os = "linux")]
 use crate::utils::{is_kde_wayland, is_wayland};
 
+/// fork(voice-control): how long after the synthesized paste keystroke the
+/// original clipboard is restored. 50 ms lost the race under load — the target
+/// app can process the keystroke *after* the restore and then paste stale
+/// content. The restore is invisible background work, so waiting longer costs
+/// nothing perceptible.
+const CLIPBOARD_RESTORE_DELAY_MS: u64 = 400;
+
 /// Pastes text using the clipboard: saves current content, writes text, sends paste keystroke, restores clipboard.
 fn paste_via_clipboard(
     enigo: &mut Enigo,
@@ -61,12 +68,7 @@ fn paste_via_clipboard(
         }
     }
 
-    // fork(voice-control): 50 ms lost the race under load — the target app can
-    // process the synthesized paste keystroke *after* the original clipboard is
-    // restored and then paste stale content (observed right after the allowlist
-    // fallback pass freed a multi-GB engine). The restore is invisible
-    // background work, so waiting longer costs nothing perceptible.
-    std::thread::sleep(std::time::Duration::from_millis(400));
+    std::thread::sleep(std::time::Duration::from_millis(CLIPBOARD_RESTORE_DELAY_MS));
 
     // Restore original clipboard content
     // On Wayland, prefer wl-copy for better compatibility

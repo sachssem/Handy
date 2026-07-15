@@ -265,6 +265,14 @@ Rules:
 - Follow all upstream conventions above (i18n for user-facing strings, `cargo fmt`/`clippy`, ESLint, conventional commits). Fork feature commits use the normal `feat:` prefix.
 - Do NOT open PRs/issues against upstream for fork-only features (upstream feature freeze); the "GitHub workflow" section above applies only when intentionally contributing upstream.
 
+## Fork Debug Helpers
+
+- `handy --debug-toast` (hidden CLI flag, forwarded to the running instance via
+  single-instance): shows a sample learned-correction trial toast through the
+  exact production display path — the repeatable test for toast regressions
+  without a dictation + manual-correction round trip. Display-chain breadcrumbs
+  (`toast-show`, `toast-webview: …`, `toast-hide`) log at debug level.
+
 ## Fork Build (local signed DMG)
 
 Build release DMGs with the fork script, not `bun run tauri build` directly:

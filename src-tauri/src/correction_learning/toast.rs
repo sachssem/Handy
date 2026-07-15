@@ -202,10 +202,10 @@ pub fn create_learned_toast(app_handle: &AppHandle) {
 }
 
 /// The correction awaiting display, set just before [`show_learned_toast`]. The
-/// toast webview is created lazily on the first learned correction, so the
-/// `LearnedCorrectionEvent` emitted alongside can reach a listener that has not
-/// mounted yet; the freshly loaded webview reads this on mount instead of
-/// relying on that event ([`take_pending_learned_toast`]).
+/// toast window normally exists from startup ([`init_learned_toast`]), but when
+/// it ever has to be (re)created on demand, the freshly loaded webview reads
+/// this on mount ([`take_pending_learned_toast`]) instead of relying on the
+/// `LearnedCorrectionEvent` it missed while loading.
 static PENDING: Mutex<Option<LearnedCorrectionEvent>> = Mutex::new(None);
 
 /// Record the correction the toast should show next. Called from the learning
@@ -232,9 +232,14 @@ pub fn take_pending_learned_toast() -> Option<LearnedCorrectionEvent> {
 /// the process lifetime. The lazy creation inside [`show_learned_toast`]
 /// remains as a safety net.
 pub fn init_learned_toast(app_handle: &AppHandle) {
+    // The learning session only exists on macOS; other platforms must not pay
+    // an idle webview for a toast that can never fire.
+    #[cfg(target_os = "macos")]
     if app_handle.get_webview_window(TOAST_LABEL).is_none() {
         create_learned_toast(app_handle);
     }
+    #[cfg(not(target_os = "macos"))]
+    let _ = app_handle;
 }
 
 /// Webview-side lifecycle breadcrumbs. The toast window has no visible dev
@@ -243,7 +248,7 @@ pub fn init_learned_toast(app_handle: &AppHandle) {
 #[tauri::command]
 #[specta::specta]
 pub fn toast_stage(stage: String) {
-    log::info!("toast-webview: {}", stage);
+    log::debug!("toast-webview: {}", stage);
 }
 
 /// Show a sample trial toast on the running instance (`handy --debug-toast`,
@@ -273,11 +278,11 @@ pub fn debug_show_learned_toast(app: &AppHandle) {
 /// activating Handy. Called from the learning session ([`super::session`]) right
 /// after the `LearnedCorrectionEvent` is emitted.
 ///
-/// The webview is created lazily on first use — the feature is default-off, so
-/// most installs never build it — which is why the run is dispatched to the main
-/// thread (window creation is main-thread only) and idempotent. Its content
-/// arrives via the emitted event when it is already open, or via
-/// [`take_pending_learned_toast`] on the cold first mount.
+/// The window normally exists from startup ([`init_learned_toast`]); creating
+/// it here is only the safety net — and why the run is dispatched to the main
+/// thread (window creation is main-thread only) and idempotent. Content arrives
+/// via the emitted event, or via [`take_pending_learned_toast`] on a cold
+/// mount.
 ///
 /// Only the macOS learning session calls this; elsewhere the toast never fires.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
@@ -298,7 +303,7 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
                 let show_result = window.show();
                 // Breadcrumbs for the invisible-toast hunt: every value here has
                 // at some point been the missing link.
-                log::info!(
+                log::debug!(
                     "toast-show: existed={}, position={:?}, show={:?}, visible_after={:?}",
                     existed,
                     position,
@@ -327,7 +332,7 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
         let _ = app.run_on_main_thread(move || {
             if let Some(window) = app_main.get_webview_window(TOAST_LABEL) {
                 if window.is_visible().unwrap_or(false) {
-                    log::info!("toast-hide: failsafe");
+                    log::debug!("toast-hide: failsafe");
                     let _ = window.hide();
                 }
             }
@@ -341,7 +346,7 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
 #[tauri::command]
 #[specta::specta]
 pub fn hide_learned_toast(app: AppHandle) -> Result<(), String> {
-    log::info!("toast-hide: webview dismiss");
+    log::debug!("toast-hide: webview dismiss");
     if let Some(window) = app.get_webview_window(TOAST_LABEL) {
         window.hide().map_err(|e| e.to_string())?;
     }
