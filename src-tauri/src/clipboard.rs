@@ -61,7 +61,12 @@ fn paste_via_clipboard(
         }
     }
 
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    // fork(voice-control): 50 ms lost the race under load — the target app can
+    // process the synthesized paste keystroke *after* the original clipboard is
+    // restored and then paste stale content (observed right after the allowlist
+    // fallback pass freed a multi-GB engine). The restore is invisible
+    // background work, so waiting longer costs nothing perceptible.
+    std::thread::sleep(std::time::Duration::from_millis(400));
 
     // Restore original clipboard content
     // On Wayland, prefer wl-copy for better compatibility

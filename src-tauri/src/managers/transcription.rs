@@ -763,7 +763,14 @@ impl TranscriptionManager {
             ..Default::default()
         };
 
-        let retried = match session.run(audio, &run_options) {
+        let run_result = session.run(audio, &run_options);
+        // Dropping the fallback engine frees multi-GB Metal buffers and can
+        // stall the machine for a moment — right when the paste keystroke is
+        // about to be delivered (a stall there loses the clipboard-restore
+        // race). Hand the drop to a background thread instead.
+        std::thread::spawn(move || drop(session));
+
+        let retried = match run_result {
             Ok(retried) => retried,
             Err(e) => {
                 warn!(
