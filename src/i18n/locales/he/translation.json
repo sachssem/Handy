@@ -714,7 +714,8 @@
     "title": "התיקון האוטומטי נלמד: «{{misheard}}» → «{{intended}}»",
     "trialTitle": "ניסיון תיקון אוטומטי: «{{misheard}}» → «{{intended}}»",
     "undo": "בטל",
-    "trialNote": "לא נשמר"
+    "trialNote": "לא נשמר",
+    "more": "+{{count}} נוספות"
   },
   "whatsNew": {
     "title": "חדש ב-Handy v{{version}}"

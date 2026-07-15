@@ -714,7 +714,8 @@
     "title": "已学习自动更正：“{{misheard}}” → “{{intended}}”",
     "trialTitle": "试用自动更正：“{{misheard}}” → “{{intended}}”",
     "undo": "撤销",
-    "trialNote": "未保存"
+    "trialNote": "未保存",
+    "more": "另 {{count}} 个"
   },
   "whatsNew": {
     "title": "Handy v{{version}} 新功能"

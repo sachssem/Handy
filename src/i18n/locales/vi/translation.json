@@ -714,7 +714,8 @@
     "title": "Đã học tự động sửa: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "Thử tự động sửa: “{{misheard}}” → “{{intended}}”",
     "undo": "Hoàn tác",
-    "trialNote": "Chưa lưu"
+    "trialNote": "Chưa lưu",
+    "more": "+{{count}} nữa"
   },
   "whatsNew": {
     "title": "Điểm mới trong Handy v{{version}}"

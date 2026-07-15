@@ -714,7 +714,8 @@
     "title": "تعلّم التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
     "trialTitle": "تجربة التصحيح التلقائي: «{{misheard}}» → «{{intended}}»",
     "undo": "تراجع",
-    "trialNote": "لم يُحفظ"
+    "trialNote": "لم يُحفظ",
+    "more": "+{{count}} أخرى"
   },
   "whatsNew": {
     "title": "الجديد في Handy v{{version}}"

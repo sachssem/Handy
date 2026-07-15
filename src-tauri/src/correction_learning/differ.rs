@@ -2,12 +2,14 @@
 //! (fork feature: voice-control).
 //!
 //! Given the recognizer's `original` output and the text the user left in the
-//! field after editing, [`extract_correction`] diffs the two at word
-//! granularity, collapses adjacent delete/insert runs into substitution pairs,
-//! and applies a chain of gates that reject anything that does not look like a
+//! field after editing, [`extract_corrections`] diffs the two at word
+//! granularity, collapses the edit into independent change runs, and applies a
+//! chain of gates to each run that rejects anything that does not look like a
 //! genuine single-word / short-phrase mishearing: reformulations, pure
 //! insertions/deletions, case-only edits, unrelated substitutions and everyday
-//! function words.
+//! function words. One edit can therefore yield several corrections (two
+//! separately misheard words fixed in one sentence), while an edit sprawling
+//! across too many regions is dropped whole as a reformulation.
 //!
 //! The differ is pure and table-tested. Its live caller is the post-paste
 //! learning session, which only exists on macOS; on other platforms the
@@ -104,17 +106,47 @@ const MAX_PHRASE_WORDS: usize = 3;
 /// one-char umlaut fix) learnable at every aggressiveness level.
 const PHONETIC_FLOOR: f64 = 0.25;
 
-/// Extract a single correction candidate from an ASR `original` and its edited
-/// `corrected` form, or `None` if the edit is not a learnable mishearing. The
-/// `profile` sets the gate thresholds and `lang` the phonetic algorithm.
-pub fn extract_correction(
+/// Maximum number of change runs one edit may contain and still be treated as a
+/// set of independent spot fixes. More change regions than this is a
+/// reformulation, not a correction, so the whole edit is dropped — the same
+/// anti-poisoning stance the old single-run rule took, widened just enough to
+/// learn a handful of genuine word fixes made in one pass.
+const MAX_RUNS: usize = 3;
+
+/// Extract every learnable correction from an ASR `original` and its edited
+/// `corrected` form. The edit is collapsed into change runs; if there are more
+/// than [`MAX_RUNS`] of them it is a reformulation and nothing is learned.
+/// Otherwise each substitution run is gated independently ([`gate`]) and only the
+/// runs that pass become candidates — so two separately misheard words fixed in
+/// one sentence yield two candidates, and a run that fails its gate simply drops
+/// out (an empty result means no run survived). `profile` sets the gate
+/// thresholds and `lang` the phonetic algorithm.
+pub fn extract_corrections(
     original: &str,
     corrected: &str,
     profile: &GateProfile,
     lang: PhoneticLang,
-) -> Option<Candidate> {
-    let candidate = single_substitution(original, corrected)?;
-    gate(candidate, profile, lang)
+) -> Vec<Candidate> {
+    let runs = change_runs(original, corrected);
+    // Empty edit, or so many change regions it can only be a reformulation.
+    if runs.is_empty() || runs.len() > MAX_RUNS {
+        return Vec::new();
+    }
+    runs.into_iter()
+        .filter(Run::is_substitution)
+        .filter_map(|run| gate(run.into_candidate(), profile, lang))
+        .collect()
+}
+
+/// The `(total_runs, substitution_runs)` breakdown of an edit, used only by the
+/// learning session's "edit seen but nothing learned" diagnostic so the log can
+/// tell a reformulation (many runs) apart from an edit whose substitution runs
+/// were all gated out. Recomputed on that cold path rather than threaded through
+/// [`extract_corrections`], which the common path calls.
+pub fn change_run_counts(original: &str, corrected: &str) -> (usize, usize) {
+    let runs = change_runs(original, corrected);
+    let substitutions = runs.iter().filter(|run| run.is_substitution()).count();
+    (runs.len(), substitutions)
 }
 
 /// A contiguous change run collapsed from the word diff.
@@ -134,18 +166,34 @@ impl Run {
     fn is_empty(&self) -> bool {
         self.deleted.is_empty() && self.inserted.is_empty()
     }
+
+    /// A real substitution has content on both sides; a pure insert or delete
+    /// does not and can never be a learnable mishearing.
+    fn is_substitution(&self) -> bool {
+        !self.deleted.is_empty() && !self.inserted.is_empty()
+    }
+
+    /// The run's `(misheard, intended)` spans. Only meaningful for a run that
+    /// [`is_substitution`](Run::is_substitution).
+    fn into_candidate(self) -> Candidate {
+        Candidate {
+            misheard: self.deleted.join(" "),
+            intended: self.inserted.join(" "),
+        }
+    }
 }
 
-/// Diff `original` vs `corrected` at word granularity and, iff the edit is a
-/// single delete+insert run (one substitution, nothing else), return its
-/// `(misheard, intended)` spans. Pure inserts, pure deletes and multi-region
-/// edits return `None`.
+/// Diff `original` vs `corrected` at word granularity and collapse the edit into
+/// its change runs — each a maximal delete/insert cluster between two `Equal`
+/// tokens.
 ///
 /// Any `Equal` token — word or whitespace — closes the current run, so two
-/// disjoint word swaps in one utterance become two runs and are rejected below;
-/// a multi-word span (e.g. `New York → NYC`, whose internal space is itself
-/// deleted) stays a single run.
-fn single_substitution(original: &str, corrected: &str) -> Option<Candidate> {
+/// disjoint word swaps in one utterance become two runs; a multi-word span
+/// (e.g. `New York → NYC`, whose internal space is itself deleted) stays a single
+/// run. Pure inserts and pure deletes are kept as runs too, so the caller can
+/// count every change region against the run cap, but only a substitution run
+/// (content on both sides) can become a candidate.
+fn change_runs(original: &str, corrected: &str) -> Vec<Run> {
     let diff = TextDiff::from_unicode_words(original, corrected);
 
     let mut runs: Vec<Run> = Vec::new();
@@ -169,18 +217,7 @@ fn single_substitution(original: &str, corrected: &str) -> Option<Candidate> {
         runs.push(current);
     }
 
-    let [run] = runs.as_slice() else {
-        return None;
-    };
-    // A real substitution has content on both sides; pure insert/delete does not.
-    if run.deleted.is_empty() || run.inserted.is_empty() {
-        return None;
-    }
-
-    Some(Candidate {
-        misheard: run.deleted.join(" "),
-        intended: run.inserted.join(" "),
-    })
+    runs
 }
 
 /// Run the ordered anti-poisoning gates over a raw substitution candidate.
@@ -302,13 +339,26 @@ fn is_common_word(normalized: &str) -> bool {
 mod tests {
     use super::*;
 
-    /// Default extraction for the Phase A/B gate behaviour, which the
-    /// [`Aggressiveness::Balanced`] profile reproduces exactly.
-    fn extract(original: &str, corrected: &str) -> Option<Candidate> {
-        extract_correction(
+    /// All corrections extracted at the [`Aggressiveness::Balanced`] profile.
+    fn extract_all(original: &str, corrected: &str) -> Vec<Candidate> {
+        extract_corrections(
             original,
             corrected,
             &GateProfile::for_aggressiveness(Aggressiveness::Balanced),
+            PhoneticLang::Other,
+        )
+    }
+
+    /// Single-candidate adapter for the many table tests that expect exactly one
+    /// (or no) learnable pair: `Some` iff extraction yields precisely one
+    /// candidate, `None` for zero or several. Default extraction reproduces the
+    /// Phase A/B gate behaviour, which the [`Aggressiveness::Balanced`] profile
+    /// matches exactly.
+    fn extract(original: &str, corrected: &str) -> Option<Candidate> {
+        extract_with(
+            original,
+            corrected,
+            Aggressiveness::Balanced,
             PhoneticLang::Other,
         )
     }
@@ -319,12 +369,16 @@ mod tests {
         level: Aggressiveness,
         lang: PhoneticLang,
     ) -> Option<Candidate> {
-        extract_correction(
+        let mut candidates = extract_corrections(
             original,
             corrected,
             &GateProfile::for_aggressiveness(level),
             lang,
-        )
+        );
+        match candidates.len() {
+            1 => Some(candidates.remove(0)),
+            _ => None,
+        }
     }
 
     fn candidate(misheard: &str, intended: &str) -> Option<Candidate> {
@@ -365,8 +419,53 @@ mod tests {
 
     #[test]
     fn multi_region_rewrite_is_rejected() {
-        // Two disjoint word swaps in one utterance → reformulation, not a fix.
-        assert_eq!(extract("the quick brown fox", "the slow brown cat"), None);
+        // Two disjoint swaps, but both are unrelated rewrites (distance too
+        // large), so every run is gated out and nothing is learned.
+        assert!(extract_all("the quick brown fox", "the slow brown cat").is_empty());
+    }
+
+    #[test]
+    fn two_word_fixes_yield_two_candidates() {
+        // Two separately misheard words fixed in one sentence: both are learned,
+        // in document order.
+        assert_eq!(
+            extract_all("send rahndom to Jon", "send random to John"),
+            vec![
+                Candidate {
+                    misheard: "rahndom".into(),
+                    intended: "random".into(),
+                },
+                Candidate {
+                    misheard: "Jon".into(),
+                    intended: "John".into(),
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_gated_out_run_drops_the_others_survive() {
+        // Two runs: `Jon → John` (a clean mishearing) and `cat → dog` (unrelated,
+        // fails the distance gate). Each gate is independent, so only the first
+        // survives instead of the whole edit being rejected.
+        assert_eq!(
+            extract_all("the cat greets Jon", "the dog greets John"),
+            vec![Candidate {
+                misheard: "Jon".into(),
+                intended: "John".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn more_than_max_runs_is_a_reformulation() {
+        // Four separate substitutions that would each pass their gate on their
+        // own, but together exceed MAX_RUNS, so the edit is dropped whole.
+        assert!(extract_all(
+            "x Jon x Steven x rahndom x Meier x",
+            "x John x Stephen x random x Mayer x",
+        )
+        .is_empty());
     }
 
     #[test]

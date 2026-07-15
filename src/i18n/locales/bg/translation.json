@@ -714,7 +714,8 @@
     "title": "Научена автокорекция: „{{misheard}}“ → „{{intended}}“",
     "trialTitle": "Проба на автокорекцията: „{{misheard}}“ → „{{intended}}“",
     "undo": "Отмяна",
-    "trialNote": "Незапазено"
+    "trialNote": "Незапазено",
+    "more": "+{{count}} още"
   },
   "whatsNew": {
     "title": "Ново в Handy v{{version}}"

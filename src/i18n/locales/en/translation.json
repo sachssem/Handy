@@ -717,6 +717,7 @@
     "title": "Auto-correction learned: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "Auto-correction trial: “{{misheard}}” → “{{intended}}”",
     "undo": "Undo",
-    "trialNote": "not saved"
+    "trialNote": "not saved",
+    "more": "+{{count}} more"
   }
 }

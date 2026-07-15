@@ -714,7 +714,8 @@
     "title": "Автовиправлення вивчено: «{{misheard}}» → «{{intended}}»",
     "trialTitle": "Пробне автовиправлення: «{{misheard}}» → «{{intended}}»",
     "undo": "Повернути",
-    "trialNote": "Не збережено"
+    "trialNote": "Не збережено",
+    "more": "+{{count}} ще"
   },
   "whatsNew": {
     "title": "Нове в Handy v{{version}}"

@@ -714,7 +714,8 @@
     "title": "Otomatik düzeltme öğrenildi: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "Otomatik düzeltme denemesi: “{{misheard}}” → “{{intended}}”",
     "undo": "Geri Al",
-    "trialNote": "Kaydedilmedi"
+    "trialNote": "Kaydedilmedi",
+    "more": "+{{count}} daha"
   },
   "whatsNew": {
     "title": "Handy v{{version}} yenilikleri"

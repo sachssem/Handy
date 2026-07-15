@@ -101,6 +101,16 @@
   text-overflow: ellipsis;
 }
 
+/* "+N more" — a compact, muted count shown when several corrections settled in
+   one edit and the toast surfaces only the first pair. Non-interactive. */
+.lt-more {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+
 /* Undo — the one interactive affordance; accent-tinted pill button. */
 .lt-undo {
   flex: none;

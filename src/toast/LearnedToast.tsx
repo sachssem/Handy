@@ -142,6 +142,13 @@ const LearnedToast: React.FC = () => {
             intended: content.intended,
           })}
         </span>
+        {content.extra > 0 && (
+          // Several corrections settled together; the toast shows the first pair
+          // and summarises the rest as "+N more".
+          <span className="lt-more">
+            {t("learnedToast.more", { count: content.extra })}
+          </span>
+        )}
         {content.trial ? (
           // Dry-run soak: nothing was persisted, so there is nothing to undo —
           // show a "not saved" note instead of the Undo button.

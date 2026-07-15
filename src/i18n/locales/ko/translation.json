@@ -714,7 +714,8 @@
     "title": "자동 수정 학습됨: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "자동 수정 체험: “{{misheard}}” → “{{intended}}”",
     "undo": "실행 취소",
-    "trialNote": "저장되지 않음"
+    "trialNote": "저장되지 않음",
+    "more": "외 {{count}}개"
   },
   "whatsNew": {
     "title": "Handy v{{version}}의 새 소식"

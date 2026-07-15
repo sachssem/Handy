@@ -714,7 +714,8 @@
     "title": "Autokorrektur lernt: „{{misheard}}“ → „{{intended}}“",
     "trialTitle": "Autokorrektur-Test: „{{misheard}}“ → „{{intended}}“",
     "undo": "Rückgängig",
-    "trialNote": "nicht gespeichert"
+    "trialNote": "nicht gespeichert",
+    "more": "+{{count}} weitere"
   },
   "whatsNew": {
     "title": "Neu in Handy v{{version}}"

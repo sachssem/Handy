@@ -714,7 +714,8 @@
     "title": "Autokorekta wyuczona: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "Próba autokorekty: “{{misheard}}” → “{{intended}}”",
     "undo": "Cofnij",
-    "trialNote": "Nie zapisano"
+    "trialNote": "Nie zapisano",
+    "more": "+{{count}} więcej"
   },
   "whatsNew": {
     "title": "Nowości w Handy v{{version}}"

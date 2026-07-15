@@ -714,7 +714,8 @@
     "title": "Autocorrection apprise : « {{misheard}} » → « {{intended}} »",
     "trialTitle": "Essai d’autocorrection : « {{misheard}} » → « {{intended}} »",
     "undo": "Annuler",
-    "trialNote": "Non enregistré"
+    "trialNote": "Non enregistré",
+    "more": "+{{count}} de plus"
   },
   "whatsNew": {
     "title": "Nouveautés de Handy v{{version}}"

@@ -714,7 +714,8 @@
     "title": "Autocorrezione appresa: «{{misheard}}» → «{{intended}}»",
     "trialTitle": "Prova di autocorrezione: «{{misheard}}» → «{{intended}}»",
     "undo": "Annulla",
-    "trialNote": "Non salvato"
+    "trialNote": "Non salvato",
+    "more": "+{{count}} in più"
   },
   "whatsNew": {
     "title": "Novità in Handy v{{version}}"

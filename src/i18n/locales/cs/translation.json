@@ -714,7 +714,8 @@
     "title": "Autokorekce naučena: „{{misheard}}“ → „{{intended}}“",
     "trialTitle": "Zkušební autokorekce: „{{misheard}}“ → „{{intended}}“",
     "undo": "Zpět",
-    "trialNote": "Neuloženo"
+    "trialNote": "Neuloženo",
+    "more": "+{{count}} další"
   },
   "whatsNew": {
     "title": "Novinky v Handy v{{version}}"

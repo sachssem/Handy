@@ -714,7 +714,8 @@
     "title": "自動修正を学習: 「{{misheard}}」→「{{intended}}」",
     "trialTitle": "自動修正の試用: 「{{misheard}}」→「{{intended}}」",
     "undo": "元に戻す",
-    "trialNote": "保存されていません"
+    "trialNote": "保存されていません",
+    "more": "他{{count}}件"
   },
   "whatsNew": {
     "title": "Handy v{{version}} の新機能"
