@@ -162,12 +162,10 @@
   border-radius: 16px;
 }
 .scard.working {
-  /* fork(voice-control): content-sized so no work label ever truncates; the
-     width morph animation is sacrificed for correctness (fit-content cannot be
-     transitioned). --ov-work-w acts as the minimum so short labels keep the
-     familiar pill footprint. */
+  /* fork(voice-control): content-sized so the pill hugs any work label — no
+     truncation, no dead air. The width morph animation is sacrificed
+     (fit-content cannot be transitioned). */
   width: fit-content;
-  min-width: var(--ov-work-w);
   border-radius: 18px;
 }
 
@@ -181,9 +179,8 @@
   width: var(--ov-rest-w);
 }
 .scard.compact.cworking {
-  /* fork(voice-control): see .scard.working — content-sized, min the old width. */
+  /* fork(voice-control): see .scard.working — content-sized. */
   width: fit-content;
-  min-width: var(--ov-work-w);
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */

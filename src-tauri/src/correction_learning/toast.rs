@@ -225,6 +225,18 @@ pub fn take_pending_learned_toast() -> Option<LearnedCorrectionEvent> {
     PENDING.lock().ok().and_then(|mut pending| pending.take())
 }
 
+/// Create the toast window at startup (hidden), mirroring the overlay. A panel
+/// webview created lazily — hidden, app inactive — is suspended by WebKit
+/// before its first frame commits, which made the toast invisible until the
+/// app was reactivated. One created while the app launches keeps rendering for
+/// the process lifetime. The lazy creation inside [`show_learned_toast`]
+/// remains as a safety net.
+pub fn init_learned_toast(app_handle: &AppHandle) {
+    if app_handle.get_webview_window(TOAST_LABEL).is_none() {
+        create_learned_toast(app_handle);
+    }
+}
+
 /// Webview-side lifecycle breadcrumbs. The toast window has no visible dev
 /// console, so the component reports its stages (mount, pending taken, shown)
 /// into the app log — the only way to see where the display chain stops.

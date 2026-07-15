@@ -316,9 +316,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
 
-    // fork(voice-control): the learned-correction toast window is created lazily
-    // on the first auto-learned correction (see correction_learning::toast), so
-    // installs that never trigger it pay for no extra webview.
+    // fork(voice-control): create the learned-correction toast window eagerly,
+    // exactly like the overlay. A panel webview created lazily — hidden, while
+    // the app is inactive — gets suspended by WebKit before its first frame
+    // commits, so the toast only appeared once something reactivated the app.
+    // A webview born at startup (app active) keeps rendering for the process
+    // lifetime; the overlay proves the pattern.
+    correction_learning::toast::init_learned_toast(app_handle);
 }
 
 #[tauri::command]
