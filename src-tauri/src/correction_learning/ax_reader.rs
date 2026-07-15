@@ -54,6 +54,7 @@ pub struct FocusedSnapshot;
 mod imp {
     use super::FocusRead;
     use core_foundation::base::{CFType, CFTypeRef, TCFType};
+    use core_foundation::boolean::CFBoolean;
     use core_foundation::runloop::{
         kCFRunLoopDefaultMode, CFRunLoop, CFRunLoopSource, CFRunLoopSourceRef,
     };
@@ -83,6 +84,11 @@ mod imp {
             element: AXUIElementRef,
             attribute: CFStringRef,
             value: *mut CFTypeRef,
+        ) -> AXError;
+        fn AXUIElementSetAttributeValue(
+            element: AXUIElementRef,
+            attribute: CFStringRef,
+            value: CFTypeRef,
         ) -> AXError;
         fn AXObserverCreate(
             application: libc::pid_t,
@@ -117,6 +123,9 @@ mod imp {
 
     // AX attribute names are plain CFString keys.
     const AX_FOCUSED_UI_ELEMENT: &str = "AXFocusedUIElement";
+    /// Chromium/Electron keep their AX tree switched off until an assistive
+    /// client sets this attribute on the application element.
+    const AX_MANUAL_ACCESSIBILITY: &str = "AXManualAccessibility";
     const AX_VALUE: &str = "AXValue";
     const AX_ROLE: &str = "AXRole";
     const AX_SUBROLE: &str = "AXSubrole";
@@ -191,6 +200,21 @@ mod imp {
         match copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT) {
             Some(focused) => Some(FocusedSnapshot(focused)),
             None => {
+                // Chromium/Electron apps (the primary paste targets) ship their
+                // AX tree disabled until an assistive client asks for it — a
+                // fresh process reads as "no focused element" even with the
+                // Accessibility grant in place. Ask once and retry; the tree
+                // builds asynchronously, hence the short wait. Native apps
+                // reject the attribute and fall through to the old diagnosis.
+                if enable_manual_accessibility(app_cf.as_concrete_TypeRef()) {
+                    std::thread::sleep(Duration::from_millis(150));
+                    if let Some(focused) =
+                        copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT)
+                    {
+                        debug!("ax: enabled Electron manual accessibility for pid {}", pid);
+                        return Some(FocusedSnapshot(focused));
+                    }
+                }
                 // No focused element readable — usually the Accessibility grant
                 // has not reached this process. Logged once per paste, not per tick.
                 debug!(
@@ -200,6 +224,19 @@ mod imp {
                 None
             }
         }
+    }
+
+    /// Switch on `AXManualAccessibility` for the app (Chromium/Electron opt-in).
+    /// `true` when the attribute was accepted; native apps reject it, which is
+    /// simply "nothing to enable". The flag lives for the app process lifetime,
+    /// so this fires once per fresh Electron process, not per session.
+    fn enable_manual_accessibility(app: AXUIElementRef) -> bool {
+        let attr = CFString::new(AX_MANUAL_ACCESSIBILITY);
+        let value = CFBoolean::true_value();
+        let err = unsafe {
+            AXUIElementSetAttributeValue(app, attr.as_concrete_TypeRef(), value.as_CFTypeRef())
+        };
+        err == 0
     }
 
     /// AXObserver callback. Deliberately a no-op: handling the run-loop source is
