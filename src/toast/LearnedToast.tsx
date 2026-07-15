@@ -71,23 +71,14 @@ const LearnedToast: React.FC = () => {
       await syncLanguageFromSettings();
       clearTimers();
       setContent(payload);
-      if (visibleRef.current) {
-        // Already on screen — swap content and restart the timer, no re-entrance.
-        setVisible(true);
-      } else {
-        // Mount hidden, then flip to visible next frame so the entrance
-        // transition actually plays (a paint has to see the hidden state first).
-        // rAF can stall in a freshly created panel webview the compositor still
-        // considers occluded — a timer fallback guarantees the flip happens (the
-        // flip is idempotent, so both firing is fine).
-        setVisible(false);
-        const flip = () => {
-          void commands.toastStage("visible-flip");
-          setVisible(true);
-        };
-        requestAnimationFrame(() => requestAnimationFrame(flip));
-        window.setTimeout(flip, 120);
-      }
+      // Visible synchronously, in the same JS turn as the content: WebKit
+      // suspends this panel webview (rAF *and* timers) shortly after creation
+      // while it deems the window occluded, so any deferred visibility flip
+      // freezes until something reactivates the app — the toast then appeared
+      // minutes late. The entrance transition is sacrificed; the first paint
+      // already shows the card.
+      void commands.toastStage("visible-sync");
+      setVisible(true);
       hideTimer.current = window.setTimeout(dismiss, VISIBLE_MS);
     };
 
@@ -163,11 +154,9 @@ const LearnedToast: React.FC = () => {
             {t("learnedToast.more", { count: content.extra })}
           </span>
         )}
-        {content.trial ? (
-          // Dry-run soak: nothing was persisted, so there is nothing to undo —
-          // show a "not saved" note instead of the Undo button.
-          <span className="lt-trial">{t("learnedToast.trialNote")}</span>
-        ) : (
+        {/* Dry-run soak: nothing was persisted, so there is nothing to undo —
+            the title's "Dry-Run:" prefix already says so, no extra note. */}
+        {!content.trial && (
           <button className="lt-undo" onClick={handleUndo}>
             {t("learnedToast.undo")}
           </button>

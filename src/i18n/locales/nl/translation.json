@@ -817,10 +817,9 @@
     "dismiss": "Sluiten"
   },
   "learnedToast": {
-    "title": "Autocorrectie geleerd: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Autocorrectie proef: “{{misheard}}” → “{{intended}}”",
+    "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Dry-Run: Geleerd: “{{misheard}}” → “{{intended}}”",
     "undo": "Ongedaan maken",
-    "trialNote": "Niet opgeslagen",
     "more": "+{{count}} meer"
   }
 }

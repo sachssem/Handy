@@ -140,16 +140,3 @@
 /* Trial note — the dry-run counterpart of Undo. Non-interactive; a muted pill
    that reads "not saved" so a log-only soak is visibly a trial, not a real
    learn. */
-.lt-trial {
-  flex: none;
-  padding: 0 12px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-  background: var(--lt-hair);
-}

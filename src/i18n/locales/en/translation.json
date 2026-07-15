@@ -817,10 +817,9 @@
     "dismiss": "Dismiss"
   },
   "learnedToast": {
-    "title": "Auto-correction learned: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Auto-correction trial: “{{misheard}}” → “{{intended}}”",
+    "title": "Learned: “{{misheard}}” → “{{intended}}”",
+    "trialTitle": "Dry-Run: Learned: “{{misheard}}” → “{{intended}}”",
     "undo": "Undo",
-    "trialNote": "not saved",
     "more": "+{{count}} more"
   }
 }
