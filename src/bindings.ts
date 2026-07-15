@@ -430,6 +430,9 @@ async hideLearnedToast() : Promise<Result<null, string>> {
 async takePendingLearnedToast() : Promise<LearnedCorrectionEvent | null> {
     return await TAURI_INVOKE("take_pending_learned_toast");
 },
+async toastStage(stage: string) : Promise<void> {
+    await TAURI_INVOKE("toast_stage", { stage });
+},
 /**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.

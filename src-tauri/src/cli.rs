@@ -24,6 +24,11 @@ pub struct CliArgs {
     #[arg(long)]
     pub cancel: bool,
 
+    /// Debug: show a sample learned-correction trial toast (sent to running
+    /// instance). Exercises the toast display path without a dictation.
+    #[arg(long, hide = true)]
+    pub debug_toast: bool,
+
     /// Enable debug mode with verbose logging
     #[arg(long)]
     pub debug: bool,
