@@ -820,6 +820,7 @@
     "title": "Autocorrectie geleerd: “{{misheard}}” → “{{intended}}”",
     "trialTitle": "Autocorrectie proef: “{{misheard}}” → “{{intended}}”",
     "undo": "Ongedaan maken",
-    "trialNote": "Niet opgeslagen"
+    "trialNote": "Niet opgeslagen",
+    "more": "+{{count}} meer"
   }
 }

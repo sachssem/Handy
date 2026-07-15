@@ -50,6 +50,11 @@ pub struct LearnedCorrectionEvent {
     /// so the toast marks it as a trial and hides Undo. `false` for real
     /// learned pairs that were stored.
     pub trial: bool,
+    /// How many *additional* corrections were committed alongside this one in the
+    /// same edit. One toast shows this pair verbatim and appends "+{extra} more"
+    /// when non-zero (several independent word fixes that settled together). `0`
+    /// for the common single-correction case.
+    pub extra: u32,
 }
 
 /// Fired when the learned-corrections list changes behind the review UI's back —
@@ -123,13 +128,31 @@ enum TickDecision {
     /// Stop the session silently (secure field, the target app quit, or focus
     /// moved to a different element).
     Teardown,
-    /// The candidate has settled — learn it, then stop.
-    Commit(Candidate),
+    /// The candidate set has settled — learn every pair, then stop.
+    Commit(Vec<Candidate>),
     /// Keep polling with this tracked state.
     Continue {
         last_text: Option<String>,
-        last_candidate: Option<Candidate>,
+        last_candidates: Vec<Candidate>,
+        /// Set only when this tick saw a *changed, related* edit that produced no
+        /// gated candidate — carries the run/gate breakdown for one diagnostic
+        /// log line. `None` on every other path (unchanged text, unrelated field,
+        /// no signal), so the driver logs the "differ rejected" case and stays
+        /// quiet otherwise.
+        no_candidate: Option<NoCandidate>,
     },
+}
+
+/// Why a changed, related edit produced no learnable candidate: the run/gate
+/// breakdown the driver logs so the session's log can tell "differ rejected the
+/// edit" apart from "never saw the edit".
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct NoCandidate {
+    /// Total change regions the edit had (a large count means a reformulation).
+    runs: usize,
+    /// Substitution runs that failed to yield a learned pair.
+    gated_out: usize,
 }
 
 /// Decide what one poll tick does, given the field `read`, the pasted `original`
@@ -140,7 +163,7 @@ fn decide_tick(
     read: FocusRead,
     original: &str,
     last_text: Option<String>,
-    last_candidate: Option<Candidate>,
+    last_candidates: Vec<Candidate>,
     profile: &GateProfile,
     lang: PhoneticLang,
 ) -> TickDecision {
@@ -149,54 +172,74 @@ fn decide_tick(
         FocusRead::Secure | FocusRead::AppGone => TickDecision::Teardown,
         // Focus moved to a different element (blur/submit). The field's last
         // observed state is final — nothing can edit it in place anymore — so a
-        // candidate that already passed the gates on the previous read no
+        // candidate set that already passed the gates on the previous read no
         // longer needs its confirming second read: commit it now. This is what
         // makes "correct, then immediately submit" learnable.
-        FocusRead::FocusChanged => match last_candidate {
-            Some(candidate) => TickDecision::Commit(candidate),
-            None => TickDecision::Teardown,
-        },
+        FocusRead::FocusChanged => {
+            if last_candidates.is_empty() {
+                TickDecision::Teardown
+            } else {
+                TickDecision::Commit(last_candidates)
+            }
+        }
         // Nothing readable this tick; reset stability and force the next text
         // read to be diffed afresh.
         FocusRead::NoSignal => TickDecision::Continue {
             last_text: None,
-            last_candidate: None,
+            last_candidates: Vec::new(),
+            no_candidate: None,
         },
         FocusRead::Text(current) => {
             // Byte-identical to the previous tick: the field has settled, so skip
-            // the relatedness + diff work. A candidate already pending from the
-            // previous tick is now confirmed stable.
+            // the relatedness + diff work. A candidate set already pending from
+            // the previous tick is now confirmed stable.
             if last_text.as_deref() == Some(current.as_str()) {
-                return match last_candidate {
-                    Some(candidate) => TickDecision::Commit(candidate),
-                    None => TickDecision::Continue {
+                return if last_candidates.is_empty() {
+                    TickDecision::Continue {
                         last_text,
-                        last_candidate: None,
-                    },
+                        last_candidates,
+                        no_candidate: None,
+                    }
+                } else {
+                    TickDecision::Commit(last_candidates)
                 };
             }
 
             if !is_related_to_snapshot(original, &current) {
-                // Field no longer relates to the paste (navigated away).
+                // Field no longer relates to the paste (navigated away). Not a
+                // rejected edit, so no diagnostic.
                 return TickDecision::Continue {
                     last_text: Some(current),
-                    last_candidate: None,
+                    last_candidates: Vec::new(),
+                    no_candidate: None,
                 };
             }
-            match differ::extract_correction(original, &current, profile, lang) {
-                // Require the same candidate on two consecutive reads so we learn
-                // only after the edit has settled.
-                Some(candidate) if last_candidate.as_ref() == Some(&candidate) => {
-                    TickDecision::Commit(candidate)
+
+            let candidates = differ::extract_corrections(original, &current, profile, lang);
+            if candidates.is_empty() {
+                // A changed, related edit the differ could not turn into a
+                // candidate — surface the run/gate breakdown so the log tells a
+                // rejection apart from "never saw the edit".
+                let (runs, substitutions) = differ::change_run_counts(original, &current);
+                return TickDecision::Continue {
+                    last_text: Some(current),
+                    last_candidates: Vec::new(),
+                    no_candidate: Some(NoCandidate {
+                        runs,
+                        gated_out: substitutions,
+                    }),
+                };
+            }
+            // Require the same set on two consecutive reads so we learn only
+            // after the edit has settled; a changed set restarts confirmation.
+            if last_candidates == candidates {
+                TickDecision::Commit(candidates)
+            } else {
+                TickDecision::Continue {
+                    last_text: Some(current),
+                    last_candidates: candidates,
+                    no_candidate: None,
                 }
-                Some(candidate) => TickDecision::Continue {
-                    last_text: Some(current),
-                    last_candidate: Some(candidate),
-                },
-                None => TickDecision::Continue {
-                    last_text: Some(current),
-                    last_candidate: None,
-                },
             }
         }
     }
@@ -368,9 +411,13 @@ mod imp {
         params: SessionParams,
     ) {
         let started = Instant::now();
-        let mut last_candidate: Option<Candidate> = None;
+        let mut last_candidates: Vec<Candidate> = Vec::new();
         let mut last_text: Option<String> = None;
         let mut last_read: Option<Instant> = None;
+        // The last "edit seen but nothing learned" breakdown we logged, so a
+        // keystroke burst whose extraction outcome never changes is logged once
+        // rather than per wakeup.
+        let mut last_no_candidate: Option<(usize, usize)> = None;
 
         // Wake on every value change of the pinned field so a correction typed
         // and submitted inside one poll interval is still read before it blurs.
@@ -422,13 +469,13 @@ mod imp {
             }
             last_read = Some(Instant::now());
 
-            let had_candidate = last_candidate.is_some();
+            let had_candidate = !last_candidates.is_empty();
             let read = ax_reader::read_focused(pid, app_name.as_deref(), &focus);
             match decide_tick(
                 read,
                 &original,
                 last_text.take(),
-                last_candidate.take(),
+                std::mem::take(&mut last_candidates),
                 &params.profile,
                 params.lang,
             ) {
@@ -439,122 +486,168 @@ mod imp {
                     );
                     return;
                 }
-                TickDecision::Commit(candidate) => {
+                TickDecision::Commit(candidates) => {
                     debug!(
-                        "learn: session {} candidate stable — committing",
-                        generation
+                        "learn: session {} candidate set stable ({} pair(s)) — committing",
+                        generation,
+                        candidates.len()
                     );
-                    commit(&app, candidate, &params.lang_code);
+                    commit(&app, candidates, &params.lang_code);
                     return;
                 }
                 TickDecision::Continue {
                     last_text: next_text,
-                    last_candidate: next_candidate,
+                    last_candidates: next_candidates,
+                    no_candidate,
                 } => {
+                    // Content-redacted diagnostic: a changed, related edit the
+                    // differ rejected. Logged only when the outcome changed vs the
+                    // last logged one, so a keystroke burst does not spam the log.
+                    if let Some(diag) = no_candidate {
+                        let key = (diag.runs, diag.gated_out);
+                        if last_no_candidate != Some(key) {
+                            debug!(
+                                "learn: session {} edit seen but no gated candidate (runs={}, gated_out={})",
+                                generation, diag.runs, diag.gated_out
+                            );
+                            last_no_candidate = Some(key);
+                        }
+                    } else if !next_candidates.is_empty() {
+                        // Back in a learnable state; let a later dry spell log again.
+                        last_no_candidate = None;
+                    }
+
                     // Content-redacted stability transitions: a fresh candidate
-                    // now awaits a confirming read, or a pending one fell away.
-                    match (had_candidate, &next_candidate) {
-                        (false, Some(candidate)) => debug!(
-                            "learn: session {} candidate found (pending confirmation) — misheard {} chars -> intended {} chars",
+                    // set now awaits a confirming read, or a pending one fell away.
+                    match (had_candidate, next_candidates.is_empty()) {
+                        (false, false) => debug!(
+                            "learn: session {} candidate set found ({} pair(s), pending confirmation)",
                             generation,
-                            candidate.misheard.chars().count(),
-                            candidate.intended.chars().count()
+                            next_candidates.len()
                         ),
-                        (true, None) => debug!(
-                            "learn: session {} pending candidate dropped before confirmation",
+                        (true, true) => debug!(
+                            "learn: session {} pending candidate set dropped before confirmation",
                             generation
                         ),
                         _ => {}
                     }
                     last_text = next_text;
-                    last_candidate = next_candidate;
+                    last_candidates = next_candidates;
                 }
             }
         }
     }
 
-    /// Learn a gated candidate: log-only under the dry-run switch, otherwise
-    /// upsert it into settings and emit the toast event. `lang_code` is the
-    /// resolved language the pair was learned for, recorded so the apply stage
-    /// only uses it for the same language.
-    fn commit(app: &AppHandle, candidate: Candidate, lang_code: &str) {
+    /// Learn a settled candidate set: log-only under the dry-run switch,
+    /// otherwise upsert every pair into settings and emit the toast event.
+    /// `lang_code` is the resolved language the pairs were learned for, recorded
+    /// so the apply stage only uses them for the same language.
+    ///
+    /// Every pair is persisted (or trial-logged), but the toast window shows one
+    /// pair at a time, so it surfaces the *first* pair verbatim and carries the
+    /// count of the rest as `extra` (rendered as "+N more") — a later toast per
+    /// pair would just overwrite this one.
+    fn commit(app: &AppHandle, candidates: Vec<Candidate>, lang_code: &str) {
+        if candidates.is_empty() {
+            return;
+        }
+        // The toast shows the first pair; the others are summarised as "+N".
+        let extra = (candidates.len() - 1) as u32;
         let mut settings = settings::get_settings(app);
 
-        // Dry-run soak: run the whole pipeline but only log the would-be pair.
+        // Dry-run soak: run the whole pipeline but only log the would-be pairs.
         // The pair is user text, so at info level it is redacted to lengths; the
         // verbatim pair is logged only at debug! level, which reaches the log
         // file / live viewer solely when the user has raised the log level.
         if settings.learn_corrections_log_only {
+            let mut first_event: Option<LearnedCorrectionEvent> = None;
+            for candidate in candidates {
+                info!(
+                    "would-learn: misheard {} chars -> intended {} chars",
+                    candidate.misheard.chars().count(),
+                    candidate.intended.chars().count()
+                );
+                debug!(
+                    "would-learn (verbatim): {} -> {}",
+                    candidate.misheard, candidate.intended
+                );
+                if first_event.is_none() {
+                    // A soak you can't observe reads as a broken feature, so still
+                    // show the toast — marked as a trial. We persist nothing and,
+                    // crucially, emit no `LearnedCorrectionEvent`: the settings
+                    // window refreshes its stored list on that event, and nothing
+                    // was stored. The id is the pair's would-be content hash,
+                    // purely so the payload is well-formed; the trial toast hides
+                    // Undo, so it is never used to remove anything.
+                    first_event = Some(LearnedCorrectionEvent {
+                        id: LearnedCorrection::new(
+                            &candidate.misheard,
+                            &candidate.intended,
+                            CorrectionSource::Auto,
+                            chrono::Utc::now().timestamp(),
+                        )
+                        .id,
+                        misheard: candidate.misheard,
+                        intended: candidate.intended,
+                        trial: true,
+                        extra,
+                    });
+                }
+            }
+            if let Some(event) = first_event {
+                crate::correction_learning::toast::set_pending_learned_toast(event);
+                crate::correction_learning::toast::show_learned_toast(app);
+            }
+            return;
+        }
+
+        let mut first_event: Option<LearnedCorrectionEvent> = None;
+        for candidate in candidates {
+            let mut entry = LearnedCorrection::new(
+                &candidate.misheard,
+                &candidate.intended,
+                CorrectionSource::Auto,
+                chrono::Utc::now().timestamp(),
+            );
+            entry.lang = Some(lang_code.to_string());
+            let id = store::upsert(&mut settings.learned_corrections, entry);
+
+            // Redacted at info level (the pair is user text); verbatim only at
+            // debug! level, gated by the user's log level as above. The id is a
+            // non-reversible content hash, so it is safe to log for correlation.
             info!(
-                "would-learn: misheard {} chars -> intended {} chars",
+                "learned correction {}: misheard {} chars -> intended {} chars",
+                id,
                 candidate.misheard.chars().count(),
                 candidate.intended.chars().count()
             );
             debug!(
-                "would-learn (verbatim): {} -> {}",
-                candidate.misheard, candidate.intended
+                "learned correction {} (verbatim): {} -> {}",
+                id, candidate.misheard, candidate.intended
             );
-            // A soak you can't observe reads as a broken feature, so still show
-            // the toast — marked as a trial. We persist nothing and, crucially,
-            // emit no `LearnedCorrectionEvent`: the settings window refreshes its
-            // stored list on that event, and nothing was stored. The id is the
-            // pair's would-be content hash, purely so the payload is well-formed;
-            // the trial toast hides Undo, so it is never used to remove anything.
-            let event = LearnedCorrectionEvent {
-                id: LearnedCorrection::new(
-                    &candidate.misheard,
-                    &candidate.intended,
-                    CorrectionSource::Auto,
-                    chrono::Utc::now().timestamp(),
-                )
-                .id,
-                misheard: candidate.misheard,
-                intended: candidate.intended,
-                trial: true,
-            };
-            crate::correction_learning::toast::set_pending_learned_toast(event);
-            crate::correction_learning::toast::show_learned_toast(app);
-            return;
+            if first_event.is_none() {
+                first_event = Some(LearnedCorrectionEvent {
+                    id,
+                    misheard: candidate.misheard,
+                    intended: candidate.intended,
+                    trial: false,
+                    extra,
+                });
+            }
         }
-
-        let mut entry = LearnedCorrection::new(
-            &candidate.misheard,
-            &candidate.intended,
-            CorrectionSource::Auto,
-            chrono::Utc::now().timestamp(),
-        );
-        entry.lang = Some(lang_code.to_string());
-        let id = store::upsert(&mut settings.learned_corrections, entry);
         settings::write_settings(app, settings);
 
-        // Redacted at info level (the pair is user text); verbatim only at
-        // debug! level, gated by the user's log level as above. The id is a
-        // non-reversible content hash, so it is safe to log for correlation.
-        info!(
-            "learned correction {}: misheard {} chars -> intended {} chars",
-            id,
-            candidate.misheard.chars().count(),
-            candidate.intended.chars().count()
-        );
-        debug!(
-            "learned correction {} (verbatim): {} -> {}",
-            id, candidate.misheard, candidate.intended
-        );
-        let event = LearnedCorrectionEvent {
-            id,
-            misheard: candidate.misheard,
-            intended: candidate.intended,
-            trial: false,
-        };
-        // Stash the pair before showing, so the toast webview — created lazily on
-        // this very correction — can pick it up on mount even if it wasn't yet
-        // listening when the event below was emitted.
-        crate::correction_learning::toast::set_pending_learned_toast(event.clone());
-        if let Err(err) = event.emit(app) {
-            log::error!("Failed to emit learned-correction event: {}", err);
+        if let Some(event) = first_event {
+            // Stash the pair before showing, so the toast webview — created lazily
+            // on this very correction — can pick it up on mount even if it wasn't
+            // yet listening when the event below was emitted.
+            crate::correction_learning::toast::set_pending_learned_toast(event.clone());
+            if let Err(err) = event.emit(app) {
+                log::error!("Failed to emit learned-correction event: {}", err);
+            }
+            // Reveal the toast window (created on first use here).
+            crate::correction_learning::toast::show_learned_toast(app);
         }
-        // Reveal the toast window (created on first use here).
-        crate::correction_learning::toast::show_learned_toast(app);
     }
 }
 
@@ -579,10 +672,20 @@ mod tests {
         GateProfile::for_aggressiveness(Aggressiveness::Balanced)
     }
 
-    fn tick(read: FocusRead, last_text: Option<&str>, last: Option<Candidate>) -> TickDecision {
+    fn tick(read: FocusRead, last_text: Option<&str>, last: Vec<Candidate>) -> TickDecision {
+        tick_for("send it to Jon", read, last_text, last)
+    }
+
+    /// [`tick`] with a caller-chosen `original`, for the multi-word cases.
+    fn tick_for(
+        original: &str,
+        read: FocusRead,
+        last_text: Option<&str>,
+        last: Vec<Candidate>,
+    ) -> TickDecision {
         decide_tick(
             read,
-            "send it to Jon",
+            original,
             last_text.map(str::to_string),
             last,
             &profile(),
@@ -590,18 +693,25 @@ mod tests {
         )
     }
 
+    fn candidate(misheard: &str, intended: &str) -> Candidate {
+        Candidate {
+            misheard: misheard.into(),
+            intended: intended.into(),
+        }
+    }
+
     #[test]
     fn secure_gone_and_focus_changed_reads_tear_down() {
         assert!(matches!(
-            tick(FocusRead::Secure, None, None),
+            tick(FocusRead::Secure, None, Vec::new()),
             TickDecision::Teardown
         ));
         assert!(matches!(
-            tick(FocusRead::AppGone, None, None),
+            tick(FocusRead::AppGone, None, Vec::new()),
             TickDecision::Teardown
         ));
         assert!(matches!(
-            tick(FocusRead::FocusChanged, None, None),
+            tick(FocusRead::FocusChanged, None, Vec::new()),
             TickDecision::Teardown
         ));
     }
@@ -609,71 +719,63 @@ mod tests {
     #[test]
     fn focus_change_commits_a_pending_candidate() {
         // Blur/submit after the fix was seen once: the field state is final,
-        // so the pending candidate commits instead of being torn down.
-        let candidate = Candidate {
-            misheard: "Jon".into(),
-            intended: "John".into(),
-        };
+        // so the pending set commits instead of being torn down.
+        let pending = vec![candidate("Jon", "John")];
         match tick(
             FocusRead::FocusChanged,
             Some("send it to John"),
-            Some(candidate.clone()),
+            pending.clone(),
         ) {
-            TickDecision::Commit(committed) => assert_eq!(committed, candidate),
+            TickDecision::Commit(committed) => assert_eq!(committed, pending),
             other => panic!("expected commit, got {other:?}"),
         }
     }
 
     #[test]
     fn secure_field_never_commits_a_pending_candidate() {
-        let candidate = Candidate {
-            misheard: "Jon".into(),
-            intended: "John".into(),
-        };
         assert!(matches!(
-            tick(FocusRead::Secure, Some("send it to John"), Some(candidate)),
+            tick(
+                FocusRead::Secure,
+                Some("send it to John"),
+                vec![candidate("Jon", "John")]
+            ),
             TickDecision::Teardown
         ));
     }
 
     #[test]
     fn no_signal_resets_tracked_state() {
-        let candidate = Candidate {
-            misheard: "Jon".into(),
-            intended: "John".into(),
-        };
-        assert!(matches!(
-            tick(
-                FocusRead::NoSignal,
-                Some("send it to John"),
-                Some(candidate)
-            ),
+        match tick(
+            FocusRead::NoSignal,
+            Some("send it to John"),
+            vec![candidate("Jon", "John")],
+        ) {
             TickDecision::Continue {
                 last_text: None,
-                last_candidate: None,
-            }
-        ));
+                last_candidates,
+                no_candidate: None,
+            } => assert!(last_candidates.is_empty()),
+            other => panic!("expected a reset continue, got {other:?}"),
+        }
     }
 
     #[test]
     fn first_edit_is_pending_then_committed_on_stable_read() {
         // First read of the edit: candidate pending, not yet committed.
-        let first = tick(FocusRead::Text("send it to John".into()), None, None);
-        let candidate = match first {
+        let first = tick(FocusRead::Text("send it to John".into()), None, Vec::new());
+        let candidates = match first {
             TickDecision::Continue {
-                last_candidate: Some(candidate),
-                ..
-            } => candidate,
+                last_candidates, ..
+            } if !last_candidates.is_empty() => last_candidates,
             other => panic!("expected a pending candidate, got {other:?}"),
         };
-        assert_eq!(candidate.misheard, "Jon");
-        assert_eq!(candidate.intended, "John");
-        // Same candidate seen again → commit.
+        assert_eq!(candidates, vec![candidate("Jon", "John")]);
+        // Same set seen again → commit.
         assert!(matches!(
             tick(
                 FocusRead::Text("send it to John".into()),
                 Some("send it to John"),
-                Some(candidate),
+                candidates,
             ),
             TickDecision::Commit(_)
         ));
@@ -681,16 +783,12 @@ mod tests {
 
     #[test]
     fn byte_identical_read_confirms_pending_candidate() {
-        let candidate = Candidate {
-            misheard: "Jon".into(),
-            intended: "John".into(),
-        };
         // Field text unchanged since the pending tick → settled → commit.
         assert!(matches!(
             tick(
                 FocusRead::Text("send it to John".into()),
                 Some("send it to John"),
-                Some(candidate),
+                vec![candidate("Jon", "John")],
             ),
             TickDecision::Commit(_)
         ));
@@ -698,17 +796,98 @@ mod tests {
 
     #[test]
     fn unrelated_field_drops_candidate() {
-        assert!(matches!(
-            tick(
-                FocusRead::Text("completely different text now".into()),
-                None,
-                None,
-            ),
+        match tick(
+            FocusRead::Text("completely different text now".into()),
+            None,
+            Vec::new(),
+        ) {
             TickDecision::Continue {
-                last_candidate: None,
+                last_candidates,
+                no_candidate: None,
                 ..
+            } => assert!(last_candidates.is_empty()),
+            other => panic!("expected a dropped-candidate continue, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn two_word_fix_yields_both_candidates() {
+        // Two separately misheard words fixed in one sentence become a pending
+        // set of both pairs, in document order.
+        match tick_for(
+            "send rahndom to Jon",
+            FocusRead::Text("send random to John".into()),
+            None,
+            Vec::new(),
+        ) {
+            TickDecision::Continue {
+                last_candidates, ..
+            } => assert_eq!(
+                last_candidates,
+                vec![candidate("rahndom", "random"), candidate("Jon", "John")]
+            ),
+            other => panic!("expected a pending set, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn same_candidate_set_on_two_reads_commits() {
+        // The field wiggled (a trailing space) but the gated set is identical to
+        // the pending one → confirmed, commit both pairs.
+        let pending = vec![candidate("rahndom", "random"), candidate("Jon", "John")];
+        match tick_for(
+            "send rahndom to Jon",
+            FocusRead::Text("send random to John".into()),
+            Some("send random to John "),
+            pending.clone(),
+        ) {
+            TickDecision::Commit(committed) => assert_eq!(committed, pending),
+            other => panic!("expected commit, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_changed_candidate_set_resets_confirmation() {
+        // Only one word was fixed on the previous read; the second fix appears
+        // now, so the set changed and must await a fresh confirming read.
+        match tick_for(
+            "send rahndom to Jon",
+            FocusRead::Text("send random to John".into()),
+            Some("send rahndom to John"),
+            vec![candidate("Jon", "John")],
+        ) {
+            TickDecision::Continue {
+                last_candidates,
+                no_candidate: None,
+                ..
+            } => assert_eq!(
+                last_candidates,
+                vec![candidate("rahndom", "random"), candidate("Jon", "John")]
+            ),
+            other => panic!("expected a pending continue, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn changed_unlearnable_edit_reports_no_candidate() {
+        // A related edit the differ cannot gate (an unrelated one-word rewrite)
+        // surfaces the run/gate breakdown for the session's diagnostic log.
+        match tick(
+            FocusRead::Text("send it to Zurich".into()),
+            Some("send it to Jon"),
+            Vec::new(),
+        ) {
+            TickDecision::Continue {
+                last_candidates,
+                no_candidate: Some(diag),
+                ..
+            } => {
+                assert!(last_candidates.is_empty());
+                assert_eq!(diag.runs, 1);
+                assert_eq!(diag.gated_out, 1);
             }
-        ));
+            other => panic!("expected a no-candidate continue, got {other:?}"),
+        }
     }
 
     #[test]
