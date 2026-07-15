@@ -60,7 +60,14 @@ const LearnedToast: React.FC = () => {
   useEffect(() => {
     let unlisten: (() => void) | undefined;
 
+    // Breadcrumb into the Rust log — this window has no visible dev console,
+    // so the display chain is only debuggable through these stages.
+    void commands.toastStage("mount");
+
     const showCorrection = async (payload: LearnedCorrectionEvent) => {
+      void commands.toastStage(
+        `show: trial=${payload.trial} extra=${payload.extra}`,
+      );
       await syncLanguageFromSettings();
       clearTimers();
       setContent(payload);
@@ -88,6 +95,7 @@ const LearnedToast: React.FC = () => {
     // event that triggered it may have fired before this listener was ready. On
     // mount, pick up any correction the backend stashed for exactly that case.
     void commands.takePendingLearnedToast().then((pending) => {
+      void commands.toastStage(`pending: ${pending ? "some" : "none"}`);
       if (pending) {
         void showCorrection(pending);
       }

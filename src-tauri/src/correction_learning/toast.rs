@@ -213,6 +213,31 @@ pub fn take_pending_learned_toast() -> Option<LearnedCorrectionEvent> {
     PENDING.lock().ok().and_then(|mut pending| pending.take())
 }
 
+/// Webview-side lifecycle breadcrumbs. The toast window has no visible dev
+/// console, so the component reports its stages (mount, pending taken, shown)
+/// into the app log — the only way to see where the display chain stops.
+#[tauri::command]
+#[specta::specta]
+pub fn toast_stage(stage: String) {
+    log::info!("toast-webview: {}", stage);
+}
+
+/// Show a sample trial toast on the running instance (`handy --debug-toast`,
+/// forwarded via single-instance). Exercises the exact production path —
+/// stash, lazy window creation, positioning, reveal — without needing a real
+/// dictation + manual correction round trip.
+pub fn debug_show_learned_toast(app: &AppHandle) {
+    log::info!("debug-toast: staging sample trial toast");
+    set_pending_learned_toast(LearnedCorrectionEvent {
+        id: "debug-toast".to_string(),
+        misheard: "raha".to_string(),
+        intended: "waha".to_string(),
+        trial: true,
+        extra: 1,
+    });
+    show_learned_toast(app);
+}
+
 /// Position the toast bottom-center on the active screen and show it without
 /// activating Handy. Called from the learning session ([`super::session`]) right
 /// after the `LearnedCorrectionEvent` is emitted.
@@ -228,15 +253,31 @@ pub fn take_pending_learned_toast() -> Option<LearnedCorrectionEvent> {
 pub fn show_learned_toast(app_handle: &AppHandle) {
     let app = app_handle.clone();
     if let Err(e) = app_handle.run_on_main_thread(move || {
-        if app.get_webview_window(TOAST_LABEL).is_none() {
+        let existed = app.get_webview_window(TOAST_LABEL).is_some();
+        if !existed {
             create_learned_toast(&app);
         }
-        if let Some(window) = app.get_webview_window(TOAST_LABEL) {
-            if let Some((x, y)) = toast_position(&app, TOAST_WIDTH, TOAST_HEIGHT) {
-                let _ =
-                    window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        match app.get_webview_window(TOAST_LABEL) {
+            Some(window) => {
+                let position = toast_position(&app, TOAST_WIDTH, TOAST_HEIGHT);
+                if let Some((x, y)) = position {
+                    let _ = window
+                        .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+                }
+                let show_result = window.show();
+                // Breadcrumbs for the invisible-toast hunt: every value here has
+                // at some point been the missing link.
+                log::info!(
+                    "toast-show: existed={}, position={:?}, show={:?}, visible_after={:?}",
+                    existed,
+                    position,
+                    show_result.as_ref().map(|_| ()),
+                    window.is_visible()
+                );
             }
-            let _ = window.show();
+            None => {
+                log::error!("toast-show: window missing after creation attempt");
+            }
         }
     }) {
         log::error!("Failed to show learned-correction toast: {}", e);

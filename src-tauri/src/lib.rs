@@ -594,6 +594,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::remove_learned_correction,
             correction_learning::toast::hide_learned_toast,
             correction_learning::toast::take_pending_learned_toast,
+            correction_learning::toast::toast_stage,
             shortcut::suspend_binding,
             shortcut::resume_binding,
             shortcut::change_mute_while_recording_setting,
@@ -761,6 +762,10 @@ pub fn run(cli_args: CliArgs) {
                 signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
+            } else if args.iter().any(|a| a == "--debug-toast") {
+                // fork(voice-control): repeatable toast-display test without a
+                // dictation + manual-correction round trip.
+                correction_learning::toast::debug_show_learned_toast(app);
             } else {
                 show_main_window(app);
             }
