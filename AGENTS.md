@@ -230,6 +230,34 @@ See the [Troubleshooting](README.md#troubleshooting) section in README.md.
 
 This repository is a long-lived personal fork of [cjpais/Handy](https://github.com/cjpais/Handy) focused on voice-control/dictation ergonomics (see [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)). Upstream is under a feature freeze, so fork-only features live here permanently. `CLAUDE.md` is a symlink to this file.
 
+## Agent Operating Rules (read this first)
+
+You are working on a fork whose value is that upstream updates stay cheap to
+absorb. Every change must preserve that. When you get an instruction, route it:
+
+1. **Where does this land?** All fork work happens on `voice-control` (commit
+   there directly, or on a short-lived `feat/*` branch cut from it — never on
+   `main`, never a PR to upstream). See [Remotes & Branches](#remotes--branches).
+2. **Is it additive or invasive?** Default to a **new fork-owned module**
+   (`src-tauri/src/<feature>/`, a new component). Touch an upstream-owned file
+   ONLY at a narrow hook, and mark every such edit with a `fork(voice-control):`
+   comment so the graft is greppable against `main`. This marker is mandatory and
+   machine-checked — see [Fork Design Rules](#fork-design-rules-keep-rebases-cheap).
+3. **Is it a new feature or a follow-up?** A new fork feature = its own reviewable
+   commit group + a section in [`docs/fork-patches.md`](docs/fork-patches.md) + a
+   probe in `scripts/fork-check.sh`. A follow-up fix belongs squashed/grouped with
+   the feature it fixes, not scattered on top — the group must stay individually
+   droppable if upstream ever ships an equivalent.
+4. **Before you finish any task that touched an upstream-owned file:** run
+   `scripts/fork-check.sh`. It must pass. This is the gate that proves no hook was
+   dropped.
+5. **Absorbing upstream:** never hand-run the rebase dance. Use
+   `scripts/sync-upstream.sh` — it does the backup tag, ff-only mirror, rebase, and
+   integrity gate in the correct order. See [Upstream Update Procedure](#upstream-update-procedure).
+
+If an instruction is ambiguous about which of these applies, resolve it the way
+that keeps rebases cheap (additive, marked, probed, grouped) and say so.
+
 ## Remotes & Branches
 
 | Ref                         | Role                                                                                                                                                                                                    |
@@ -242,27 +270,41 @@ This repository is a long-lived personal fork of [cjpais/Handy](https://github.c
 
 ## Upstream Update Procedure
 
+**Use the script — do not hand-run the steps:**
+
 ```bash
-git fetch upstream
-git checkout main && git merge --ff-only upstream/main
-git push origin main
-git tag backup/voice-control-$(date +%Y%m%d) voice-control   # safety net
-git rebase main voice-control
-# resolve conflicts; fork changes are additive, so conflicts should be rare
-git push --force-with-lease origin voice-control
+scripts/sync-upstream.sh          # fetch, ff-only main, backup tag, rebase, fork-check, verify
+scripts/sync-upstream.sh --push   # ...and push main + voice-control at the end
 ```
+
+The script performs, in order: fetch upstream, fast-forward `main` to
+`upstream/main` (aborts if `main` ever diverged), cut a `backup/voice-control-*`
+safety tag, rebase `voice-control` onto `main`, run `scripts/fork-check.sh`, verify
+with `cargo test` + `bun run build`, prune old backup tags (keeps newest 3), and
+print the push commands. It refuses to start on a dirty tree.
+
+On a rebase conflict it stops with instructions: resolve keeping the fork hook,
+but first run the conflicted feature's **Upstream check** in
+[`docs/fork-patches.md`](docs/fork-patches.md) — if upstream now ships an
+equivalent, **drop** the feature (its files, its probe, its doc section) in one
+commit instead of adapting it. Restore the pre-rebase state any time with
+`git rebase --abort` (or `git reset --hard <backup tag>`).
 
 Rules:
 
-- Always create the backup tag before rebasing; delete old backup tags once the rebase is verified.
-- Only `--force-with-lease` (never `--force`) and only on `voice-control`/`feat/*`, never on `main`.
-- After a rebase, verify with `cargo test` and a `bun run build` before pushing.
+- Pushing is opt-in (`--push`): it force-pushes `voice-control`, so it stays a
+  deliberate step. Only `--force-with-lease` (never `--force`), only on
+  `voice-control`/`feat/*`, never on `main`.
+- The backup tag is created automatically; the script prunes to the newest 3.
 
 ## Fork Design Rules (keep rebases cheap)
 
 - **Additive over invasive:** new functionality goes into new modules/files; touch upstream files only at narrow, stable insertion points (e.g. one call in the transcription output pipeline). Prefer one clearly marked block over scattered edits.
-- **Fork-owned files** (safe to change freely, upstream never touches them): `docs/REQUIREMENTS.md`, this Fork section, and any module introduced by a fork feature (each feature's commit message lists its new files).
-- **One feature = one reviewable commit group.** Features must remain individually droppable via `git rebase -i` if upstream ships an equivalent.
+- **Mark every graft.** Any edit inside an upstream-owned file MUST carry a `fork(voice-control):` comment (Rust `// fork(voice-control): …`, TS `// fork(voice-control): …`). This is how a graft point is found when diffing against `main`, and `scripts/fork-check.sh` asserts these markers survive. New fork-owned files do not need per-line markers (the whole file is ours).
+- **Every feature is probed and documented.** A new fork feature adds (a) a section in [`docs/fork-patches.md`](docs/fork-patches.md) with its hook points and an "Upstream check", and (b) a probe in `scripts/fork-check.sh` guarding its integration hook. A feature with no probe silently vanishes on the next rebase.
+- **Run the gate.** `scripts/fork-check.sh` must pass at the end of any task touching an upstream-owned file, after every `sync-upstream.sh` rebase, and before every release build (`build-signed-dmg.sh` runs it automatically). It is a fast grep — no build required.
+- **Fork-owned files** (safe to change freely, upstream never touches them): `docs/REQUIREMENTS.md`, `docs/fork-patches.md`, this Fork section, `scripts/build-signed-dmg.sh`, `scripts/sync-upstream.sh`, `scripts/fork-check.sh`, and any module introduced by a fork feature (each feature's commit message and `docs/fork-patches.md` list its new files).
+- **One feature = one reviewable commit group.** Features must remain individually droppable via `git rebase -i` if upstream ships an equivalent. Follow-up fixes belong grouped with their feature, not as a growing tail of loose commits.
 - Follow all upstream conventions above (i18n for user-facing strings, `cargo fmt`/`clippy`, ESLint, conventional commits). Fork feature commits use the normal `feat:` prefix.
 - Do NOT open PRs/issues against upstream for fork-only features (upstream feature freeze); the "GitHub workflow" section above applies only when intentionally contributing upstream.
 

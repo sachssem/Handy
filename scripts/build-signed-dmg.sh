@@ -22,6 +22,11 @@ IDENTITY="${HANDY_SIGN_IDENTITY:-Voice Control / Handy Dev}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Fork integrity gate: refuse to build a release if a fork hook was dropped
+# (e.g. by an upstream rebase). Cheap grep pass; see scripts/fork-check.sh.
+echo "==> Verifying fork integration hooks (fork-check)"
+"$REPO_ROOT/scripts/fork-check.sh"
+
 # cmake in the transcribe-cpp C++ tree needs this policy shim on modern cmake.
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 # Tauri passes this to codesign for the .app.
