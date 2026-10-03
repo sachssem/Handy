@@ -1717,7 +1717,7 @@
       "architecture": "qwen3_asr",
       "family": "qwen3",
       "parameters": "2.0B",
-      "description": "30-language speech-to-text with auto language detection.",
+      "description": "Most accurate multilingual model, with automatic in-audio language switching",
       "base_model": "Qwen/Qwen3-ASR-1.7B",
       "license": "apache-2.0",
       "language_count": 30,
@@ -1738,7 +1738,7 @@
         {"filename": "Qwen3-ASR-1.7B-BF16.gguf", "quant": "BF16", "size_bytes": 4083087904, "sha256": "57db745f8ec3ad2ea391b0205661e7d74f76158877a33f151e4d4624ed2b7cc9"},
         {"filename": "Qwen3-ASR-1.7B-F16.gguf", "quant": "F16", "size_bytes": 4091390944, "sha256": "edb09c29b8f73822c639168d5ef72aa2dccdf8b4e48fc4b8518885352ff62c71"}
       ],
-      "default_quant": "Q5_K_M",
+      "default_quant": "Q8_0",
       "recommended": false,
       "recommended_rank": null
     },

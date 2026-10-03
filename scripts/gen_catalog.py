@@ -59,6 +59,10 @@ CURATION = {
     # Sortformer emits speaker segments only; Handy's catalog is for models
     # that produce transcription text.
     "diar_streaming_sortformer_4spk-v2.1": {"hidden": True},
+    # fork(voice-control): Q8_0 override — the >=1B size policy would pick Q5_K_M,
+    # but Q8_0 (2.04 GB, ~0.04 lower WER) fits a 16 GB machine comfortably and we
+    # want reference quality for German dictation with English code-switching.
+    "Qwen3-ASR-1.7B":                  {"desc": "Most accurate multilingual model, with automatic in-audio language switching", "default_quant": "Q8_0"},
 }
 # temporary capability corrections pending a card re-push (remove once cards fixed)
 OVERRIDES = {
