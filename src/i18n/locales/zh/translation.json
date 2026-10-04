@@ -188,6 +188,10 @@
         "notFound": "未找到快捷键",
         "pressKeys": "请按键...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "粘贴上一次转录",
+            "description": "再次粘贴你最近的一次转录。设置后该组合键会在全系统范围内被占用——如果其他应用需要它，请更改（例如终端或 Vim 中的 Ctrl+V）。"
+          },
           "transcribe": {
             "name": "转录快捷键",
             "description": "用于录制和转录语音的键盘快捷键。"

@@ -966,6 +966,11 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "cancel".to_string(),
         Arc::new(CancelAction) as Arc<dyn ShortcutAction>,
     );
+    // fork(voice-control): re-paste the last transcript (see `paste_last`).
+    map.insert(
+        crate::paste_last::BINDING_ID.to_string(),
+        Arc::new(crate::paste_last::PasteLastTranscriptAction) as Arc<dyn ShortcutAction>,
+    );
     map.insert(
         "test".to_string(),
         Arc::new(TestAction) as Arc<dyn ShortcutAction>,

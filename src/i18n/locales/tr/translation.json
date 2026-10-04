@@ -188,6 +188,10 @@
         "notFound": "Kısayol bulunamadı",
         "pressKeys": "Tuşlara basın...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Son dökümü yapıştır",
+            "description": "En son dökümünüzü yeniden yapıştırır. Ayarlı olduğu sürece bu kombinasyon tüm sistemde kullanılır — başka bir uygulamanın ihtiyacı varsa değiştirin (ör. terminallerde veya Vim'de Ctrl+V)."
+          },
           "transcribe": {
             "name": "Transkripsiyon Kısayolu",
             "description": "Sesinizi kaydetmek ve metne dönüştürmek için klavye kısayolu."

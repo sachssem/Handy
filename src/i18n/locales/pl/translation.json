@@ -188,6 +188,10 @@
         "notFound": "Nie znaleziono skrótu",
         "pressKeys": "Naciśnij klawisze...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Wklej ostatnią transkrypcję",
+            "description": "Ponownie wkleja Twoją najnowszą transkrypcję. Kombinacja jest zajęta w całym systemie, dopóki jest ustawiona — zmień ją, jeśli potrzebuje jej inna aplikacja (np. Ctrl+V w terminalach lub Vimie)."
+          },
           "transcribe": {
             "name": "Skrót transkrypcji",
             "description": "Skrót klawiaturowy do nagrywania i transkrypcji głosu."

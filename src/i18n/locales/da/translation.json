@@ -168,6 +168,10 @@
         "notFound": "Genvej ikke fundet",
         "pressKeys": "Tryk på ønskede taster...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Indsæt seneste transskription",
+            "description": "Indsætter din seneste transskription igen. Kombinationen er optaget i hele systemet, så længe den er sat — skift den, hvis en anden app har brug for den (f.eks. Ctrl+V i terminaler eller Vim)."
+          },
           "transcribe": {
             "name": "Transskriptionsgenvej",
             "description": "Tastaturgenvejen til at optage og transskribere din stemme."

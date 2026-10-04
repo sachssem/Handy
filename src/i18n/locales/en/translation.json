@@ -168,6 +168,10 @@
         "notFound": "Shortcut not found",
         "pressKeys": "Press keys...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Paste Last Transcript",
+            "description": "Pastes your most recent transcription again. The combination is taken system-wide while set — change it if another app needs it (e.g. Ctrl+V in terminals or Vim)."
+          },
           "transcribe": {
             "name": "Transcribe Shortcut",
             "description": "The keyboard shortcut to record and transcribe your voice."

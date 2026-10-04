@@ -188,6 +188,10 @@
         "notFound": "Raccourci non trouvé",
         "pressKeys": "Appuyez sur les touches...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Coller la dernière transcription",
+            "description": "Colle à nouveau votre transcription la plus récente. La combinaison est réservée dans tout le système tant qu'elle est définie — modifiez-la si une autre application en a besoin (p. ex. Ctrl+V dans les terminaux ou Vim)."
+          },
           "transcribe": {
             "name": "Raccourci de Transcription",
             "description": "Le raccourci clavier pour enregistrer et transcrire votre voix."

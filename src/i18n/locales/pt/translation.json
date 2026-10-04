@@ -168,6 +168,10 @@
         "notFound": "Atalho não encontrado",
         "pressKeys": "Pressione as teclas...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Colar a última transcrição",
+            "description": "Cola novamente a sua transcrição mais recente. A combinação fica ocupada em todo o sistema enquanto estiver definida — altere-a se outro aplicativo precisar dela (p. ex., Ctrl+V em terminais ou no Vim)."
+          },
           "transcribe": {
             "name": "Atalho de Transcrição",
             "description": "O atalho de teclado para gravar e transcrever sua voz."

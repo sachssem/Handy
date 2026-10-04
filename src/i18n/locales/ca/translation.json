@@ -168,6 +168,10 @@
         "notFound": "No s'ha trobat la drecera",
         "pressKeys": "Premeu les tecles...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Enganxa l'última transcripció",
+            "description": "Torna a enganxar la teva transcripció més recent. La combinació queda ocupada a tot el sistema mentre estigui assignada — canvia-la si una altra aplicació la necessita (p. ex. Ctrl+V en terminals o Vim)."
+          },
           "transcribe": {
             "name": "Drecera de transcripció",
             "description": "La drecera de teclat per enregistrar i transcriure la vostra veu."

@@ -31,6 +31,8 @@ mod memory;
 // fork(voice-control): self-correction pass + per-app style after the result.
 mod output_stages;
 mod overlay;
+// fork(voice-control): "Paste last transcript" hotkey action.
+mod paste_last;
 mod paste_tx;
 pub mod portable;
 mod secure_input;

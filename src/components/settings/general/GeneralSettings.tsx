@@ -24,6 +24,12 @@ export const GeneralSettings: React.FC = () => {
         <ShortcutActivationSetting descriptionMode="tooltip" grouped={true} />
         {/* Cancel shortcut remains hidden on Linux because of dynamic shortcut instability. */}
         {!isLinux && <ShortcutInput shortcutId="cancel" grouped={true} />}
+        {/* fork(voice-control): re-paste the last transcript (see `paste_last`). */}
+        <ShortcutInput
+          shortcutId="paste_last_transcript"
+          descriptionMode="inline"
+          grouped={true}
+        />
       </SettingsGroup>
       <ModelSettingsCard />
       <SettingsGroup title={t("settings.sound.title")}>

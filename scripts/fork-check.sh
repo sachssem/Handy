@@ -127,6 +127,15 @@ PROBES=(
   "app-styles: settings fields|src-tauri/src/settings.rs|pub app_styles_categories"
   "app-styles: commands registered|src-tauri/src/lib.rs|app_styles::commands::"
 
+  # -- paste last transcript hotkey --
+  "paste-last: default binding|src-tauri/src/settings.rs|crate::paste_last::BINDING_ID\.to_string\(\),"
+  "paste-last: action registered|src-tauri/src/actions.rs|Arc::new\(crate::paste_last::PasteLastTranscriptAction\)"
+  "paste-last: module declared|src-tauri/src/lib.rs|^mod paste_last;"
+  "paste-last: auto-repeat guard|src-tauri/src/paste_last.rs|const REPASTE_COOLDOWN"
+  "paste-last: shared text selection|src-tauri/src/tray.rs|pub\(crate\) fn last_transcript_text"
+  "paste-last: idle gate tray getter|src-tauri/src/tray.rs|pub\(crate\) fn current_tray_state"
+  "paste-last: settings row|src/components/settings/general/GeneralSettings.tsx|shortcutId=\"paste_last_transcript\""
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"
@@ -150,6 +159,8 @@ MARKER_FILES=(
   "src-tauri/src/cli.rs"
   "src-tauri/build.rs"
   "src-tauri/src/shortcut/handler.rs"
+  "src-tauri/src/tray.rs"
+  "src/components/settings/general/GeneralSettings.tsx"
   "src-tauri/src/audio_toolkit/audio/recorder.rs"
   "src/overlay/RecordingOverlay.css"
 )

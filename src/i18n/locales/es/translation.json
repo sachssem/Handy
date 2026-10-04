@@ -188,6 +188,10 @@
         "notFound": "Atajo no encontrado",
         "pressKeys": "Presiona teclas...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Pegar la última transcripción",
+            "description": "Vuelve a pegar tu transcripción más reciente. La combinación queda ocupada en todo el sistema mientras esté asignada; cámbiala si otra aplicación la necesita (p. ej., Ctrl+V en terminales o Vim)."
+          },
           "transcribe": {
             "name": "Atajo de transcripción",
             "description": "El atajo de teclado para grabar y transcribir tu voz."

@@ -188,6 +188,10 @@
         "notFound": "Không tìm thấy phím tắt",
         "pressKeys": "Nhấn phím...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Dán bản chép lời gần nhất",
+            "description": "Dán lại bản chép lời gần đây nhất của bạn. Tổ hợp phím này bị chiếm trên toàn hệ thống khi được đặt — hãy đổi nếu ứng dụng khác cần nó (ví dụ Ctrl+V trong terminal hoặc Vim)."
+          },
           "transcribe": {
             "name": "Phím tắt chuyển đổi",
             "description": "Phím tắt để ghi âm và chuyển đổi giọng nói của bạn."

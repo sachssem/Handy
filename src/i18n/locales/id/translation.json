@@ -168,6 +168,10 @@
         "notFound": "Pintasan tidak ditemukan",
         "pressKeys": "Tekan tombol...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Tempel transkrip terakhir",
+            "description": "Menempelkan kembali transkripsi terbaru Anda. Kombinasi ini dipakai di seluruh sistem selama diatur — ubah jika aplikasi lain membutuhkannya (mis. Ctrl+V di terminal atau Vim)."
+          },
           "transcribe": {
             "name": "Pintasan Transkripsi",
             "description": "Pintasan keyboard untuk merekam dan mentranskripsikan suara Anda."

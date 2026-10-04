@@ -219,6 +219,13 @@ pub fn set_tray_state(app: &AppHandle, state: TrayIconState) {
     sync_tray_with(app, |inner| inner.icon_state = state);
 }
 
+// fork(voice-control): the paste-last-transcript hotkey only fires while idle.
+pub(crate) fn current_tray_state(app: &AppHandle) -> TrayIconState {
+    app.try_state::<TrayState>()
+        .map(|state| state.lock().icon_state)
+        .unwrap_or(TrayIconState::Idle)
+}
+
 /// Re-syncs the tray after something other than the recording state changed
 /// (theme, Secure Input warning). The recording state itself is preserved.
 pub fn refresh_tray_icon(app: &AppHandle) {
@@ -594,7 +601,8 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
     Ok((menu, tooltip))
 }
 
-fn last_transcript_text(entry: &HistoryEntry) -> &str {
+// fork(voice-control): shared with the paste-last-transcript hotkey.
+pub(crate) fn last_transcript_text(entry: &HistoryEntry) -> &str {
     entry
         .post_processed_text
         .as_deref()

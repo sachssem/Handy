@@ -168,6 +168,10 @@
         "notFound": "Kortkommando hittades inte",
         "pressKeys": "Tryck på tangenter...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Klistra in senaste transkriptionen",
+            "description": "Klistrar in din senaste transkription igen. Kombinationen är upptagen i hela systemet så länge den är inställd — ändra den om en annan app behöver den (t.ex. Ctrl+V i terminaler eller Vim)."
+          },
           "transcribe": {
             "name": "Kortkommando för transkribering",
             "description": "Kortkommandot för att spela in och transkribera din röst."

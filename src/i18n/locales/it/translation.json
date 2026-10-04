@@ -188,6 +188,10 @@
         "notFound": "Scorciatoia non trovata",
         "pressKeys": "Premi i tasti...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Incolla l'ultima trascrizione",
+            "description": "Incolla di nuovo la trascrizione più recente. La combinazione è occupata in tutto il sistema finché è impostata: cambiala se un'altra app ne ha bisogno (ad es. Ctrl+V nei terminali o in Vim)."
+          },
           "transcribe": {
             "name": "Scorciatoia Trascrizione",
             "description": "La scorciatoia da tastiera per registrare e trascrivere la tua voce."

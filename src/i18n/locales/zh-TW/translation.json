@@ -168,6 +168,10 @@
         "notFound": "未找到快捷鍵",
         "pressKeys": "請按鍵...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "貼上上一次轉錄",
+            "description": "再次貼上你最近一次的轉錄。設定後此組合鍵會在整個系統中被佔用——若其他應用程式需要它，請更改（例如終端機或 Vim 中的 Ctrl+V）。"
+          },
           "transcribe": {
             "name": "轉錄快捷鍵",
             "description": "用於錄製和轉錄語音的鍵盤快捷鍵"

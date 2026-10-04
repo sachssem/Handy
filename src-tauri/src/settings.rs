@@ -1029,6 +1029,11 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    // fork(voice-control): re-paste the last transcript (see `paste_last`).
+    bindings.insert(
+        crate::paste_last::BINDING_ID.to_string(),
+        crate::paste_last::default_binding(),
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),

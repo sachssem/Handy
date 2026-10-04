@@ -42,6 +42,7 @@ Conventions used throughout:
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
 | [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
+| [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -703,6 +704,35 @@ transcription stays unchanged.
   ```bash
   git grep -n "save_entry" upstream/main -- src-tauri/src/actions.rs
   ```
+
+## paste last transcript hotkey
+
+A configurable global hotkey (`paste_last_transcript`, default **Ctrl+V** on
+macOS, Alt+Shift+V elsewhere — Ctrl+V is the system paste there) re-pastes the
+most recent transcription into the focused app. Text source is the tray's "Copy
+last transcript" selection (`get_latest_completed_entry`, processed field —
+the pasted text, see [history: pasted text](#history-pasted-text) — else raw),
+pasted verbatim through `clipboard::paste`, so paste method, delays, clipboard
+restore, trailing space and auto-submit match a dictation paste. Fires on press,
+only while idle (not recording / transcribing), once until release and at least
+600 ms apart to suppress auto-repeat; no history → no-op with a debug
+log. Ends a running correction-learning session before pasting and opens none,
+writes no journal record. Existing stores get the binding through upstream's
+"merge missing default bindings" load path.
+
+- **New files:** `src-tauri/src/paste_last.rs` (action, default binding, text
+  selection, idle gate, tests).
+- **Upstream files touched:** `settings.rs` (default binding in
+  `get_default_settings`), `actions.rs` (`ACTION_MAP` entry), `tray.rs`
+  (`last_transcript_text` made `pub(crate)`, `current_tray_state` getter),
+  `lib.rs` (`mod paste_last;`), `GeneralSettings.tsx` (`ShortcutInput` row),
+  locale `settings.general.shortcut.bindings.paste_last_transcript`.
+- **Probe:** `paste-last: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream ship a paste-last / re-paste shortcut?
+  ```bash
+  git grep -n -i "paste_last\|repaste\|last_transcript" upstream/main -- src-tauri/src/actions.rs src-tauri/src/settings.rs
+  ```
+  If so, drop this feature and migrate the user's binding to upstream's id.
 
 ## benchmark harness
 

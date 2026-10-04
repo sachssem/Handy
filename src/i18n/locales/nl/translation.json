@@ -168,6 +168,10 @@
         "notFound": "Sneltoets niet gevonden",
         "pressKeys": "Druk op toetsen...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Laatste transcriptie plakken",
+            "description": "Plakt je meest recente transcriptie opnieuw. De combinatie is systeembreed bezet zolang ze is ingesteld — wijzig haar als een andere app haar nodig heeft (bijv. Ctrl+V in terminals of Vim)."
+          },
           "transcribe": {
             "name": "Sneltoets voor dicteren",
             "description": "De sneltoets om je stem op te nemen en te transcriberen."

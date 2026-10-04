@@ -188,6 +188,10 @@
         "notFound": "Tastenkürzel nicht gefunden",
         "pressKeys": "Tasten drücken...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Letztes Transkript einfügen",
+            "description": "Fügt deine letzte Transkription erneut ein. Die Tastenkombination ist systemweit belegt, solange sie gesetzt ist — ändere sie, wenn eine andere App sie braucht (z. B. Strg+V in Terminals oder Vim)."
+          },
           "transcribe": {
             "name": "Transkriptions-Tastenkürzel",
             "description": "Das Tastenkürzel zum Aufnehmen und Transkribieren deiner Stimme."

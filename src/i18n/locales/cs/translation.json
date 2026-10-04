@@ -188,6 +188,10 @@
         "notFound": "Zkratka nenalezena",
         "pressKeys": "Stiskněte klávesy...",
         "bindings": {
+          "paste_last_transcript": {
+            "name": "Vložit poslední přepis",
+            "description": "Znovu vloží váš poslední přepis. Kombinace je obsazena v celém systému, dokud je nastavena — změňte ji, pokud ji potřebuje jiná aplikace (např. Ctrl+V v terminálech nebo Vimu)."
+          },
           "transcribe": {
             "name": "Zkratka přepisu",
             "description": "Klávesová zkratka pro nahrávání a přepis vašeho hlasu."
