@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "Nahrávání…",
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
     "fallbackModel": "Záložní model…",

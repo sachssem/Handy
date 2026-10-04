@@ -796,6 +796,7 @@
     }
   },
   "overlay": {
+    "recording": "Merekam…",
     "transcribing": "Mentranskripsikan...",
     "processing": "Memproses...",
     "fallbackModel": "Model cadangan…",

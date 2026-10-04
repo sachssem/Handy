@@ -34,6 +34,7 @@ Conventions used throughout:
 | [correction learning](#correction-learning)                          | feature | medium         | `shortcut/mod.rs`, `settings.rs`, `lib.rs`, `clipboard.rs`, overlay, settings UI      |
 | [language-allowlist guard](#language-allowlist-guard)                | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `LanguageSelector.tsx` |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
+| [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -125,6 +126,43 @@ degrade or hang past a length), for models with a measured limit.
 - **Upstream check:** did upstream add a max-recording-length / auto-stop?
   ```bash
   git grep -iE "max.?record|recording.?limit|auto.?stop|duration.?limit" upstream/main -- src-tauri/src
+  ```
+
+## overlay: compact capsule + latency
+
+The Minimal / transcribing / processing overlay is one fixed 144x32 capsule
+(7 bars that settle into a shimmer while working; the fallback-model pass is
+the only state with text), shown with no awaits before the first paint.
+
+- **Instant show:** `show-overlay` commits every visible change inside
+  `flushSync`; language + placement are read on mount and refreshed in the
+  background only when the overlay appears (hidden → visible). The capsule
+  stays mounted while hidden so it can fade out; `key={showSeq}` remounts it on
+  each new appearance to replay the entrance animation. `actions.rs` sets the
+  tray icon after the overlay (the tray sync used
+  to cost 17–60 ms ahead of it).
+- **Arming + accessibility:** the arming waveform pulses only in opacity to
+  preserve round caps, and rests with reduced motion. Cancel reuses `tray.cancel`;
+  the capsule status uses translated `overlay.recording` while recording and
+  the existing work labels during processing.
+- **Latency breadcrumbs:** `TranscribeAction::start` and the `overlay
+'<state>'` show line in `overlay.rs` log `epoch_ms=`; the webview reports
+  `show '<state>' handler|first-frame epoch_ms=…` through the journal's
+  `journal_overlay_stage` command (app log + journal `overlay` events, see
+  [dictation journal](#dictation-journal--app-context)).
+- **New files:** none.
+- **Upstream files touched:** `src/overlay/RecordingOverlay.tsx` (capsule
+  markup, `flushSync` show, `showSeq` remount, breadcrumbs, recording-limit
+  ring, fallback label), `src/overlay/RecordingOverlay.css` (`--ov-capsule-*`
+  geometry and animations), `overlay.rs` (`OVERLAY_WIDTH` 164 + test bounds,
+  `epoch_ms` on the show line), `actions.rs` (tray after overlay, `epoch_ms` on
+  the start line).
+- **Probe:** `overlay: *` in `scripts/fork-check.sh`.
+- **Upstream check:** did upstream redesign the compact overlay or its show
+  path? On a conflict in `RecordingOverlay.tsx` / `.css`, prefer upstream's
+  structure and re-apply the capsule geometry only if still wanted.
+  ```bash
+  git diff main upstream/main -- src/overlay src-tauri/src/overlay.rs
   ```
 
 ## benchmark harness

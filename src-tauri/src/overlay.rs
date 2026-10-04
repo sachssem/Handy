@@ -43,11 +43,12 @@ tauri_panel! {
 // On Windows these sizes are additionally multiplied by the accessibility text
 // scale (see windows_text_scale_factor), which WebView2 applies as a zoom.
 //
-// Compact overlay (Minimal / transcribing / processing): the 40h pill animates
-// width from 224 (--ov-rest-w) to 320 (--ov-work-w) and expands from center, so
-// the window must fit the widest state plus a little slack.
-// fork(voice-control): widened (upstream 256) so work labels never truncate.
-const OVERLAY_WIDTH: f64 = 344.0;
+// fork(voice-control): the compact overlay (Minimal / transcribing /
+// processing) is one fixed 144x32 capsule (--ov-capsule-w/-h) for every state,
+// with no width animation, plus the compact stage padding that holds its drop
+// shadow (10px each side, 6px above, 12px below) — 164x50 (upstream: a 40h pill
+// animating 172→216 wide in a 256x50 window).
+const OVERLAY_WIDTH: f64 = 164.0;
 const OVERLAY_HEIGHT: f64 = 50.0;
 
 // Actual is 394x118, just a little extra
@@ -580,13 +581,19 @@ fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
                 log::error!("Failed to re-assert recording overlay position: {error}");
             }
 
+            // fork(voice-control): epoch_ms lines this up with the press
+            // (TranscribeAction::start) and the webview's `overlay:` breadcrumbs.
             log::debug!(
-                "overlay '{}': set_size={:?} pos_calc={:?} set_pos={:?} show={:?}",
+                "overlay '{}': set_size={:?} pos_calc={:?} set_pos={:?} show={:?} epoch_ms={}",
                 state,
                 size_elapsed,
                 pos_calc_elapsed,
                 set_pos_elapsed,
-                show_elapsed
+                show_elapsed,
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis()
             );
         }
 
@@ -825,7 +832,8 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Bottom,
             ),
-            (3648, 2025, 384, 75)
+            // fork(voice-control): 164x50 logical at 1.5 (upstream 256 wide).
+            (3717, 2025, 246, 75)
         );
         assert_eq!(
             windows_overlay_bounds(
@@ -837,7 +845,7 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Top,
             ),
-            (3648, 6, 384, 75)
+            (3717, 6, 246, 75)
         );
     }
 

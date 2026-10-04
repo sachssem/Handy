@@ -1,5 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
@@ -28,7 +29,33 @@ type RecordingLimitState = {
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
-const WAVE_BARS = 9;
+// fork(voice-control): 7 bars for the compact 144px capsule (upstream 9).
+const WAVE_BARS = 7;
+
+// fork(voice-control): overlay latency breadcrumbs (debug log level + the
+// dictation journal's `overlay` events). The overlay webview has no visible
+// console, so it reports through the journal's journal_overlay_stage command.
+// Epoch ms lets the lines be lined up with the backend's `overlay '<state>': …
+// epoch_ms=` show line and the `TranscribeAction::start … epoch_ms=` press line
+// (the log's own timestamps only carry seconds).
+const overlayStage = (stage: string) => {
+  commands.journalOverlayStage(`overlay: ${stage}`).catch(() => {});
+};
+
+// fork(voice-control): language + placement are read on mount and refreshed in
+// the background whenever the overlay appears — never awaited before the first
+// paint (two settings IPCs used to delay the pill by up to seconds).
+const readOverlayPosition = async (): Promise<"top" | "bottom" | null> => {
+  try {
+    const settings = await commands.getAppSettings();
+    if (settings.status === "ok") {
+      return settings.data.overlay_position === "top" ? "top" : "bottom";
+    }
+  } catch {
+    // Keep the previous/default placement if settings can't be read.
+  }
+  return null;
+};
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -62,6 +89,12 @@ const RecordingOverlay: React.FC = () => {
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
 
+  // fork(voice-control): bumped on each hidden -> visible transition so the
+  // compact capsule remounts and replays its (80 ms) appear animation; a state
+  // change while already visible (recording -> transcribing) must not replay it.
+  const [showSeq, setShowSeq] = useState(0);
+  const visibleRef = useRef(false);
+
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
   // Live-text scroll-back: the text region "sticks" to the newest line while the
   // user is at the bottom; if they scroll up to read history, auto-follow pauses
@@ -71,47 +104,65 @@ const RecordingOverlay: React.FC = () => {
   const direction = getLanguageDirection(i18n.language);
 
   useEffect(() => {
-    const setupEventListeners = async () => {
-      const unlistenShow = await listen("show-overlay", async (event) => {
-        const overlayState = event.payload as OverlayState;
-        // Reset synchronously before settings I/O. A fast microphone can emit
-        // recording-ready while the awaits below are in flight; resetting after
-        // them would overwrite that event and leave the overlay stuck arming.
-        if (overlayState === "recording" || overlayState === "streaming") {
-          setCaptureReady(false);
-          smoothedLevelsRef.current = Array(16).fill(0);
-          setLevels(Array(WAVE_BARS).fill(0));
-          setStreamText({ committed: "", tentative: "" });
-          // fork(voice-control): clear the previous session's recording limit
-          // here too — its recording-limit event can land during the awaits.
-          setRecordingLimit(null);
-          setFallbackActive(false);
-          setNowMs(Date.now());
-        }
+    // fork(voice-control): settings sync off the show path (see
+    // readOverlayPosition). The Live panel flows downward from a top overlay
+    // and upward from a bottom one, so the placement flips the layout.
+    const syncOverlaySettings = () => {
+      syncLanguageFromSettings();
+      readOverlayPosition().then((p) => {
+        if (p) setPosition(p);
+      });
+    };
+    syncOverlaySettings();
 
-        await syncLanguageFromSettings();
-        // The Live panel flows downward from a top overlay and upward from a
-        // bottom one; read the placement so the layout can flip to match.
-        try {
-          const settings = await commands.getAppSettings();
-          if (settings.status === "ok") {
-            setPosition(
-              settings.data.overlay_position === "top" ? "top" : "bottom",
-            );
+    const setupEventListeners = async () => {
+      const unlistenShow = await listen("show-overlay", (event) => {
+        const overlayState = event.payload as OverlayState;
+        const handlerAt = performance.now();
+        const handlerEpoch = Date.now();
+        const appearing = !visibleRef.current;
+        visibleRef.current = true;
+        // fork(voice-control): everything visible is committed synchronously —
+        // no awaits before the paint. flushSync renders now instead of on the
+        // scheduler's next task.
+        flushSync(() => {
+          if (overlayState === "recording" || overlayState === "streaming") {
+            setCaptureReady(false);
+            smoothedLevelsRef.current = Array(16).fill(0);
+            setLevels(Array(WAVE_BARS).fill(0));
+            setStreamText({ committed: "", tentative: "" });
+            // fork(voice-control): clear the previous session's recording limit.
+            setRecordingLimit(null);
+            setFallbackActive(false);
+            setNowMs(Date.now());
           }
-        } catch {
-          // Keep the previous/default placement if settings can't be read.
-        }
-        setState(overlayState);
-        if (overlayState === "streaming") {
-          setPhase("listening");
-          setWorkKind("transcribing");
-          setSession((s) => s + 1); // remount the card fresh for this session
-        }
-        setIsVisible(true);
+          setState(overlayState);
+          if (overlayState === "streaming") {
+            setPhase("listening");
+            setWorkKind("transcribing");
+            setSession((s) => s + 1); // remount the card fresh for this session
+          }
+          if (appearing) setShowSeq((n) => n + 1);
+          setIsVisible(true);
+        });
+        // fork(voice-control): latency breadcrumbs — handler entry, then the
+        // first frame (rAF fires before the paint; the task queued from it runs
+        // after the frame has been produced).
+        overlayStage(
+          `show '${overlayState}' handler epoch_ms=${handlerEpoch} render=${(performance.now() - handlerAt).toFixed(1)}ms`,
+        );
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            overlayStage(
+              `show '${overlayState}' first-frame epoch_ms=${Date.now()} +${(performance.now() - handlerAt).toFixed(1)}ms after handler`,
+            );
+          }, 0);
+        });
+        if (appearing) syncOverlaySettings();
       });
 
       const unlistenHide = await listen("hide-overlay", () => {
+        visibleRef.current = false;
         setIsVisible(false);
         setCaptureReady(false);
         setRecordingLimit(null);
@@ -202,8 +253,6 @@ const RecordingOverlay: React.FC = () => {
     setOverflowing(false);
   }, [session]);
 
-  if (!isVisible) return null;
-
   // Re-pin when the user is within ~a line of the bottom; unpin otherwise.
   const handleStreamScroll = () => {
     const el = capRef.current;
@@ -252,23 +301,40 @@ const RecordingOverlay: React.FC = () => {
     </span>
   ) : null;
 
-  const waveform = (
-    <div className={`swave ${captureReady ? "ready" : "arming"}`}>
+  // fork(voice-control): each bar is two round caps + a body (`<b>`), moved
+  // by transform only so the caps stay round at every level; the bar's level
+  // (--l, 0..1) drives them, the min/max height in px come in as unitless vars.
+  // `settled` = transcribing/processing: the bars glide low and a wave travels
+  // across them (staggered per bar via --i); --c (distance from the center bar)
+  // lets the outer bars trail the center slightly while recording.
+  const waveformFor = (settled: boolean, minPx: number, maxPx: number) => (
+    <div
+      className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"}`}
+      style={{ "--bmin": minPx, "--bmax": maxPx } as React.CSSProperties}
+    >
       {levels.map((v, i) => (
         <i
           key={i}
-          style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
-          }}
-        />
+          style={
+            {
+              "--l": Math.min(1, Math.pow(v, 0.7)).toFixed(3),
+              "--i": i,
+              "--c": Math.abs(i - (WAVE_BARS - 1) / 2),
+            } as React.CSSProperties
+          }
+        >
+          <b />
+        </i>
       ))}
     </div>
   );
+  const waveform = waveformFor(false, 3, 18);
 
   const cancelBtn = (
+    // fork(voice-control): expose the existing translated Cancel action to AT.
     <button
       className="sx"
-      aria-label="cancel"
+      aria-label={t("tray.cancel")}
       onClick={() => commands.cancelOperation()}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -282,13 +348,12 @@ const RecordingOverlay: React.FC = () => {
     </button>
   );
 
-  // dot (left) | waveform (center) | warning + cancel (right) — same structure for
+  // (empty) | waveform (center) | warning + cancel (right) — same structure for
   // pill & panel, so the Live morph is a pure width change.
+  // fork(voice-control): no separate recording dot — the bars carry the state.
   const listeningRow = (showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        <span className={`sdot ${captureReady ? "ready" : "arming"}`} />
-      </div>
+      <div className="sbase-l" />
       {waveform}
       <div className="sbase-r">
         {limitWarningIndicator}
@@ -363,9 +428,15 @@ const RecordingOverlay: React.FC = () => {
     );
   }
 
-  // ---- Minimal overlay: exactly one row at a time — waveform (recording), or a
-  // spinner + label (transcribing / processing). Never both. The pill animates its
-  // width between them; the cancel button is in both rows so it stays put.
+  // ---- Minimal overlay ----
+  // fork(voice-control): one compact capsule with a single footprint for every
+  // state. Recording = live bars; transcribing / processing = the same bars
+  // settled into a shimmer; the fallback-model pass is the only state with
+  // text. Countdown and the (always visible, muted) cancel sit in absolute side
+  // slots so the center never shifts.
+  // It stays mounted while hidden to fade out (.leaving); key={showSeq}
+  // remounts it on each new appearance. Before the first show there is no capsule.
+  if (showSeq === 0) return null;
   const working = state === "transcribing" || state === "processing";
   const workLabel = fallbackActive
     ? t("overlay.fallbackModel")
@@ -374,14 +445,22 @@ const RecordingOverlay: React.FC = () => {
       : t("overlay.transcribing");
 
   return (
-    <div
-      dir={direction}
-      className={`ov-stage ${position} ov-fade ${isVisible ? "show" : ""}`}
-    >
+    <div dir={direction} className={`ov-stage compact ${position}`}>
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""}`}
+        key={showSeq}
+        // fork(voice-control): `working` adds the capsule sheen (CSS).
+        className={`spill ${working ? "working" : ""} ${isVisible ? "" : "leaving"}`}
+        role="status"
+        // fork(voice-control): name the live status in recording states too.
+        aria-label={working ? workLabel : t("overlay.recording")}
       >
-        {working ? workingRow(workLabel, true) : listeningRow(true)}
+        {!working && limitWarningIndicator}
+        {working && fallbackActive ? (
+          <span className="spill-label">{workLabel}</span>
+        ) : (
+          waveformFor(working, 4, 16)
+        )}
+        {cancelBtn}
       </div>
     </div>
   );

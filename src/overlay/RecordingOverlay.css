@@ -1,129 +1,83 @@
 @import "../styles/theme.css";
 
+/* fork(voice-control): this stylesheet is largely fork-owned. Rewritten
+   sections: the inverted palette (:root tokens below), the compact capsule
+   (`.spill`: waveform, settled shimmer, fallback label, countdown and cancel
+   side slots), and the Live card (`.scard` / `.stext*` / `.sbase*`, top and
+   bottom placement). Upstream's original overlay rules no longer apply as is;
+   on an upstream change to the overlay, re-derive from these sections. */
+
+/* fork(voice-control): the overlay is INVERTED against the app theme for
+   contrast over arbitrary content — a dark capsule in light mode, a light one in
+   dark mode. Surface and foreground are the app's own text/background tokens
+   swapped, so the overlay follows the appearance setting (system / light / dark,
+   via theme.css' media query and `data-theme` overrides) with no extra pairs.
+   Secondary tones are mixed from those two, so they flip for free as well. */
 :root {
   --s-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  /* Near-opaque app surface (theme.css --color-background at 98%). Auto-flips
-     light/dark with --color-background, so no dark-mode override is needed. */
-  --s-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
-  /* Accent = logo pink; flips automatically via --color-logo-primary. */
+  --s-surface: var(--color-text);
+  --s-fg: var(--color-background);
+  /* Accent = logo pink (Live caret / spinner only); flips via --color-logo-primary. */
   --s-accent: var(--color-logo-primary);
-  /* Light/dark pairs for the tokens that can't flip through a shared palette
-     variable on their own. Same shape as theme.css: each value is written once
-     here, and the active token below is re-pointed by the media query or by the
-     `data-theme` overrides. */
-  --light-s-accent-soft: color-mix(
-    in srgb,
-    var(--color-background-ui) 16%,
-    transparent
-  );
-  /* Dark uses the lighter logo pink — reads better on the dark surface than the
-     deeper UI pink. */
-  --dark-s-accent-soft: color-mix(
-    in srgb,
-    var(--color-logo-primary) 20%,
-    transparent
-  );
-  /* Neutrals. muted/faint are overlay-specific secondary/tertiary text grays
-     (no theme equivalent). */
-  --light-s-muted: #6e6e6e;
-  --dark-s-muted: #a3a09a;
-  --light-s-faint: #9a9a9a;
-  --dark-s-faint: #6f6c66;
-  /* Hairlines reuse the app's mid-gray at low opacity in light — same vocabulary
-     as the app's border-mid-gray/* utilities — and flip to the near-white text
-     token for contrast on dark. */
-  --light-s-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
-  --dark-s-border: color-mix(in srgb, var(--color-text) 12%, transparent);
-  --light-s-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
-  --dark-s-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
-  /* fork(voice-control): recording-limit countdown warning. */
-  --light-s-warning: #d97706;
-  --dark-s-warning: #fbbf24;
-  --light-s-warning-soft: color-mix(
-    in srgb,
-    var(--light-s-warning) 16%,
-    transparent
-  );
-  --dark-s-warning-soft: color-mix(
-    in srgb,
-    var(--dark-s-warning) 18%,
-    transparent
-  );
+  --s-accent-soft: color-mix(in srgb, var(--s-accent) 22%, transparent);
+  --s-muted: color-mix(in srgb, var(--s-fg) 62%, var(--s-surface));
+  --s-faint: color-mix(in srgb, var(--s-fg) 40%, var(--s-surface));
+  --s-border: color-mix(in srgb, var(--s-fg) 14%, transparent);
+  --s-hair: color-mix(in srgb, var(--s-fg) 10%, transparent);
 
-  /* Active neutrals — default light, flipped by the media query below or forced
-     by `data-theme`. */
-  --s-accent-soft: var(--light-s-accent-soft);
-  --s-muted: var(--light-s-muted);
-  --s-faint: var(--light-s-faint);
-  --s-border: var(--light-s-border);
-  --s-hair: var(--light-s-hair);
+  /* Recording-limit countdown warning. The one tone that cannot be mixed from
+     surface/fg: it takes the OPPOSITE theme's warning color, because the capsule
+     itself is inverted (amber-400 on the dark capsule, amber-600 on the light). */
+  --light-s-warning: var(--dark-color-warning);
+  --dark-s-warning: var(--light-color-warning);
   --s-warning: var(--light-s-warning);
-  --s-warning-soft: var(--light-s-warning-soft);
+  --s-warning-soft: color-mix(in srgb, var(--s-warning) 22%, transparent);
+
+  /* Soft drop shadow for the compact capsule. Its extent (~5px up, ~11px down,
+     ~8px sideways) is what the compact stage padding below reserves. */
+  /* Layered: a crisp contact shadow plus a soft, slightly inset ambient one
+     (4px down + 10px blur - 3px spread = 11px, the bottom slack). */
+  --light-s-shadow:
+    0 0.5px 1px rgb(0 0 0 / 0.22), 0 4px 10px -3px rgb(0 0 0 / 0.26);
+  --dark-s-shadow:
+    0 0.5px 1px rgb(0 0 0 / 0.4), 0 4px 10px -3px rgb(0 0 0 / 0.5);
+  /* Top-edge highlight for a hint of depth; only reads on the dark capsule. */
+  --s-highlight: rgb(255 255 255 / 0.11);
+  --s-shadow: var(--light-s-shadow);
 
   /* Card geometry — single source of truth for the visible overlay sizes. The
-     native overlay window (overlay.rs) is sized from these: it must be at least
-     the card's max footprint (--ov-work-w for compact, --ov-open-w for Live),
-     since the card is anchored flush to the screen edge in CSS. Keep overlay.rs
-     in sync when these change. */
-  --ov-rest-w: 224px; /* resting compact pill (minimal, recording) -- roomy enough
-                         for countdown + cancel without compressing the waveform */
-  --ov-pill-w: 224px; /* base width / Live pill before it opens or collapses */
-  --ov-work-w: 232px; /* minimum working-pill width (transcribing / polishing);
-                         the pill is content-sized and grows past this for longer
-                         labels (fallback pass). OVERLAY_WIDTH caps the growth. */
+     native overlay window (overlay.rs) is sized from these: OVERLAY_WIDTH/HEIGHT
+     = compact capsule + the compact stage padding (shadow slack),
+     OVERLAY_STREAM_* >= the Live panel's max footprint. Keep overlay.rs in sync
+     when these change. */
+  --ov-capsule-w: 144px; /* compact capsule — one footprint for every state */
+  --ov-capsule-h: 32px;
+  --ov-pill-w: 224px; /* Live pill before it opens or collapses */
   --ov-open-w: 392px; /* Live panel, expanded */
-  --ov-base-h: 40px; /* control-row height (.sbase) */
+  --ov-base-h: 40px; /* Live control-row height (.sbase) */
   --ov-cap-max-h: 64px; /* max height of the scrolling live-text region */
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --s-accent-soft: var(--dark-s-accent-soft);
-    --s-muted: var(--dark-s-muted);
-    --s-faint: var(--dark-s-faint);
-    --s-border: var(--dark-s-border);
-    --s-hair: var(--dark-s-hair);
     --s-warning: var(--dark-s-warning);
-    --s-warning-soft: var(--dark-s-warning-soft);
+    --s-shadow: var(--dark-s-shadow);
   }
 }
-
-/*
- * Explicit theme override, matching the `data-theme` blocks in theme.css.
- * `--s-surface` and `--s-accent` honour the setting for free because they derive
- * from shared palette tokens, but the neutrals above are chosen here, so without
- * this block a forced theme on a differently-themed OS mixes the two — e.g. dark
- * surface with light-theme secondary text at ~2.8:1 contrast. macOS masks that
- * (setting the app appearance flips the webview's `prefers-color-scheme` to
- * match), so this is what Windows and Linux need.
- */
+/* Explicit theme override, matching the `data-theme` blocks in theme.css. */
 :root[data-theme="light"] {
-  --s-accent-soft: var(--light-s-accent-soft);
-  --s-muted: var(--light-s-muted);
-  --s-faint: var(--light-s-faint);
-  --s-border: var(--light-s-border);
-  --s-hair: var(--light-s-hair);
   --s-warning: var(--light-s-warning);
-  --s-warning-soft: var(--light-s-warning-soft);
+  --s-shadow: var(--light-s-shadow);
 }
-
 :root[data-theme="dark"] {
-  --s-accent-soft: var(--dark-s-accent-soft);
-  --s-muted: var(--dark-s-muted);
-  --s-faint: var(--dark-s-faint);
-  --s-border: var(--dark-s-border);
-  --s-hair: var(--dark-s-hair);
   --s-warning: var(--dark-s-warning);
-  --s-warning-soft: var(--dark-s-warning-soft);
+  --s-shadow: var(--dark-s-shadow);
 }
 
 /* ============================================================
    Unified overlay stage — one fixed, transparent container shared by the compact
-   pill and the Live panel (both render the same `.scard` base). The card is
-   anchored flush to the screen-edge side (bottom by default, top when placed up
-   top) and centered horizontally, so the visible card sits exactly
-   OVERLAY_*_OFFSET from the screen edge regardless of window height — only the
-   offsets in overlay.rs move it. Pops scale from that edge, so the card is never
-   drawn past it (matters for the 4px top offset on Windows/Linux).
+   capsule and the Live panel. The card is anchored to the screen-edge side
+   (bottom by default, top when placed up top) and centered horizontally, so only
+   the offsets in overlay.rs move it. Pops scale from that edge.
    ============================================================ */
 .ov-stage {
   position: fixed;
@@ -137,21 +91,252 @@
   align-items: flex-start; /* top placement: flush to the top edge */
 }
 
-/* Compact pill: fade the whole container in/out (the pill itself never pops or
-   morphs). */
-.ov-fade {
+/* ============================================================
+   Compact capsule (Minimal overlay): one fixed footprint for recording,
+   transcribing, processing and the fallback-model pass — the content changes,
+   the shape never does.
+   ============================================================ */
+.ov-stage.compact {
+  /* Shadow slack; the drop shadow falls downward, so more room below. */
+  padding: 6px 10px 12px;
+  box-sizing: border-box;
+}
+.spill {
+  position: relative;
+  width: var(--ov-capsule-w);
+  height: var(--ov-capsule-h);
+  flex: none;
+  box-sizing: border-box;
+  border-radius: calc(var(--ov-capsule-h) / 2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  color: var(--s-fg);
+  background: var(--s-surface);
+  /* Hairline ring keeps the edge defined over a same-toned background; the top
+     highlight gives the surface a little depth. */
+  box-shadow:
+    inset 0 0 0 0.5px var(--s-border),
+    inset 0 1px 0 var(--s-highlight),
+    var(--s-shadow);
+  transform-origin: bottom center;
+  /* Appear: opaque within ~90 ms (the press must register at once) while the
+     scale settles with a soft spring. Remounted per show (React key). */
+  animation:
+    spill-in-fade 90ms ease-out,
+    spill-in-scale 240ms cubic-bezier(0.22, 1.3, 0.36, 1);
+}
+.ov-stage.top .spill {
+  transform-origin: top center;
+}
+@keyframes spill-in-fade {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+@keyframes spill-in-scale {
+  from {
+    transform: scale(0.9);
+  }
+}
+/* Hide: a short fade with a slight shrink, finished well inside the backend's
+   300 ms hide delay. */
+.spill.leaving {
   opacity: 0;
-  transition: opacity 200ms ease-out;
+  transform: scale(0.94);
+  pointer-events: none;
+  transition:
+    opacity 150ms ease-in,
+    transform 150ms cubic-bezier(0.4, 0, 1, 1);
 }
-.ov-fade.show {
-  opacity: 1;
+
+/* Transcribing / processing: a faint sheen sweeps across the capsule, under
+   the bars (they are positioned, so they paint above it). */
+.spill.working {
+  overflow: hidden;
 }
+.spill.working::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 50%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--s-fg) 7%, transparent),
+    transparent
+  );
+  transform: translateX(-100%);
+  animation: spill-sheen 2.2s cubic-bezier(0.45, 0, 0.55, 1) 300ms infinite;
+}
+.spill .swave,
+.spill .spill-label {
+  position: relative;
+}
+/* Sweep (capsule width = 1 / 50% = 200% of the sheen), then a short rest. */
+@keyframes spill-sheen {
+  65%,
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* Waveform — 7 bars in the foreground color. Reactive only after the first
+   microphone callback; while arming, a muted center-out pulse acknowledges the
+   shortcut without pretending audio levels are already flowing. */
+.spill .swave {
+  --bw: 3;
+}
+
+/* Transcribing / processing: the bars glide low (from wherever the last level
+   left them) and take a faint accent tint, then a full-height pulse travels
+   across them bar by bar, rests briefly and repeats — clearly "working",
+   unmistakably not "listening". Each bar runs the pulse on its three parts in
+   lockstep (caps translate, body scales). Values are the compact geometry
+   (4..16px, 3px caps) at l = 0.2 (rest) and l = 1 (crest): cap offset
+   6px * (1 - l), body scale (1 + 12l) / 13. */
+.spill .swave.settled {
+  color: color-mix(in srgb, var(--s-fg) 72%, var(--s-accent));
+  transition: color 400ms ease;
+}
+.spill .swave.settled i {
+  --l: 0.2 !important;
+  --bt: 280ms;
+  opacity: 0.5;
+  transition: opacity 280ms ease-out;
+}
+.spill .swave.settled i,
+.spill .swave.settled i::before,
+.spill .swave.settled i::after,
+.spill .swave.settled b {
+  animation-duration: 1100ms;
+  animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  animation-iteration-count: infinite;
+  /* First the glide down, then the pulse runs from the start side. */
+  animation-delay: calc(240ms + var(--i, 0) * 85ms);
+}
+.spill .swave.settled i {
+  animation-name: swave-tone;
+}
+.spill .swave.settled i::before {
+  animation-name: swave-cap-top;
+}
+.spill .swave.settled i::after {
+  animation-name: swave-cap-bottom;
+}
+.spill .swave.settled b {
+  animation-name: swave-body;
+}
+/* Rest -> crest at 20% -> rest at 45%, then hold (the pause between sweeps). */
+@keyframes swave-tone {
+  20% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0.5;
+  }
+}
+@keyframes swave-cap-top {
+  0%,
+  45%,
+  100% {
+    transform: translateY(4.8px);
+  }
+  20% {
+    transform: translateY(0);
+  }
+}
+@keyframes swave-cap-bottom {
+  0%,
+  45%,
+  100% {
+    transform: translateY(-4.8px);
+  }
+  20% {
+    transform: translateY(0);
+  }
+}
+@keyframes swave-body {
+  0%,
+  45%,
+  100% {
+    transform: scaleY(0.262);
+  }
+  20% {
+    transform: scaleY(1);
+  }
+}
+
+/* Fallback-model pass: the only state with text, so the extra latency is
+   explained. A slow sheen keeps it alive without dropping below readable. */
+.spill-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11.5px;
+  font-weight: 560;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  color: var(--s-fg);
+  animation: spill-label-sheen 1.6s ease-in-out infinite;
+}
+@keyframes spill-label-sheen {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+/* Side slots, absolutely placed so the center content never shifts: the
+   recording-limit countdown at the start, the cancel at the end. The cancel is
+   always visible but muted: the non-activating overlay panel does not reliably
+   receive hover, so a hover-only reveal could leave it unreachable. */
+.spill .slimit {
+  position: absolute;
+  inset-inline-start: 6px;
+  top: 50%;
+  margin-top: -10px;
+  width: 20px;
+  height: 20px;
+  font-size: 9px;
+}
+.spill .sx {
+  position: absolute;
+  inset-inline-end: 5px;
+  top: 50%;
+  margin-top: -11px;
+  background: transparent;
+  color: color-mix(in srgb, var(--s-fg) 45%, var(--s-surface));
+  transition: color 120ms ease;
+}
+.spill .sx:hover,
+.spill .sx:focus-visible {
+  background: transparent;
+  color: var(--s-fg);
+  transform: none;
+}
+/* Keep the label clear of the cancel slot (12px padding + 16px = the 27px the
+   cancel occupies); symmetric so the label stays centered. Long labels ellipsize. */
+.spill .spill-label {
+  margin-inline: 16px;
+}
+
+/* ============================================================
+   Live overlay (streaming models): a pill that sculpts open into a panel. Same
+   inverted palette; flat (its window has no shadow slack).
+   ============================================================ */
 
 /* Top placement, Live panel: stack the control pill above the text region so the
    card grows downward from its top edge (oldest line under the pill, newest at
-   the bottom) — mirroring the bottom overlay's upward flow. The compact pill has
-   no flowing text, so this only affects the Live panel. The text region keeps the
-   same fade + scroll-pin; older lines dissolve up under the pill. */
+   the bottom) — mirroring the bottom overlay's upward flow. */
 .ov-stage.top .scard {
   /* column-reverse stacks the control pill above the text region. */
   flex-direction: column-reverse;
@@ -175,12 +360,10 @@
   mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
 }
 .ov-stage.top .stext-cap p {
-  /* Top-anchor short text just under the pill; on overflow the cap still pins to
-     the bottom (newest visible) and older lines fade off the top, same as bottom. */
   margin: 0;
 }
 
-/* Shared base card. Flat: theme surface + hairline border, no shadow or blur. */
+/* Shared Live card. Flat: inverted surface + hairline border. */
 .scard {
   width: var(--ov-pill-w);
   /* Never wider than the window: an unaccounted content zoom degrades to a
@@ -192,11 +375,11 @@
   flex-direction: column;
   flex: none; /* hold our own width; never let the stage flex shrink the card */
   transform-origin: bottom center;
+  color: var(--s-fg);
   background: var(--s-surface);
   border: 1px solid var(--s-border);
-  /* Flat: no drop shadow, no backdrop blur/saturate (was a glassy gradient look). */
   /* pop-in plays on mount; morph (width/radius) is a transition */
-  animation: scard-pop 460ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: scard-pop 200ms cubic-bezier(0.22, 1, 0.36, 1);
   transition:
     width 460ms cubic-bezier(0.22, 1, 0.36, 1),
     border-radius 460ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -206,7 +389,7 @@
   from {
     opacity: 0;
     /* Scale from the anchored edge (transform-origin) — never translate past it. */
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -215,35 +398,20 @@
 }
 .scard.leaving {
   opacity: 0;
-  transform: scale(0.96);
+  transform: scale(0.97);
   transition:
-    opacity 240ms ease,
-    transform 300ms ease;
+    opacity 140ms ease-in,
+    transform 140ms ease-in;
 }
 .scard.open {
   width: var(--ov-open-w);
   border-radius: 16px;
 }
 .scard.working {
-  /* fork(voice-control): content-sized so the pill hugs any work label — no
-     truncation, no dead air. The width morph animation is sacrificed
-     (fit-content cannot be transitioned). */
+  /* Content-sized so the pill hugs any work label — no truncation, no dead air.
+     The width morph animation is sacrificed (fit-content cannot be transitioned). */
   width: fit-content;
   border-radius: 18px;
-}
-
-/* Compact form: two fixed widths so the recording→working change is an animatable
-   width transition (intrinsic max-content can't be transitioned, and every label
-   is short enough to fit the resting pill, so content-sizing produced no visible
-   grow). The resting pill hugs the waveform; the working pill is roomy enough to
-   center the longest label — the .swork-label ellipsis is only a safety net past it. */
-.scard.compact {
-  animation: none;
-  width: var(--ov-rest-w);
-}
-.scard.compact.cworking {
-  /* fork(voice-control): see .scard.working — content-sized. */
-  width: fit-content;
 }
 
 /* text region — auto-height open via grid-rows trick; region fades as a whole */
@@ -279,7 +447,7 @@
   font-style: italic;
   line-height: 1.35;
   letter-spacing: -0.003em;
-  color: color-mix(in srgb, var(--color-text) 90%, transparent);
+  color: color-mix(in srgb, var(--s-fg) 90%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
   mask-image: linear-gradient(to bottom, transparent 0, #000 18px);
   scrollbar-width: none; /* Firefox */
@@ -313,8 +481,7 @@
   }
 }
 
-/* base row — dot (left) | waveform (center) | warning + cancel (right).
-   Same structure for pill & panel; the dot stays anchored left in both. */
+/* Live base row — (empty) | waveform (center) | warning + cancel (right). */
 .sbase {
   height: var(--ov-base-h);
   flex: none; /* the control row never squashes; only the text region gives */
@@ -337,35 +504,8 @@
   gap: 8px;
   justify-self: end;
 }
-.sdot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex: none;
-  box-sizing: border-box;
-  transition:
-    background-color 180ms ease,
-    opacity 180ms ease;
-}
-.sdot.ready {
-  background: var(--s-accent);
-  opacity: 1;
-  animation: sdot-pulse 1.9s infinite;
-}
-/* A quiet neutral dot while the host has not delivered its first sample yet. */
-.sdot.arming {
-  background: var(--s-muted);
-  opacity: 0.45;
-  animation: none;
-}
-@keyframes sdot-pulse {
-  0% {
-    box-shadow: 0 0 0 0 var(--s-accent-soft);
-  }
-  70% {
-    box-shadow: 0 0 0 7px transparent;
-  }
-}
+
+/* Recording-limit countdown ring (shared). */
 .slimit {
   position: relative;
   width: 24px;
@@ -383,6 +523,8 @@
 .slimit-ring {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   transform: rotate(-90deg);
 }
 .slimit-track,
@@ -408,60 +550,97 @@
   }
 }
 
-/* Waveform — reactive only after the first microphone callback. While arming,
-   a muted travelling pulse acknowledges the shortcut without pretending that
-   audio levels are already being received. */
+/* Waveform (shared). Bars take the foreground color. Each bar is a fixed box
+   holding two round caps (::before / ::after) and a body (<b>); the level --l
+   (0..1, inline) places the caps and scales the body by transform only, so the
+   caps stay round at every height. --bmin / --bmax (height range) come inline
+   from the component, --bw is the bar width; all unitless px. */
 .swave {
+  --bw: 4;
   display: flex;
   align-items: center;
   gap: 3px;
-  height: 18px;
+  height: calc(var(--bmax, 18) * 1px);
   flex: none;
   justify-self: center;
 }
 .swave i {
-  width: 4px;
-  min-height: 3px;
-  max-height: 18px;
-  border-radius: 2px;
-  background: var(--s-accent);
-  transition:
-    height 80ms linear,
-    background-color 180ms ease,
-    opacity 180ms ease;
+  --l: 0;
+  --span: calc(var(--bmax, 18) - var(--bmin, 3));
+  position: relative;
+  flex: none;
+  width: calc(var(--bw) * 1px);
+  height: calc(var(--bmax, 18) * 1px);
+  transition: opacity 180ms ease;
+}
+.swave i::before,
+.swave i::after,
+.swave b {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  background: currentColor;
+  /* A soft spring per level step; outer bars trail the center a touch. */
+  transition: transform calc(var(--bt, 110ms) + var(--c, 0) * 22ms)
+    cubic-bezier(0.3, 1.3, 0.5, 1);
+}
+.swave i::before,
+.swave i::after {
+  content: "";
+  height: calc(var(--bw) * 1px);
+  border-radius: 50%;
+}
+.swave i::before {
+  top: 0;
+  transform: translateY(calc(var(--span) * (1 - var(--l)) * 0.5px));
+}
+.swave i::after {
+  bottom: 0;
+  transform: translateY(calc(var(--span) * (var(--l) - 1) * 0.5px));
+}
+.swave b {
+  display: block;
+  top: calc(var(--bw) * 0.5px);
+  height: calc((var(--bmax, 18) - var(--bw)) * 1px);
+  transform: scaleY(
+    max(
+      0,
+      calc(
+        (var(--bmin, 3) + var(--span) * var(--l) - var(--bw)) /
+          (var(--bmax, 18) - var(--bw))
+      )
+    )
+  );
 }
 .swave.arming i {
-  height: 6px !important;
-  background: var(--s-muted);
+  --l: 0.15 !important;
   opacity: 0.35;
   animation: swave-arming 900ms ease-in-out infinite;
 }
+/* Center-out pulse across the 7 bars (outer pair first, middle bar last). */
 .swave.arming i:nth-child(2),
-.swave.arming i:nth-child(8) {
+.swave.arming i:nth-child(6) {
   animation-delay: 75ms;
 }
 .swave.arming i:nth-child(3),
-.swave.arming i:nth-child(7) {
+.swave.arming i:nth-child(5) {
   animation-delay: 150ms;
 }
-.swave.arming i:nth-child(4),
-.swave.arming i:nth-child(6) {
+.swave.arming i:nth-child(4) {
   animation-delay: 225ms;
 }
-.swave.arming i:nth-child(5) {
-  animation-delay: 300ms;
-}
+/* fork(voice-control): pulse opacity so round caps retain their shape. */
 @keyframes swave-arming {
   0%,
   100% {
-    transform: scaleY(0.55);
     opacity: 0.25;
   }
   50% {
-    transform: scaleY(1.5);
     opacity: 0.7;
   }
 }
+
+/* Cancel (shared): a muted glyph, no chip. */
 .sx {
   width: 22px;
   height: 22px;
@@ -475,7 +654,7 @@
   align-items: center;
   justify-content: center;
   color: var(--s-muted);
-  background: var(--s-hair);
+  background: transparent;
   cursor: pointer;
   transition:
     background-color 150ms ease,
@@ -488,15 +667,18 @@
   display: block;
 }
 .sx:hover {
-  background: var(--s-accent-soft);
-  color: var(--color-text);
-  transform: scale(1.05);
+  background: var(--s-hair);
+  color: var(--s-fg);
 }
 .sx:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
+}
+.sx:focus-visible {
+  outline: 1.5px solid var(--s-muted);
+  outline-offset: -1.5px;
 }
 
-/* working state (transcribing / polishing) — spinner + label */
+/* Live working state (transcribing / polishing) — spinner + label */
 .sspinner {
   width: 13px;
   height: 13px;
@@ -520,4 +702,45 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* fork(voice-control): arming rests without the repeating pulse. */
+  .scard,
+  .spill-label,
+  .swave.arming i,
+  .spill .swave.settled i::before,
+  .spill .swave.settled i::after,
+  .spill .swave.settled b {
+    animation: none;
+  }
+  .spill.working::before {
+    display: none;
+  }
+  /* Appear as a plain fade; bars follow the level without the spring. */
+  .spill {
+    animation: spill-in-fade 90ms ease-out;
+  }
+  .spill.leaving {
+    transform: none;
+  }
+  .swave i::before,
+  .swave i::after,
+  .swave b {
+    transition-duration: 80ms;
+    transition-timing-function: linear;
+  }
+  /* Processing: the bars rest at mid height and pulse slowly in opacity. */
+  .spill .swave.settled i {
+    --l: 0.45 !important;
+    animation: swave-breathe 1.4s ease-in-out infinite alternate;
+  }
+}
+@keyframes swave-breathe {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 0.95;
+  }
 }

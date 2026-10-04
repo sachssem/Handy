@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "Đang ghi âm…",
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
     "fallbackModel": "Mô hình dự phòng…",

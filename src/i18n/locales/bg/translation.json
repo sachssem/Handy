@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "Записване…",
     "transcribing": "Транскрибиране...",
     "processing": "Обработка...",
     "fallbackModel": "Резервен модел…",

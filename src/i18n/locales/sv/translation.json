@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "Spelar in…",
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
     "fallbackModel": "Reservmodell…",

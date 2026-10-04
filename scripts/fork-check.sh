@@ -54,6 +54,11 @@ PROBES=(
   "recording-limit: enforcement scheduler|src-tauri/src/transcription_coordinator.rs|schedule_recording_limit"
   "recording-limit: settings UI mounted|src/components/settings/advanced/AdvancedSettings.tsx|RecordingLimitAutoStop"
 
+  # -- overlay: instant, compact, theme-inverted pill --
+  "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"
+  "overlay: compact capsule|src/overlay/RecordingOverlay.css|--ov-capsule-w"
+  "overlay: window sized for capsule|src-tauri/src/overlay.rs|OVERLAY_WIDTH: f64 = 164"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"
@@ -70,6 +75,9 @@ MARKER_FILES=(
   "src-tauri/src/transcription_coordinator.rs"
   "src/stores/settingsStore.ts"
   "src/overlay/RecordingOverlay.tsx"
+  "src-tauri/src/actions.rs"
+  "src-tauri/src/overlay.rs"
+  "src/overlay/RecordingOverlay.css"
 )
 
 fail=0

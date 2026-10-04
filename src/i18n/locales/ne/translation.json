@@ -796,6 +796,7 @@
     }
   },
   "overlay": {
+    "recording": "रेकर्डिङ…",
     "transcribing": "ट्रान्सक्राइब गरिँदैछ...",
     "processing": "प्रशोधन गरिँदैछ...",
     "fallbackModel": "फलब्याक मोडेल…",

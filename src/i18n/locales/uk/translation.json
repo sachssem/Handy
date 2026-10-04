@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "Запис…",
     "transcribing": "Обробка...",
     "processing": "Постобробка...",
     "fallbackModel": "Резервна модель…",

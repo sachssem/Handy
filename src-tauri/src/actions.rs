@@ -387,7 +387,16 @@ pub(crate) async fn process_transcription_output(
 impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
-        debug!("TranscribeAction::start called for binding: {}", binding_id);
+        // fork(voice-control): epoch_ms anchors the overlay latency trail (see
+        // the `overlay '<state>'` show line and the webview `overlay:` lines).
+        debug!(
+            "TranscribeAction::start called for binding: {} epoch_ms={}",
+            binding_id,
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis()
+        );
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -418,9 +427,6 @@ impl ShortcutAction for TranscribeAction {
         }
 
         let binding_id = binding_id.to_string();
-        let tray_started = Instant::now();
-        set_tray_state(app, TrayIconState::Recording);
-        let tray_elapsed = tray_started.elapsed();
 
         // Get the microphone mode to determine audio feedback timing
         let plan_started = Instant::now();
@@ -459,6 +465,12 @@ impl ShortcutAction for TranscribeAction {
             OverlayStyle::Live | OverlayStyle::Minimal => show_recording_overlay(app),
             OverlayStyle::None => {} // show_overlay_state no-ops on None anyway
         }
+        let overlay_elapsed = overlay_started.elapsed();
+        // fork(voice-control): tray after the overlay so the visible feedback is
+        // queued first (the tray sync used to cost 17-60 ms ahead of it).
+        let tray_started = Instant::now();
+        set_tray_state(app, TrayIconState::Recording);
+        let tray_elapsed = tray_started.elapsed();
         // Everything above runs before capture can begin, so each span here is
         // added keypress->capture latency.
         debug!(
@@ -466,7 +478,7 @@ impl ShortcutAction for TranscribeAction {
             kickoff_elapsed,
             tray_elapsed,
             plan_elapsed,
-            overlay_started.elapsed()
+            overlay_elapsed
         );
         debug!("Microphone mode - always_on: {}", is_always_on);
 

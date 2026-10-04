@@ -800,6 +800,7 @@
     }
   },
   "overlay": {
+    "recording": "Recording…",
     "transcribing": "Transcribing...",
     "processing": "Processing...",
     "fallbackModel": "Fallback model…",

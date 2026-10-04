@@ -797,6 +797,7 @@
     }
   },
   "overlay": {
+    "recording": "錄音中…",
     "transcribing": "正在轉錄...",
     "processing": "處理中...",
     "fallbackModel": "備用模型…",

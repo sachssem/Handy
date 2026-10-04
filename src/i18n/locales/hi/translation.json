@@ -796,6 +796,7 @@
     }
   },
   "overlay": {
+    "recording": "रिकॉर्डिंग…",
     "transcribing": "ट्रांसक्राइब हो रहा है...",
     "processing": "प्रोसेस हो रहा है...",
     "fallbackModel": "फ़ॉलबैक मॉडल…",

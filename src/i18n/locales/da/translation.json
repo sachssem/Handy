@@ -796,6 +796,7 @@
     }
   },
   "overlay": {
+    "recording": "Optager…",
     "transcribing": "Transskriberer...",
     "processing": "Behandler...",
     "fallbackModel": "Reservemodel…",
