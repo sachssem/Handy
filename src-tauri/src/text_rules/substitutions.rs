@@ -17,22 +17,19 @@
 //!   ASR guess); and
 //! - **re-capitalizes** the next word after a replacement that ends a sentence
 //!   (`.` `!` `?`) or starts a new line.
+//!
+//! Built-in commands are **context-gated** (see [`super::context`]): an
+//! ambiguous word such as `Punkt` / `Komma` / `dash` is only replaced in command
+//! context and otherwise kept as the word. User rules are unconditional.
 
-use super::{builtin_rules, lex, SpacingPolicy, TextRule, Token};
-
-/// The punctuation characters treated as ASR prosody artifacts: sentence and
-/// clause marks plus the Unicode ellipsis. An ASCII ellipsis `...` is a run of
-/// `.` and is covered by the run-based checks below.
-const PUNCT_CHARS: [char; 7] = ['.', ',', ';', ':', '!', '?', '…'];
-
-fn is_punct_char(c: char) -> bool {
-    PUNCT_CHARS.contains(&c)
-}
+use super::context::{self, is_prosody_char, Before};
+use super::links::ADDRESS_VERBS;
+use super::{builtin_table, lex, Gate, SpacingPolicy, TextRule, Token};
 
 /// Whether `text` is a non-empty run consisting solely of prosody punctuation
 /// (so it can be absorbed wholesale, e.g. `","`, `"."`, `"..."`, `"…"`).
 fn is_punct_run(text: &str) -> bool {
-    !text.is_empty() && text.chars().all(is_punct_char)
+    !text.is_empty() && text.chars().all(is_prosody_char)
 }
 
 /// A closing bracket keeps punctuation that follows it: after `)` a list comma
@@ -47,6 +44,7 @@ struct CompiledRule {
     words: Vec<String>,
     replacement: String,
     spacing: SpacingPolicy,
+    gate: Gate,
 }
 
 /// An intermediate output piece produced by the matcher and rendered into the
@@ -93,18 +91,20 @@ fn compile_rules(custom_rules: &[TextRule], disabled_builtins: &[String]) -> Vec
 
     let mut compiled: Vec<CompiledRule> = Vec::new();
 
-    for rule in builtin_rules() {
-        if disabled.contains(&rule.trigger.to_lowercase()) {
+    for (rule, gate) in builtin_table() {
+        // Structural entries are keys of dedicated passes, not substitutions.
+        if gate == Gate::Structural || disabled.contains(&rule.trigger.to_lowercase()) {
             continue;
         }
-        if let Some(compiled_rule) = compile_rule(&rule) {
+        if let Some(compiled_rule) = compile_rule(&rule, gate) {
             compiled.push(compiled_rule);
         }
     }
 
     // User rules override built-ins with the same trigger, and add new ones.
+    // They are never context-gated: the user chose the trigger deliberately.
     for rule in custom_rules {
-        if let Some(compiled_rule) = compile_rule(rule) {
+        if let Some(compiled_rule) = compile_rule(rule, Gate::Always) {
             compiled.retain(|existing| existing.words != compiled_rule.words);
             compiled.push(compiled_rule);
         }
@@ -125,7 +125,7 @@ fn trigger_len(rule: &CompiledRule) -> usize {
     rule.words.iter().map(|w| w.chars().count()).sum()
 }
 
-fn compile_rule(rule: &TextRule) -> Option<CompiledRule> {
+fn compile_rule(rule: &TextRule, gate: Gate) -> Option<CompiledRule> {
     let words: Vec<String> = rule
         .trigger
         .split_whitespace()
@@ -140,7 +140,57 @@ fn compile_rule(rule: &TextRule) -> Option<CompiledRule> {
         words,
         replacement: rule.replacement.clone(),
         spacing: rule.spacing,
+        gate,
     })
+}
+
+/// Whether a built-in matched at `start..end` is meant as a command here (see
+/// [`super::context`] for the rules).
+fn in_command_context(
+    tokens: &[Token],
+    start: usize,
+    end: usize,
+    gate: Gate,
+    rules: &[CompiledRule],
+) -> bool {
+    if matches!(gate, Gate::Always | Gate::Structural) {
+        return gate == Gate::Always;
+    }
+    // Rejected numbered-list prose must not fall through to a sentence dot.
+    if gate == Gate::Strict
+        && matches!(context::after(tokens, end), context::After::Word(next)
+            if super::lists::list_number(&tokens[next].text().to_lowercase()).is_some()
+                || tokens[next].text().chars().all(|c| c.is_ascii_digit()))
+    {
+        return false;
+    }
+    if context::is_prose_use(tokens, start, gate == Gate::Strict)
+        || (gate != Gate::Glue && context::before(tokens, start) == Before::Start)
+    {
+        return false;
+    }
+    if context::has_clause_signal(tokens, start, end) {
+        return true;
+    }
+    if gate == Gate::Strict {
+        return false;
+    }
+    context::neighbors(tokens, start, end)
+        .into_iter()
+        .any(|neighbor| {
+            context::is_path_token(&tokens[neighbor])
+            // An explicit address command also accepts a recipient instruction.
+            || (tokens[start].text().eq_ignore_ascii_case("klammeraffe")
+                && ADDRESS_VERBS.contains(&tokens[neighbor].text().to_lowercase().as_str()))
+            || rules.iter().any(|rule| {
+                try_match(tokens, neighbor, rule).is_some_and(|neighbor_end| {
+                    !context::is_prose_use(tokens, neighbor, rule.gate == Gate::Strict)
+                        && (rule.gate == Gate::Glue
+                            || (context::has_clause_signal(tokens, neighbor, neighbor_end)
+                                && context::before(tokens, neighbor) != Before::Start))
+                })
+            })
+        })
 }
 
 /// Walk the token stream, replacing matched trigger phrases with rule pieces.
@@ -151,10 +201,11 @@ fn match_tokens(tokens: &[Token], rules: &[CompiledRule]) -> Vec<Piece> {
     while i < tokens.len() {
         match &tokens[i] {
             Token::Word(word) => {
-                if let Some((rule, end)) = rules
-                    .iter()
-                    .find_map(|rule| try_match(tokens, i, rule).map(|end| (rule, end)))
-                {
+                if let Some((rule, end)) = rules.iter().find_map(|rule| {
+                    try_match(tokens, i, rule)
+                        .filter(|&end| in_command_context(tokens, i, end, rule.gate, rules))
+                        .map(|end| (rule, end))
+                }) {
                     // Absorb ASR punctuation that hugs the matched trigger span.
                     absorb_preceding(&mut pieces);
                     let (next, absorbed_following) = if keeps_following_punct(&rule.replacement) {
@@ -162,6 +213,9 @@ fn match_tokens(tokens: &[Token], rules: &[CompiledRule]) -> Vec<Piece> {
                     } else {
                         absorb_following(tokens, end)
                     };
+                    // A gated period only fires as a sentence end (path dots are
+                    // joined by the links pass), so it always keeps its space.
+                    let absorbed_following = absorbed_following || rule.gate == Gate::Strict;
                     pieces.push(Piece::Rule {
                         replacement: rule.replacement.clone(),
                         spacing: rule.spacing,
@@ -268,7 +322,13 @@ fn render(pieces: Vec<Piece>) -> String {
     for piece in pieces {
         match piece {
             Piece::Space(space) => {
-                if skip_next_space {
+                if skip_next_space && space.contains('\n') {
+                    // A line break is structure (e.g. list lines), never a
+                    // droppable space: keep it, drop the rule's own space.
+                    skip_next_space = false;
+                    trim_trailing_whitespace(&mut out);
+                    out.push_str(&space);
+                } else if skip_next_space {
                     skip_next_space = false;
                 } else {
                     out.push_str(&space);
@@ -368,7 +428,7 @@ fn trim_trailing_whitespace(out: &mut String) {
 }
 
 fn trim_trailing_punctuation(out: &mut String) {
-    while out.chars().next_back().is_some_and(is_punct_char) {
+    while out.chars().next_back().is_some_and(is_prosody_char) {
         out.pop();
     }
 }
@@ -383,6 +443,8 @@ mod tests {
 
     #[test]
     fn case_insensitive() {
+        assert_eq!(subst("ende, KOMMA weiter"), "ende, weiter");
+        assert_eq!(subst("ende, komma weiter"), "ende, weiter");
         assert_eq!(subst("ende KOMMA weiter"), "ende, weiter");
         assert_eq!(subst("ende komma weiter"), "ende, weiter");
     }
@@ -412,11 +474,13 @@ mod tests {
 
     #[test]
     fn glue_policy() {
+        assert_eq!(subst("voice, Bindestrich control"), "voice-control");
         assert_eq!(subst("voice Bindestrich control"), "voice-control");
     }
 
     #[test]
     fn attach_left_policy() {
+        assert_eq!(subst("hallo, Komma welt"), "hallo, welt");
         assert_eq!(subst("hallo Komma welt"), "hallo, welt");
     }
 
@@ -512,8 +576,12 @@ mod tests {
 
     #[test]
     fn glue_period_keeps_path_semantics() {
-        // Without an absorbed ASR mark, "Punkt" stays a glue joiner for paths.
-        assert_eq!(subst("www Punkt example Punkt com"), "www.example.com");
+        // Domain dots are joined by the links pass (full pipeline); the
+        // substitution engine alone leaves a mid-sentence "Punkt" as a word.
+        assert_eq!(
+            super::super::apply_rules("www Punkt example Punkt com", false, &[], &[]),
+            "www.example.com"
+        );
     }
 
     #[test]
@@ -533,5 +601,26 @@ mod tests {
             subst("Echt eine super Frage hier, Question Mark."),
             "Echt eine super Frage hier?"
         );
+    }
+
+    #[test]
+    fn punctuation_and_glue_need_positive_context() {
+        for text in [
+            "He has colon cancer.",
+            "There's a big question mark over the budget.",
+            "Click the red dot.",
+            "Retailers slash prices.",
+            "Das schreibt man mit Bindestrich.",
+            "I made a mad dash for the door.",
+        ] {
+            assert_eq!(subst(text), text, "input: {text}");
+        }
+        assert_eq!(
+            subst("Hallo Komma wie geht's Fragezeichen"),
+            "Hallo, wie geht's?"
+        );
+        assert_eq!(subst("Slash users slash marc"), "/users/marc");
+        assert_eq!(subst("cd Tilde Schrägstrich Code"), "cd ~/Code");
+        assert_eq!(subst("a_b slash c"), "a_b/c");
     }
 }

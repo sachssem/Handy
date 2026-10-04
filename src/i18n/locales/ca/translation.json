@@ -197,6 +197,9 @@
           "title": "Limita la detecció automàtica a…",
           "description": "Quan se selecciona l'opció automàtica, només es conserven aquestes llengües. Si es detecta una llengua que no és a la llista, es torna a transcriure en la llengua principal.",
           "primary": "Principal",
+          "primaryTag": "{{language}} (principal)",
+          "makePrimary": "Defineix com a principal",
+          "summaryAll": "Totes les llengües",
           "fallbackModel": {
             "label": "Model alternatiu",
             "none": "Cap",
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Ordres integrades",
-          "description": "Activa o desactiva ordres integrades individuals. Desactiveu-ne una si s'activa per error en la parla normal (p. ex. \"Punkt\")."
+          "description": "Activa o desactiva ordres integrades individuals. Desactiveu-ne una si s'activa per error en la parla normal (p. ex. \"Punkt\").",
+          "summary": "{{active}}/{{total}} actives",
+          "loading": "S'estan carregant les ordres integrades…",
+          "loadError": "No s'han pogut carregar les ordres integrades.",
+          "retry": "Torna-ho a provar"
         },
         "custom": {
           "title": "Regles personalitzades",
@@ -426,6 +433,12 @@
           "attach_right": "Com un parèntesi d'obertura",
           "glue": "Uneix paraules",
           "standalone": "Independent"
+        },
+        "spacingHint": {
+          "attach_left": "Sense espai abans, un després: paraula, paraula",
+          "attach_right": "Un espai abans, cap després: paraula (paraula",
+          "glue": "Sense espais al voltant: voice-control",
+          "standalone": "S'insereix tal qual i se suprimeixen els espais del voltant: salts de línia"
         }
       },
       "learnedCorrections": {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { useSettings } from "../../hooks/useSettings";
@@ -9,6 +9,7 @@ import { Button } from "../ui/Button";
 import { ToggleSwitch } from "../ui/ToggleSwitch";
 import { Dropdown } from "../ui/Dropdown";
 import type { DropdownOption } from "../ui/Dropdown";
+import { Disclosure } from "../ui/Disclosure";
 import { RemoveIcon } from "../icons";
 
 interface TextRulesProps {
@@ -40,14 +41,28 @@ export const TextRules: React.FC<TextRulesProps> = React.memo(
     const customRules = getSetting("text_rules_custom") || [];
     const disabledBuiltins = getSetting("text_rules_disabled_builtins") || [];
 
-    const [builtins, setBuiltins] = useState<TextRule[]>([]);
+    // null while loading; the backend list is authoritative (new built-ins
+    // appear here without a frontend change).
+    const [builtins, setBuiltins] = useState<TextRule[] | null>(null);
+    const [builtinsError, setBuiltinsError] = useState(false);
     const [newTrigger, setNewTrigger] = useState("");
     const [newReplacement, setNewReplacement] = useState("");
     const [newSpacing, setNewSpacing] = useState<SpacingPolicy>("glue");
 
-    useEffect(() => {
-      commands.getTextRulesBuiltins().then(setBuiltins);
+    const loadBuiltins = useCallback(() => {
+      setBuiltinsError(false);
+      commands
+        .getTextRulesBuiltins()
+        .then(setBuiltins)
+        .catch((error) => {
+          console.error("Failed to load built-in text rules:", error);
+          setBuiltinsError(true);
+        });
     }, []);
+
+    useEffect(() => {
+      loadBuiltins();
+    }, [loadBuiltins]);
 
     const spacingLabel = (spacing: SpacingPolicy): string =>
       t(`settings.advanced.textRules.spacing.${spacing}`);
@@ -55,6 +70,7 @@ export const TextRules: React.FC<TextRulesProps> = React.memo(
     const spacingOptions: DropdownOption[] = SPACING_POLICIES.map((policy) => ({
       value: policy,
       label: spacingLabel(policy),
+      description: t(`settings.advanced.textRules.spacingHint.${policy}`),
     }));
 
     const isBuiltinEnabled = (trigger: string): boolean =>
@@ -71,6 +87,10 @@ export const TextRules: React.FC<TextRulesProps> = React.memo(
         nextEnabled ? withoutTrigger : [...withoutTrigger, trigger],
       );
     };
+
+    const activeBuiltins = (builtins ?? []).filter((rule) =>
+      isBuiltinEnabled(rule.trigger),
+    ).length;
 
     const handleAddRule = () => {
       const trigger = newTrigger.trim();
@@ -137,121 +157,153 @@ export const TextRules: React.FC<TextRulesProps> = React.memo(
               grouped={grouped}
             />
 
-            <div className="px-4 p-2 space-y-2">
-              <div className="text-sm font-semibold">
-                {t("settings.advanced.textRules.builtins.title")}
-              </div>
-              <div className="text-xs text-mid-gray">
-                {t("settings.advanced.textRules.builtins.description")}
-              </div>
-              <div className="flex flex-col gap-1">
-                {builtins.map((rule) => (
-                  <label
-                    key={rule.trigger}
-                    className="flex items-center gap-2 text-sm cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isBuiltinEnabled(rule.trigger)}
-                      disabled={isUpdating("text_rules_disabled_builtins")}
-                      onChange={(e) =>
-                        handleToggleBuiltin(rule.trigger, e.target.checked)
-                      }
-                    />
-                    <span>
-                      {t("settings.advanced.textRules.mapping", {
-                        trigger: rule.trigger,
-                        replacement: displayReplacement(rule.replacement),
-                      })}
+            <Disclosure
+              title={t("settings.advanced.textRules.builtins.title")}
+              summary={
+                builtins
+                  ? t("settings.advanced.textRules.builtins.summary", {
+                      active: activeBuiltins,
+                      total: builtins.length,
+                    })
+                  : undefined
+              }
+            >
+              <div className="px-4 space-y-2">
+                <p className="text-xs text-mid-gray">
+                  {t("settings.advanced.textRules.builtins.description")}
+                </p>
+                {builtinsError ? (
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-red-600">
+                      {t("settings.advanced.textRules.builtins.loadError")}
                     </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="px-4 p-2 space-y-2">
-              <div className="text-sm font-semibold">
-                {t("settings.advanced.textRules.custom.title")}
-              </div>
-              <div className="text-xs text-mid-gray">
-                {t("settings.advanced.textRules.custom.description")}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  type="text"
-                  className="max-w-40"
-                  value={newTrigger}
-                  onChange={(e) => setNewTrigger(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder={t(
-                    "settings.advanced.textRules.custom.triggerPlaceholder",
-                  )}
-                  variant="compact"
-                  disabled={isUpdating("text_rules_custom")}
-                />
-                <Input
-                  type="text"
-                  className="max-w-24"
-                  value={newReplacement}
-                  onChange={(e) => setNewReplacement(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder={t(
-                    "settings.advanced.textRules.custom.replacementPlaceholder",
-                  )}
-                  variant="compact"
-                  disabled={isUpdating("text_rules_custom")}
-                />
-                <Dropdown
-                  className="w-40"
-                  options={spacingOptions}
-                  selectedValue={newSpacing}
-                  onSelect={(value) => setNewSpacing(value as SpacingPolicy)}
-                  disabled={isUpdating("text_rules_custom")}
-                />
-                <Button
-                  onClick={handleAddRule}
-                  disabled={
-                    !newTrigger.trim() ||
-                    !newReplacement ||
-                    isUpdating("text_rules_custom")
-                  }
-                  variant="primary"
-                  size="md"
-                >
-                  {t("settings.advanced.textRules.custom.add")}
-                </Button>
-              </div>
-              {customRules.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  {customRules.map((rule, index) => (
-                    <div
-                      key={`${rule.trigger}-${index}`}
-                      className="flex items-center justify-between gap-2 text-sm"
+                    <Button
+                      onClick={loadBuiltins}
+                      variant="secondary"
+                      size="sm"
                     >
-                      <span>
-                        {t("settings.advanced.textRules.custom.rule", {
-                          trigger: rule.trigger,
-                          replacement: displayReplacement(rule.replacement),
-                          spacing: spacingLabel(rule.spacing || "glue"),
-                        })}
-                      </span>
-                      <Button
-                        onClick={() => handleRemoveRule(index)}
-                        disabled={isUpdating("text_rules_custom")}
-                        variant="danger-ghost"
-                        size="sm"
-                        aria-label={t(
-                          "settings.advanced.textRules.custom.remove",
-                          { trigger: rule.trigger },
-                        )}
+                      {t("settings.advanced.textRules.builtins.retry")}
+                    </Button>
+                  </div>
+                ) : builtins === null ? (
+                  <p className="text-sm text-mid-gray">
+                    {t("settings.advanced.textRules.builtins.loading")}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    {builtins.map((rule) => (
+                      <label
+                        key={rule.trigger}
+                        className="flex items-center gap-2 text-sm cursor-pointer min-w-0"
                       >
-                        <RemoveIcon />
-                      </Button>
-                    </div>
-                  ))}
+                        <input
+                          type="checkbox"
+                          checked={isBuiltinEnabled(rule.trigger)}
+                          disabled={isUpdating("text_rules_disabled_builtins")}
+                          onChange={(e) =>
+                            handleToggleBuiltin(rule.trigger, e.target.checked)
+                          }
+                        />
+                        <span className="truncate">
+                          {t("settings.advanced.textRules.mapping", {
+                            trigger: rule.trigger,
+                            replacement: displayReplacement(rule.replacement),
+                          })}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Disclosure>
+
+            <Disclosure
+              title={t("settings.advanced.textRules.custom.title")}
+              summary={customRules.length}
+              defaultOpen={customRules.length > 0}
+            >
+              <div className="px-4 space-y-2">
+                <p className="text-xs text-mid-gray">
+                  {t("settings.advanced.textRules.custom.description")}
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input
+                    type="text"
+                    className="max-w-40"
+                    value={newTrigger}
+                    onChange={(e) => setNewTrigger(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder={t(
+                      "settings.advanced.textRules.custom.triggerPlaceholder",
+                    )}
+                    variant="compact"
+                    disabled={isUpdating("text_rules_custom")}
+                  />
+                  <Input
+                    type="text"
+                    className="max-w-24"
+                    value={newReplacement}
+                    onChange={(e) => setNewReplacement(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder={t(
+                      "settings.advanced.textRules.custom.replacementPlaceholder",
+                    )}
+                    variant="compact"
+                    disabled={isUpdating("text_rules_custom")}
+                  />
+                  <Dropdown
+                    className="w-44"
+                    menuClassName="left-0 w-72"
+                    options={spacingOptions}
+                    selectedValue={newSpacing}
+                    onSelect={(value) => setNewSpacing(value as SpacingPolicy)}
+                    disabled={isUpdating("text_rules_custom")}
+                  />
+                  <Button
+                    onClick={handleAddRule}
+                    disabled={
+                      !newTrigger.trim() ||
+                      !newReplacement ||
+                      isUpdating("text_rules_custom")
+                    }
+                    variant="primary"
+                    size="md"
+                  >
+                    {t("settings.advanced.textRules.custom.add")}
+                  </Button>
                 </div>
-              )}
-            </div>
+                {customRules.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    {customRules.map((rule, index) => (
+                      <div
+                        key={`${rule.trigger}-${index}`}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span>
+                          {t("settings.advanced.textRules.custom.rule", {
+                            trigger: rule.trigger,
+                            replacement: displayReplacement(rule.replacement),
+                            spacing: spacingLabel(rule.spacing || "glue"),
+                          })}
+                        </span>
+                        <Button
+                          onClick={() => handleRemoveRule(index)}
+                          disabled={isUpdating("text_rules_custom")}
+                          variant="danger-ghost"
+                          size="sm"
+                          aria-label={t(
+                            "settings.advanced.textRules.custom.remove",
+                            { trigger: rule.trigger },
+                          )}
+                        >
+                          <RemoveIcon />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Disclosure>
           </>
         )}
       </>

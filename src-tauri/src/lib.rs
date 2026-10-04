@@ -676,6 +676,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_autostart_setting,
             shortcut::change_translate_to_english_setting,
             shortcut::change_selected_language_setting,
+            // fork(voice-control): language allowlist guard.
             shortcut::change_language_allowlist_setting,
             shortcut::change_language_allowlist_fallback_model_setting,
             shortcut::change_overlay_position_setting,

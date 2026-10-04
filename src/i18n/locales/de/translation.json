@@ -215,8 +215,11 @@
         "auto": "Automatisch",
         "allowlist": {
           "title": "Automatische Erkennung beschränken auf …",
-          "description": "Wenn „Auto“ gewählt ist, nur diese Sprachen zulassen. Eine erkannte Sprache außerhalb dieser Liste wird erneut transkribiert, fest auf die erste (primäre) Sprache eingestellt.",
+          "description": "Wenn „Auto“ gewählt ist, nur diese Sprachen zulassen. Eine erkannte Sprache außerhalb dieser Liste wird in der Primärsprache neu transkribiert.",
           "primary": "Primär",
+          "primaryTag": "{{language}} (primär)",
+          "makePrimary": "Als primär festlegen",
+          "summaryAll": "Alle Sprachen",
           "fallbackModel": {
             "label": "Ausweichmodell",
             "none": "Keins",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" existiert bereits"
       },
       "textRules": {
-        "title": "Textregeln",
+        "title": "Gesprochene Befehle umwandeln",
         "description": "Wandelt gesprochene Satzzeichen- und Formatierungsbefehle (Deutsch und Englisch) sofort in Symbole um, ohne KI-Umweg. Läuft vor der optionalen KI-Nachbearbeitung.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Eingebaute Befehle",
-          "description": "Einzelne eingebaute Befehle aktivieren oder deaktivieren. Deaktiviere einen, wenn er in normaler Sprache stört (z. B. \"Punkt\")."
+          "description": "Einzelne eingebaute Befehle aktivieren oder deaktivieren. Deaktiviere einen, wenn er in normaler Sprache stört (z. B. \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktiv",
+          "loading": "Integrierte Befehle werden geladen …",
+          "loadError": "Die integrierten Befehle konnten nicht geladen werden.",
+          "retry": "Erneut versuchen"
         },
         "custom": {
           "title": "Eigene Regeln",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Links anfügen",
-          "attach_right": "Rechts anfügen",
-          "glue": "Verbinden",
-          "standalone": "Eigenständig"
+          "attach_left": "Wie ein Komma",
+          "attach_right": "Wie eine öffnende Klammer",
+          "glue": "Verbindet Wörter",
+          "standalone": "Für sich allein"
+        },
+        "spacingHint": {
+          "attach_left": "Kein Leerzeichen davor, eins danach: Wort, Wort",
+          "attach_right": "Ein Leerzeichen davor, keins danach: Wort (Wort",
+          "glue": "Keine Leerzeichen: Voice-Control",
+          "standalone": "Unverändert eingefügt, umgebende Leerzeichen entfernt: Zeilenumbrüche"
         }
       },
       "learnedCorrections": {

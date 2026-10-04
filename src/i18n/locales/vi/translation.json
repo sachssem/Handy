@@ -217,6 +217,9 @@
           "title": "Giới hạn tự động nhận diện ở…",
           "description": "Khi chọn Tự động, chỉ giữ các ngôn ngữ này. Ngôn ngữ được nhận diện ngoài danh sách sẽ được phiên âm lại, ghim vào ngôn ngữ đầu tiên (chính).",
           "primary": "Chính",
+          "primaryTag": "{{language}} (chính)",
+          "makePrimary": "Đặt làm chính",
+          "summaryAll": "Tất cả ngôn ngữ",
           "fallbackModel": {
             "label": "Mô hình dự phòng",
             "none": "Không có",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" đã tồn tại"
       },
       "textRules": {
-        "title": "Quy tắc văn bản",
+        "title": "Chuyển đổi lệnh nói",
         "description": "Chuyển đổi ngay lập tức các lệnh dấu câu và định dạng được nói (tiếng Đức và tiếng Anh) thành ký hiệu, không cần qua AI. Chạy trước bước xử lý hậu kỳ AI tùy chọn.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Lệnh tích hợp sẵn",
-          "description": "Bật hoặc tắt từng lệnh tích hợp sẵn. Tắt một lệnh nếu nó bị kích hoạt nhầm trong lời nói bình thường (ví dụ \"Punkt\")."
+          "description": "Bật hoặc tắt từng lệnh tích hợp sẵn. Tắt một lệnh nếu nó bị kích hoạt nhầm trong lời nói bình thường (ví dụ \"Punkt\").",
+          "summary": "{{active}}/{{total}} đang bật",
+          "loading": "Đang tải lệnh tích hợp…",
+          "loadError": "Không thể tải lệnh tích hợp.",
+          "retry": "Thử lại"
         },
         "custom": {
           "title": "Quy tắc tùy chỉnh",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Gắn bên trái",
-          "attach_right": "Gắn bên phải",
-          "glue": "Dán liền",
-          "standalone": "Độc lập"
+          "attach_left": "Như dấu phẩy",
+          "attach_right": "Như dấu ngoặc mở",
+          "glue": "Nối các từ",
+          "standalone": "Đứng riêng"
+        },
+        "spacingHint": {
+          "attach_left": "Không có dấu cách trước, một sau: từ, từ",
+          "attach_right": "Một dấu cách trước, không có sau: từ (từ",
+          "glue": "Không có dấu cách xung quanh: voice-control",
+          "standalone": "Chèn nguyên dạng, xóa dấu cách xung quanh: xuống dòng"
         }
       },
       "learnedCorrections": {

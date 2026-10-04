@@ -195,8 +195,11 @@
         "auto": "Auto",
         "allowlist": {
           "title": "Restrict auto-detect to…",
-          "description": "When Auto is selected, only keep these languages. A detected language outside this list is re-transcribed pinned to the first (primary) language.",
+          "description": "When Auto is selected, only keep these languages. A detected language outside this list is re-transcribed in the primary language.",
           "primary": "Primary",
+          "primaryTag": "{{language}} (primary)",
+          "makePrimary": "Make primary",
+          "summaryAll": "All languages",
           "fallbackModel": {
             "label": "Fallback model",
             "none": "None",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" already exists"
       },
       "textRules": {
-        "title": "Text Rules",
+        "title": "Convert spoken commands",
         "description": "Convert spoken punctuation and formatting commands (German and English) into symbols instantly, without an AI round-trip. Runs before optional AI post-processing.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Built-in Commands",
-          "description": "Enable or disable individual built-in commands. Disable one if it misfires in normal speech (e.g. \"Punkt\")."
+          "description": "Enable or disable individual built-in commands. Disable one if it misfires in normal speech (e.g. \"Punkt\").",
+          "summary": "{{active}}/{{total}} active",
+          "loading": "Loading built-in commands…",
+          "loadError": "Couldn't load the built-in commands.",
+          "retry": "Retry"
         },
         "custom": {
           "title": "Custom Rules",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Attach left",
-          "attach_right": "Attach right",
-          "glue": "Glue",
-          "standalone": "Standalone"
+          "attach_left": "Like a comma",
+          "attach_right": "Like an opening bracket",
+          "glue": "Joins words",
+          "standalone": "On its own"
+        },
+        "spacingHint": {
+          "attach_left": "No space before, one after: word, word",
+          "attach_right": "One space before, none after: word (word",
+          "glue": "No spaces around: voice-control",
+          "standalone": "Inserted as-is, surrounding spaces removed: line breaks"
         }
       },
       "learnedCorrections": {

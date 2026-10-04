@@ -32,7 +32,7 @@ Conventions used throughout:
 | ---------------------------------------------------------------------------------------- | ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [text-rules engine](#text-rules-engine)                                                  | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
 | [correction learning](#correction-learning)                          | feature | medium         | `shortcut/mod.rs`, `settings.rs`, `lib.rs`, `clipboard.rs`, overlay, settings UI      |
-| [language-allowlist guard](#language-allowlist-guard)                | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `LanguageSelector.tsx` |
+| [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                                                                |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
@@ -49,7 +49,52 @@ low; features that graft into `transcription.rs` are the ones to watch.
 Deterministic punctuation / inverse-text-normalization layer applied to ASR output
 before paste (spoken "comma" → ",", spacing policy, custom substitutions, ITN).
 
-- **New files:** `src-tauri/src/text_rules/` (`mod.rs`, `itn.rs`, `substitutions.rs`),
+Pass order (`text_rules::apply_rules`): ITN → lists → quotes → links → context-gated
+substitutions → lone-token period strip. Behaviour (precision over recall — a
+missed command is cheaper than corrupted prose; details in each module's docs):
+
+- **Context gating** (`context.rs`): built-in command words fire only in command
+  context; user rules stay unconditional. A determiner/possessive/contracted
+  preposition directly before the word (`der`, `ein`, `zum`, `um`, `the`, `a`, `to`
+  …), also across attributive adjectives (`der springende Punkt`), keeps it a
+  word (including English adjectives and German prepositions such as `mit`).
+  Glue and punctuation commands additionally need a text edge / ASR punctuation
+  on either side or an adjacent glue command / path / identifier context;
+  punctuation commands also need a word before them. Existing comma-after-greeting
+  and bounded two-word hyphen/underscore identifier fragments supply a clause
+  signal even without ASR punctuation; `Punkt`/`dot` additionally need a clause-end signal (punctuation,
+  line break, end of text, a line-break command, or its own ASR segment before a
+  capitalized word) — an unwrapped mid-sentence `Punkt` stays a word.
+- **Links** (`links.rs`): `w Punkt|dot w …` joins to `.` (ASR commas/periods around
+  the spoken dot dropped) when it ends in a known TLD / file extension, starts with
+  `www`, or is all digits (versions); domains lowercased, file stems keep case.
+  `local at|ät domain.tld` → e-mail (key `at`) only with a positive signal:
+  explicit `ät` / `Klammeraffe`, a spoken-chain local part, or a recipient cue
+  within three preceding words. Ordinary “Sign up at example.com” stays prose.
+  A lone path/URL/e-mail result
+  loses the ASR's trailing period.
+- **Quotes** (`quotes.rs`, keys `Anführungszeichen` / `quote`): explicit
+  `auf/zu`, `open/close/end quote`, `unquote`; bare English `quote` requires an
+  explicit closer; bare German `Anführungszeichen` cannot open before a determiner.
+  Ambiguous pairs enclose at most eight words. `in Anführungszeichen X` scare
+  quotes stop before the next quote marker, preserving later pairs. Straight
+  `"` (safe in code/terminals/chat). Adjacent ASR straight/curly marks around
+  resolved spoken openers/closers are absorbed, producing one pair. Sentence
+  stops on an ASR closing mark keep their inside/outside position; a duplicate
+  stop after the spoken closer is dropped. Generated quoted sentences ending
+  in `.`, `!` or `?` inside the quote capitalize their first letter; fragments
+  retain their casing. Balanced ASR quotes without spoken commands stay untouched.
+- **Lists** (`lists.rs`, keys `Punkt eins`, `number one`, `erstens`, `first`,
+  `nächster Punkt`, `next item`): ≥ 2 markers, numbered/ordinal ones in order from
+  1; ordinals only at segment start with ≤ 3-word items and a label / colon
+  before the first ordinal or at least three items. Verb / pronoun / particle-led
+  ordinal items and finite-verb-led numbered items stay prose. Label line + one
+  `1. item` / `- item` per line.
+- New built-ins: `Tilde` → `~`, `Klammeraffe` → `@`. Structural keys appear in the
+  built-ins list (UI) so each pass can be disabled individually.
+
+- **New files:** `src-tauri/src/text_rules/` (`mod.rs`, `itn.rs`, `substitutions.rs`,
+  `context.rs`, `links.rs`, `lists.rs`, `quotes.rs`),
   `src/components/settings/TextRules.tsx`, `docs/llm-cleanup-prompt.md`.
 - **Upstream files touched:** `managers/transcription.rs` (one call:
   `text_rules::apply_text_rules` in the output stage), `settings.rs`
@@ -96,12 +141,14 @@ Constrains "auto" language detection to an allowlist; when the detected language
 falls outside it, retries pinned to the first allowlisted language and can escalate
 to a fallback model.
 
-- **New files:** none (logic lives inside the touched files); reworked
-  `src/components/settings/LanguageSelector.tsx`.
+- **New files:** `src/components/settings/LanguageAllowlist.tsx` (allowlist +
+  fallback model, inside the shared `components/ui/Disclosure.tsx`).
 - **Upstream files touched:** `managers/transcription.rs` (allowlist guard +
   `run_allowlist_fallback` around the detection stage), `shortcut/mod.rs`
   (`change_language_allowlist_setting`, fallback-model setter), `settings.rs`
-  (`language_allowlist`, `language_allowlist_fallback_model`).
+  (`language_allowlist`, `language_allowlist_fallback_model`), `lib.rs`
+  (command registrations), `general/ModelSettingsCard.tsx` (mounts
+  `LanguageAllowlist`), `stores/settingsStore.ts`, `bindings.ts`.
 - **Probe:** `language-allowlist: *` in `scripts/fork-check.sh`.
 - **Upstream check:** did upstream add language pinning / detection constraints?
   ```bash

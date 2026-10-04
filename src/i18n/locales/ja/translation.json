@@ -217,6 +217,9 @@
           "title": "自動検出を次の言語に限定…",
           "description": "「自動」を選択している場合、これらの言語のみを保持します。リストにない言語が検出された場合は、最初の（プライマリ）言語に固定して再文字起こしします。",
           "primary": "プライマリ",
+          "primaryTag": "{{language}}（プライマリ）",
+          "makePrimary": "プライマリにする",
+          "summaryAll": "すべての言語",
           "fallbackModel": {
             "label": "フォールバックモデル",
             "none": "なし",
@@ -400,7 +403,7 @@
         "duplicate": "「{{word}}」は既に存在します"
       },
       "textRules": {
-        "title": "テキストルール",
+        "title": "音声コマンドを変換",
         "description": "話した句読点や書式のコマンド（ドイツ語・英語）を、AIを介さずに即座に記号へ変換します。任意のAI後処理の前に実行されます。",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "組み込みコマンド",
-          "description": "個々の組み込みコマンドを有効または無効にします。通常の発話で誤動作する場合は無効にしてください（例: \"Punkt\"）。"
+          "description": "個々の組み込みコマンドを有効または無効にします。通常の発話で誤動作する場合は無効にしてください（例: \"Punkt\"）。",
+          "summary": "{{active}}/{{total}} 有効",
+          "loading": "組み込みコマンドを読み込み中…",
+          "loadError": "組み込みコマンドを読み込めませんでした。",
+          "retry": "再試行"
         },
         "custom": {
           "title": "カスタムルール",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "左に付ける",
-          "attach_right": "右に付ける",
-          "glue": "連結",
-          "standalone": "独立"
+          "attach_left": "読点のように",
+          "attach_right": "開き括弧のように",
+          "glue": "単語をつなぐ",
+          "standalone": "単独"
+        },
+        "spacingHint": {
+          "attach_left": "前にスペースなし、後に1つ: word, word",
+          "attach_right": "前にスペース1つ、後になし: word (word",
+          "glue": "前後にスペースなし: voice-control",
+          "standalone": "そのまま挿入し、前後のスペースを削除: 改行"
         }
       },
       "learnedCorrections": {

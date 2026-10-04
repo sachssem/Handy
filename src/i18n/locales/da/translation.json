@@ -197,6 +197,9 @@
           "title": "Begræns automatisk registrering til…",
           "description": "Når Auto er valgt, beholdes kun disse sprog. Et registreret sprog uden for listen transskriberes igen på det primære sprog.",
           "primary": "Primært",
+          "primaryTag": "{{language}} (primært)",
+          "makePrimary": "Gør til primært",
+          "summaryAll": "Alle sprog",
           "fallbackModel": {
             "label": "Reservemodel",
             "none": "Ingen",
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Indbyggede kommandoer",
-          "description": "Aktivér eller deaktiver individuelle indbyggede kommandoer. Deaktiver en, hvis den udløses ved en fejl i almindelig tale (f.eks. \"Punkt\")."
+          "description": "Aktivér eller deaktiver individuelle indbyggede kommandoer. Deaktiver en, hvis den udløses ved en fejl i almindelig tale (f.eks. \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktive",
+          "loading": "Indlæser indbyggede kommandoer…",
+          "loadError": "Kunne ikke indlæse de indbyggede kommandoer.",
+          "retry": "Prøv igen"
         },
         "custom": {
           "title": "Brugerdefinerede regler",
@@ -426,6 +433,12 @@
           "attach_right": "Som en startparentes",
           "glue": "Forbinder ord",
           "standalone": "Selvstændig"
+        },
+        "spacingHint": {
+          "attach_left": "Intet mellemrum før, ét efter: ord, ord",
+          "attach_right": "Ét mellemrum før, intet efter: ord (ord",
+          "glue": "Ingen mellemrum omkring: voice-control",
+          "standalone": "Indsættes uændret, omgivende mellemrum fjernes: linjeskift"
         }
       },
       "learnedCorrections": {

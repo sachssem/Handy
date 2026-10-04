@@ -217,6 +217,9 @@
           "title": "Ogranicz automatyczne wykrywanie do…",
           "description": "Gdy wybrano Auto, zachowaj tylko te języki. Wykryty język spoza tej listy jest ponownie transkrybowany z wymuszeniem pierwszego (głównego) języka.",
           "primary": "Główny",
+          "primaryTag": "{{language}} (główny)",
+          "makePrimary": "Ustaw jako główny",
+          "summaryAll": "Wszystkie języki",
           "fallbackModel": {
             "label": "Model zapasowy",
             "none": "Brak",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" już istnieje"
       },
       "textRules": {
-        "title": "Reguły tekstu",
+        "title": "Zamieniaj polecenia głosowe",
         "description": "Zamienia wypowiadane polecenia interpunkcji i formatowania (niemieckie i angielskie) natychmiast na symbole, bez udziału AI. Działa przed opcjonalnym przetwarzaniem AI.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Wbudowane polecenia",
-          "description": "Włącz lub wyłącz poszczególne wbudowane polecenia. Wyłącz dane polecenie, jeśli błędnie uruchamia się w normalnej mowie (np. \"Punkt\")."
+          "description": "Włącz lub wyłącz poszczególne wbudowane polecenia. Wyłącz dane polecenie, jeśli błędnie uruchamia się w normalnej mowie (np. \"Punkt\").",
+          "summary": "Aktywne: {{active}}/{{total}}",
+          "loading": "Wczytywanie wbudowanych poleceń…",
+          "loadError": "Nie udało się wczytać wbudowanych poleceń.",
+          "retry": "Ponów"
         },
         "custom": {
           "title": "Reguły własne",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Dołącz z lewej",
-          "attach_right": "Dołącz z prawej",
-          "glue": "Sklej",
-          "standalone": "Samodzielne"
+          "attach_left": "Jak przecinek",
+          "attach_right": "Jak nawias otwierający",
+          "glue": "Łączy słowa",
+          "standalone": "Samodzielnie"
+        },
+        "spacingHint": {
+          "attach_left": "Bez spacji przed, jedna po: słowo, słowo",
+          "attach_right": "Jedna spacja przed, bez spacji po: słowo (słowo",
+          "glue": "Bez spacji wokół: voice-control",
+          "standalone": "Wstawiane bez zmian, okoliczne spacje usuwane: podziały wierszy"
         }
       },
       "learnedCorrections": {

@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { LanguageSelector } from "../LanguageSelector";
+import { LanguageAllowlist } from "../LanguageAllowlist"; // fork(voice-control)
 import { TranslateToEnglish } from "../TranslateToEnglish";
 import { useModelStore } from "../../../stores/modelStore";
 import type { ModelInfo } from "@/bindings";
@@ -30,6 +31,17 @@ export const ModelSettingsCard: React.FC = () => {
     >
       {showLanguageSelector && (
         <LanguageSelector
+          descriptionMode="tooltip"
+          grouped={true}
+          supportedLanguages={currentModelInfo.supported_languages}
+          supportsLanguageDetection={
+            currentModelInfo.supports_language_detection
+          }
+        />
+      )}
+      {/* fork(voice-control): auto-detect allowlist (LanguageAllowlist.tsx) */}
+      {showLanguageSelector && (
+        <LanguageAllowlist
           descriptionMode="tooltip"
           grouped={true}
           supportedLanguages={currentModelInfo.supported_languages}

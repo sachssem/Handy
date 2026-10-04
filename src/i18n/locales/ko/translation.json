@@ -197,6 +197,9 @@
           "title": "자동 감지를 다음 언어로 제한…",
           "description": "'자동'을 선택하면 이 언어들만 유지합니다. 목록에 없는 언어가 감지되면 첫 번째(기본) 언어로 고정하여 다시 변환합니다.",
           "primary": "기본",
+          "primaryTag": "{{language}} (기본)",
+          "makePrimary": "기본으로 설정",
+          "summaryAll": "모든 언어",
           "fallbackModel": {
             "label": "대체 모델",
             "none": "없음",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\"이(가) 이미 존재합니다"
       },
       "textRules": {
-        "title": "텍스트 규칙",
+        "title": "음성 명령 변환",
         "description": "음성으로 말한 구두점 및 서식 명령(독일어 및 영어)을 AI를 거치지 않고 즉시 기호로 변환합니다. 선택적 AI 후처리 이전에 실행됩니다.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "기본 제공 명령",
-          "description": "개별 기본 제공 명령을 활성화하거나 비활성화합니다. 일반적인 말에서 잘못 작동하면 해당 명령을 비활성화하세요(예: \"Punkt\")."
+          "description": "개별 기본 제공 명령을 활성화하거나 비활성화합니다. 일반적인 말에서 잘못 작동하면 해당 명령을 비활성화하세요(예: \"Punkt\").",
+          "summary": "{{active}}/{{total}} 활성",
+          "loading": "기본 제공 명령을 불러오는 중…",
+          "loadError": "기본 제공 명령을 불러올 수 없습니다.",
+          "retry": "다시 시도"
         },
         "custom": {
           "title": "사용자 정의 규칙",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "왼쪽에 붙이기",
-          "attach_right": "오른쪽에 붙이기",
-          "glue": "연결",
-          "standalone": "독립"
+          "attach_left": "쉼표처럼",
+          "attach_right": "여는 괄호처럼",
+          "glue": "단어 연결",
+          "standalone": "단독"
+        },
+        "spacingHint": {
+          "attach_left": "앞에 공백 없음, 뒤에 하나: word, word",
+          "attach_right": "앞에 공백 하나, 뒤에 없음: word (word",
+          "glue": "앞뒤 공백 없음: voice-control",
+          "standalone": "그대로 삽입, 주변 공백 제거: 줄바꿈"
         }
       },
       "learnedCorrections": {

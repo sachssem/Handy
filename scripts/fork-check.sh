@@ -47,6 +47,7 @@ PROBES=(
   "language-allowlist: transcription guard|src-tauri/src/managers/transcription.rs|language_allowlist"
   "language-allowlist: shortcut command|src-tauri/src/shortcut/mod.rs|change_language_allowlist_setting"
   "language-allowlist: settings field|src-tauri/src/settings.rs|language_allowlist"
+  "language-allowlist: settings UI mounted|src/components/settings/general/ModelSettingsCard.tsx|<LanguageAllowlist"
 
   # -- recording-limit auto-stop --
   "recording-limit: settings field|src-tauri/src/settings.rs|auto_stop_recording_on_limit"
@@ -82,6 +83,8 @@ MARKER_FILES=(
   "src/stores/settingsStore.ts"
   "src/overlay/RecordingOverlay.tsx"
   "src-tauri/src/actions.rs"
+  "src/components/settings/advanced/AdvancedSettings.tsx"
+  "src/components/settings/general/ModelSettingsCard.tsx"
   "src-tauri/src/overlay.rs"
   "src-tauri/src/audio_toolkit/audio/recorder.rs"
   "src/overlay/RecordingOverlay.css"

@@ -217,6 +217,9 @@
           "title": "Restreindre la détection automatique à…",
           "description": "Lorsque « Auto » est sélectionné, ne conserver que ces langues. Une langue détectée hors de cette liste est retranscrite en la forçant sur la première langue (principale).",
           "primary": "Principale",
+          "primaryTag": "{{language}} (principale)",
+          "makePrimary": "Définir comme principale",
+          "summaryAll": "Toutes les langues",
           "fallbackModel": {
             "label": "Modèle de secours",
             "none": "Aucun",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" existe déjà"
       },
       "textRules": {
-        "title": "Règles de texte",
+        "title": "Convertir les commandes vocales",
         "description": "Convertit instantanément les commandes de ponctuation et de mise en forme dictées (allemand et anglais) en symboles, sans passer par l'IA. S'exécute avant le post-traitement facultatif par l'IA.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Commandes intégrées",
-          "description": "Activez ou désactivez individuellement les commandes intégrées. Désactivez-en une si elle se déclenche par erreur dans la parole normale (p. ex. \"Punkt\")."
+          "description": "Activez ou désactivez individuellement les commandes intégrées. Désactivez-en une si elle se déclenche par erreur dans la parole normale (p. ex. \"Punkt\").",
+          "summary": "{{active}}/{{total}} actives",
+          "loading": "Chargement des commandes intégrées…",
+          "loadError": "Impossible de charger les commandes intégrées.",
+          "retry": "Réessayer"
         },
         "custom": {
           "title": "Règles personnalisées",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Attacher à gauche",
-          "attach_right": "Attacher à droite",
-          "glue": "Coller",
-          "standalone": "Autonome"
+          "attach_left": "Comme une virgule",
+          "attach_right": "Comme une parenthèse ouvrante",
+          "glue": "Relie des mots",
+          "standalone": "Isolé"
+        },
+        "spacingHint": {
+          "attach_left": "Pas d'espace avant, un après : mot, mot",
+          "attach_right": "Un espace avant, aucun après : mot (mot",
+          "glue": "Aucun espace autour : voice-control",
+          "standalone": "Inséré tel quel, espaces autour supprimés : sauts de ligne"
         }
       },
       "learnedCorrections": {

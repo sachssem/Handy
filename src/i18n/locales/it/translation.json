@@ -217,6 +217,9 @@
           "title": "Limita il rilevamento automatico a…",
           "description": "Quando è selezionato Auto, mantieni solo queste lingue. Una lingua rilevata fuori da questo elenco viene ritrascritta forzando la prima lingua (principale).",
           "primary": "Principale",
+          "primaryTag": "{{language}} (principale)",
+          "makePrimary": "Imposta come principale",
+          "summaryAll": "Tutte le lingue",
           "fallbackModel": {
             "label": "Modello di riserva",
             "none": "Nessuno",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" esiste già"
       },
       "textRules": {
-        "title": "Regole di testo",
+        "title": "Converti comandi vocali",
         "description": "Converte istantaneamente i comandi di punteggiatura e formattazione pronunciati (in tedesco e inglese) in simboli, senza passare per l'IA. Viene eseguito prima dell'eventuale post-elaborazione con IA.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Comandi integrati",
-          "description": "Abilita o disabilita i singoli comandi integrati. Disabilitane uno se si attiva per errore nel parlato normale (ad es. \"Punkt\")."
+          "description": "Abilita o disabilita i singoli comandi integrati. Disabilitane uno se si attiva per errore nel parlato normale (ad es. \"Punkt\").",
+          "summary": "{{active}}/{{total}} attivi",
+          "loading": "Caricamento dei comandi integrati…",
+          "loadError": "Impossibile caricare i comandi integrati.",
+          "retry": "Riprova"
         },
         "custom": {
           "title": "Regole personalizzate",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Attacca a sinistra",
-          "attach_right": "Attacca a destra",
-          "glue": "Unisci",
-          "standalone": "Autonomo"
+          "attach_left": "Come una virgola",
+          "attach_right": "Come una parentesi aperta",
+          "glue": "Unisce parole",
+          "standalone": "A sé stante"
+        },
+        "spacingHint": {
+          "attach_left": "Nessuno spazio prima, uno dopo: parola, parola",
+          "attach_right": "Uno spazio prima, nessuno dopo: parola (parola",
+          "glue": "Nessuno spazio intorno: voice-control",
+          "standalone": "Inserito così com'è, spazi circostanti rimossi: a capo"
         }
       },
       "learnedCorrections": {

@@ -217,6 +217,9 @@
           "title": "Otomatik algılamayı şununla sınırla…",
           "description": "Otomatik seçiliyken yalnızca bu diller korunur. Bu listenin dışında algılanan bir dil, ilk (birincil) dile sabitlenerek yeniden yazıya dökülür.",
           "primary": "Birincil",
+          "primaryTag": "{{language}} (birincil)",
+          "makePrimary": "Birincil yap",
+          "summaryAll": "Tüm diller",
           "fallbackModel": {
             "label": "Yedek model",
             "none": "Yok",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" zaten mevcut"
       },
       "textRules": {
-        "title": "Metin Kuralları",
+        "title": "Sesli komutları dönüştür",
         "description": "Konuşulan noktalama ve biçimlendirme komutlarını (Almanca ve İngilizce) yapay zeka turu olmadan anında sembollere dönüştürür. İsteğe bağlı yapay zeka son işlemeden önce çalışır.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Yerleşik Komutlar",
-          "description": "Bireysel yerleşik komutları etkinleştirin veya devre dışı bırakın. Normal konuşmada yanlış tetikleniyorsa birini devre dışı bırakın (ör. \"Punkt\")."
+          "description": "Bireysel yerleşik komutları etkinleştirin veya devre dışı bırakın. Normal konuşmada yanlış tetikleniyorsa birini devre dışı bırakın (ör. \"Punkt\").",
+          "summary": "{{active}}/{{total}} etkin",
+          "loading": "Yerleşik komutlar yükleniyor…",
+          "loadError": "Yerleşik komutlar yüklenemedi.",
+          "retry": "Yeniden dene"
         },
         "custom": {
           "title": "Özel Kurallar",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Sola ekle",
-          "attach_right": "Sağa ekle",
-          "glue": "Yapıştır",
-          "standalone": "Bağımsız"
+          "attach_left": "Virgül gibi",
+          "attach_right": "Açılış parantezi gibi",
+          "glue": "Kelimeleri birleştirir",
+          "standalone": "Tek başına"
+        },
+        "spacingHint": {
+          "attach_left": "Öncesinde boşluk yok, sonrasında bir: kelime, kelime",
+          "attach_right": "Öncesinde bir boşluk, sonrasında yok: kelime (kelime",
+          "glue": "Çevresinde boşluk yok: voice-control",
+          "standalone": "Olduğu gibi eklenir, çevredeki boşluklar kaldırılır: satır sonları"
         }
       },
       "learnedCorrections": {

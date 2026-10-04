@@ -217,6 +217,9 @@
           "title": "Omezit automatické rozpoznávání na…",
           "description": "Když je vybráno Auto, ponechat pouze tyto jazyky. Rozpoznaný jazyk mimo tento seznam se přepíše znovu s pevně nastaveným prvním (hlavním) jazykem.",
           "primary": "Hlavní",
+          "primaryTag": "{{language}} (primární)",
+          "makePrimary": "Nastavit jako primární",
+          "summaryAll": "Všechny jazyky",
           "fallbackModel": {
             "label": "Záložní model",
             "none": "Žádný",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" již existuje"
       },
       "textRules": {
-        "title": "Textová pravidla",
+        "title": "Převádět mluvené příkazy",
         "description": "Převádí vyslovené příkazy pro interpunkci a formátování (němčina a angličtina) okamžitě na symboly, bez zásahu AI. Spouští se před volitelným následným zpracováním pomocí AI.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Vestavěné příkazy",
-          "description": "Povolte nebo zakažte jednotlivé vestavěné příkazy. Zakažte některý, pokud se chybně spouští v běžné řeči (např. \"Punkt\")."
+          "description": "Povolte nebo zakažte jednotlivé vestavěné příkazy. Zakažte některý, pokud se chybně spouští v běžné řeči (např. \"Punkt\").",
+          "summary": "Aktivní: {{active}}/{{total}}",
+          "loading": "Načítání vestavěných příkazů…",
+          "loadError": "Vestavěné příkazy se nepodařilo načíst.",
+          "retry": "Zkusit znovu"
         },
         "custom": {
           "title": "Vlastní pravidla",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Připojit vlevo",
-          "attach_right": "Připojit vpravo",
-          "glue": "Slepit",
+          "attach_left": "Jako čárka",
+          "attach_right": "Jako levá závorka",
+          "glue": "Spojuje slova",
           "standalone": "Samostatně"
+        },
+        "spacingHint": {
+          "attach_left": "Bez mezery před, jedna za: slovo, slovo",
+          "attach_right": "Jedna mezera před, žádná za: slovo (slovo",
+          "glue": "Bez mezer kolem: voice-control",
+          "standalone": "Vloženo beze změny, okolní mezery odstraněny: zalomení řádků"
         }
       },
       "learnedCorrections": {

@@ -197,6 +197,9 @@
           "title": "Begränsa automatisk igenkänning till…",
           "description": "När Auto är valt, behåll endast dessa språk. Ett upptäckt språk utanför listan transkriberas om låst till det första (primära) språket.",
           "primary": "Primärt",
+          "primaryTag": "{{language}} (primärt)",
+          "makePrimary": "Gör primärt",
+          "summaryAll": "Alla språk",
           "fallbackModel": {
             "label": "Reservmodell",
             "none": "Ingen",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" finns redan"
       },
       "textRules": {
-        "title": "Textregler",
+        "title": "Omvandla talade kommandon",
         "description": "Omvandlar talade skiljetecken- och formateringskommandon (tyska och engelska) direkt till symboler, utan en AI-omväg. Körs före valfri AI-efterbearbetning.",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Inbyggda kommandon",
-          "description": "Aktivera eller inaktivera enskilda inbyggda kommandon. Inaktivera ett om det utlöses av misstag i vanligt tal (t.ex. \"Punkt\")."
+          "description": "Aktivera eller inaktivera enskilda inbyggda kommandon. Inaktivera ett om det utlöses av misstag i vanligt tal (t.ex. \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktiva",
+          "loading": "Läser in inbyggda kommandon…",
+          "loadError": "Det gick inte att läsa in de inbyggda kommandona.",
+          "retry": "Försök igen"
         },
         "custom": {
           "title": "Egna regler",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "Fäst till vänster",
-          "attach_right": "Fäst till höger",
-          "glue": "Limma",
+          "attach_left": "Som ett kommatecken",
+          "attach_right": "Som en inledande parentes",
+          "glue": "Sammanfogar ord",
           "standalone": "Fristående"
+        },
+        "spacingHint": {
+          "attach_left": "Inget mellanslag före, ett efter: ord, ord",
+          "attach_right": "Ett mellanslag före, inget efter: ord (ord",
+          "glue": "Inga mellanslag runt: voice-control",
+          "standalone": "Infogas som det är, omgivande mellanslag tas bort: radbrytningar"
         }
       },
       "learnedCorrections": {

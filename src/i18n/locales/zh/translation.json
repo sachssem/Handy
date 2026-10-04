@@ -217,6 +217,9 @@
           "title": "将自动检测限制为…",
           "description": "选择“自动”时，仅保留这些语言。检测到列表之外的语言时，将固定为第一个（主要）语言重新转写。",
           "primary": "主要",
+          "primaryTag": "{{language}}（主要）",
+          "makePrimary": "设为主要",
+          "summaryAll": "所有语言",
           "fallbackModel": {
             "label": "备用模型",
             "none": "无",
@@ -400,7 +403,7 @@
         "duplicate": "\"{{word}}\" 已存在"
       },
       "textRules": {
-        "title": "文本规则",
+        "title": "转换语音命令",
         "description": "将口述的标点和格式命令（德语和英语）即时转换为符号，无需经过 AI 处理。在可选的 AI 后处理之前运行。",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "内置命令",
-          "description": "启用或禁用单个内置命令。如果某个命令在正常说话时被误触发，请将其禁用（例如 \"Punkt\"）。"
+          "description": "启用或禁用单个内置命令。如果某个命令在正常说话时被误触发，请将其禁用（例如 \"Punkt\"）。",
+          "summary": "已启用 {{active}}/{{total}}",
+          "loading": "正在加载内置命令…",
+          "loadError": "无法加载内置命令。",
+          "retry": "重试"
         },
         "custom": {
           "title": "自定义规则",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "左侧附加",
-          "attach_right": "右侧附加",
-          "glue": "粘连",
+          "attach_left": "像逗号",
+          "attach_right": "像左括号",
+          "glue": "连接单词",
           "standalone": "独立"
+        },
+        "spacingHint": {
+          "attach_left": "前无空格，后加一个：word, word",
+          "attach_right": "前加一个空格，后无：word (word",
+          "glue": "前后均无空格：voice-control",
+          "standalone": "原样插入并移除周围空格：换行"
         }
       },
       "learnedCorrections": {

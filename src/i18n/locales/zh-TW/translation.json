@@ -197,6 +197,9 @@
           "title": "將自動偵測限制為…",
           "description": "選擇「自動」時，僅保留這些語言。偵測到清單之外的語言時，將固定為第一個（主要）語言重新轉錄。",
           "primary": "主要",
+          "primaryTag": "{{language}}（主要）",
+          "makePrimary": "設為主要",
+          "summaryAll": "所有語言",
           "fallbackModel": {
             "label": "備用模型",
             "none": "無",
@@ -400,7 +403,7 @@
         "duplicate": "「{{word}}」已存在"
       },
       "textRules": {
-        "title": "文字規則",
+        "title": "轉換語音指令",
         "description": "將口述的標點與格式命令（德語和英語）即時轉換為符號，無需經過 AI 處理。在可選的 AI 後處理之前執行。",
         "mapping": "{{trigger}} → {{replacement}}",
         "itn": {
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "內建命令",
-          "description": "啟用或停用個別內建命令。如果某個命令在正常說話時被誤觸發，請將其停用（例如 \"Punkt\"）。"
+          "description": "啟用或停用個別內建命令。如果某個命令在正常說話時被誤觸發，請將其停用（例如 \"Punkt\"）。",
+          "summary": "已啟用 {{active}}/{{total}}",
+          "loading": "正在載入內建指令…",
+          "loadError": "無法載入內建指令。",
+          "retry": "重試"
         },
         "custom": {
           "title": "自訂規則",
@@ -422,10 +429,16 @@
           "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
         },
         "spacing": {
-          "attach_left": "靠左附加",
-          "attach_right": "靠右附加",
-          "glue": "黏合",
+          "attach_left": "像逗號",
+          "attach_right": "像左括號",
+          "glue": "連接單字",
           "standalone": "獨立"
+        },
+        "spacingHint": {
+          "attach_left": "前無空格，後加一個：word, word",
+          "attach_right": "前加一個空格，後無：word (word",
+          "glue": "前後皆無空格：voice-control",
+          "standalone": "原樣插入並移除周圍空格：換行"
         }
       },
       "learnedCorrections": {

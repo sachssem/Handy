@@ -197,6 +197,9 @@
           "title": "Batasi deteksi otomatis ke…",
           "description": "Saat Otomatis dipilih, hanya pertahankan bahasa-bahasa ini. Bahasa terdeteksi yang tidak ada dalam daftar ini akan ditranskripsikan ulang dalam bahasa utama.",
           "primary": "Utama",
+          "primaryTag": "{{language}} (utama)",
+          "makePrimary": "Jadikan utama",
+          "summaryAll": "Semua bahasa",
           "fallbackModel": {
             "label": "Model cadangan",
             "none": "Tidak ada",
@@ -409,7 +412,11 @@
         },
         "builtins": {
           "title": "Perintah Bawaan",
-          "description": "Aktifkan atau nonaktifkan perintah bawaan satu per satu. Nonaktifkan perintah yang salah terpicu dalam ucapan biasa (misalnya \"Punkt\")."
+          "description": "Aktifkan atau nonaktifkan perintah bawaan satu per satu. Nonaktifkan perintah yang salah terpicu dalam ucapan biasa (misalnya \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktif",
+          "loading": "Memuat perintah bawaan…",
+          "loadError": "Tidak dapat memuat perintah bawaan.",
+          "retry": "Coba lagi"
         },
         "custom": {
           "title": "Aturan Kustom",
@@ -426,6 +433,12 @@
           "attach_right": "Seperti kurung buka",
           "glue": "Menggabungkan kata",
           "standalone": "Berdiri sendiri"
+        },
+        "spacingHint": {
+          "attach_left": "Tanpa spasi sebelum, satu spasi sesudah: kata, kata",
+          "attach_right": "Satu spasi sebelum, tanpa spasi sesudah: kata (kata",
+          "glue": "Tanpa spasi di sekitarnya: voice-control",
+          "standalone": "Disisipkan apa adanya, spasi di sekitarnya dihapus: baris baru"
         }
       },
       "learnedCorrections": {

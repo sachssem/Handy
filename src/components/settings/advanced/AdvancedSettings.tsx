@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ShowOverlay } from "../ShowOverlay";
 import { ModelUnloadTimeoutSetting } from "../ModelUnloadTimeout";
 import { CustomWords } from "../CustomWords";
+// fork(voice-control): text rules + learned corrections settings groups
 import { TextRules } from "../TextRules";
 import { LearnedCorrections } from "../LearnedCorrections";
 import { SettingsGroup } from "../../ui/SettingsGroup";
