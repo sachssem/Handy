@@ -284,7 +284,8 @@
         "history": "Historia",
         "experimental": "Eksperymentalne",
         "textRules": "Reguły tekstu",
-        "learnedCorrections": "Wyuczone korekty"
+        "learnedCorrections": "Wyuczone korekty",
+        "smartFormatting": "Inteligentne formatowanie"
       },
       "experimentalToggle": {
         "label": "Funkcje Eksperymentalne",
@@ -563,6 +564,55 @@
           "asTranscribed": "Jak w transkrypcji",
           "simplified": "Uproszczone",
           "traditional": "Tradycyjne"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autokorekta",
+          "description": "Usuwa wtrącenia (\"uh\", \"um\", „yyy”), zająknięcia i powtórzone słowa oraz fragmenty, które cofasz, gdy się poprawiasz (\"no wait\", \"I mean\", „nie, czekaj”, „to znaczy”), za pomocą Apple Intelligence na tym urządzeniu. Skonfigurowany dostawca przetwarzania końcowego, który może być usługą zdalną, jest używany tylko wtedy, gdy przetwarzanie końcowe jest włączone. Słowa są tylko usuwane, nigdy przepisywane; dyktowanie bez takich zawahań jest wklejane bez zmian, a jeśli model jest wolny lub zmienia zbyt wiele, zostaje oryginał."
+        },
+        "appStyles": {
+          "title": "Style aplikacji",
+          "description": "Dopasowuje tekst do aplikacji, w której dyktujesz: wiadomości czatu bez kropki na końcu, dane wyjściowe przyjazne dla terminala i kodu oraz wielkość liter i spacje zgodne z tekstem przed kursorem.",
+          "categories": {
+            "title": "Style",
+            "summary": "Aktywne: {{active}}/{{total}}",
+            "chat": {
+              "label": "Aplikacje czatu",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: jednozdaniowa wiadomość traci końcową kropkę (? i ! zostają)."
+            },
+            "terminal": {
+              "label": "Terminale",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: bez końcowej kropki, bez wielkiej litery na początkowym słowie funkcyjnym."
+            },
+            "code": {
+              "label": "Edytory kodu",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: pojedyncze słowo lub identyfikator traci końcową kropkę."
+            },
+            "matchContext": {
+              "label": "Dopasuj do otaczającego tekstu",
+              "hint": "Przy kontynuowaniu zdania początkowe słowo funkcyjne jest pisane małą literą (\"and\", \"weil\"); gdy kursor stoi tuż po słowie, dodawana jest spacja."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Fragmenty tekstu",
+          "description": "Wypowiedz samą frazę wyzwalającą (lub między znakami interpunkcyjnymi), aby wstawić jej tekst, np. \"mój adres\". Wielkość liter i interpunkcja są ignorowane; wstawiony tekst nigdy nie jest zmieniany przez inne reguły.",
+          "triggerPlaceholder": "Fraza wyzwalająca, np. mój adres",
+          "expansionPlaceholder": "Tekst do wstawienia (dozwolonych wiele wierszy)",
+          "add": "Dodaj",
+          "save": "Zapisz",
+          "cancel": "Anuluj",
+          "edit": "Edytuj",
+          "remove": "Usuń fragment {{trigger}}",
+          "enable": "Włącz fragment {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Fraza wyzwalająca musi zawierać co najmniej jedno słowo alfanumeryczne.",
+            "expansionRequired": "Wpisz tekst do wstawienia.",
+            "duplicateTrigger": "Fragment dla „{{trigger}}” już istnieje.",
+            "commandFailed": "Nie udało się zapisać ani usunąć fragmentu. Spróbuj ponownie."
+          }
         }
       }
     },

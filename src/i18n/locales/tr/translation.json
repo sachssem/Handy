@@ -284,7 +284,8 @@
         "history": "Geçmiş",
         "experimental": "Deneysel",
         "textRules": "Metin Kuralları",
-        "learnedCorrections": "Öğrenilen Düzeltmeler"
+        "learnedCorrections": "Öğrenilen Düzeltmeler",
+        "smartFormatting": "Akıllı biçimlendirme"
       },
       "experimentalToggle": {
         "label": "Deneysel Özellikler",
@@ -563,6 +564,55 @@
           "asTranscribed": "Transkripsiyondaki gibi",
           "simplified": "Basitleştirilmiş",
           "traditional": "Geleneksel"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Kendini düzeltme",
+          "description": "Dolgu sözcüklerini (\"uh\", \"um\", \"ıı\"), kekelemeleri ve tekrarlanan sözcükleri, ayrıca kendinizi düzeltirken geri aldığınız kısımları (\"no wait\", \"I mean\", \"hayır, dur\", \"yani\") bu cihazdaki Apple Intelligence ile kaldırır. Uzak bir hizmet olabilecek yapılandırılmış son işleme sağlayıcınız yalnızca son işleme etkinken kullanılır. Sözcükler yalnızca kaldırılır, asla yeniden yazılmaz; böyle duraksamalar içermeyen dikteler olduğu gibi yapıştırılır, model yavaşsa veya çok fazla değiştirirse özgün metin korunur."
+        },
+        "appStyles": {
+          "title": "Uygulama stilleri",
+          "description": "Metni dikte ettiğiniz uygulamaya uyarlar: sonunda nokta olmayan sohbet mesajları, terminal ve koda uygun çıktı, imleçten önceki metne uyan büyük/küçük harf ve boşluklar.",
+          "categories": {
+            "title": "Stiller",
+            "summary": "{{active}}/{{total}} etkin",
+            "chat": {
+              "label": "Sohbet uygulamaları",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: tek cümlelik bir mesajın sondaki noktası kalkar (? ve ! kalır)."
+            },
+            "terminal": {
+              "label": "Terminaller",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sonda nokta yok, baştaki işlev sözcüğü büyük harfle başlamaz."
+            },
+            "code": {
+              "label": "Kod düzenleyiciler",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: tek bir sözcük veya tanımlayıcının sondaki noktası kalkar."
+            },
+            "matchContext": {
+              "label": "Çevredeki metne uydur",
+              "hint": "Bir cümleye devam ederken baştaki işlev sözcüğü küçük harfle yazılır (\"and\", \"weil\"); imleç doğrudan bir sözcüğün ardındaysa boşluk eklenir."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Metin parçaları",
+          "description": "Metnini eklemek için bir tetikleyici ifadeyi tek başına (veya noktalama arasında) söyleyin, ör. \"adresim\". Büyük/küçük harf ve noktalama yok sayılır; eklenen metin diğer kurallarca asla değiştirilmez.",
+          "triggerPlaceholder": "Tetikleyici ifade, ör. adresim",
+          "expansionPlaceholder": "Eklenecek metin (birden çok satır olabilir)",
+          "add": "Ekle",
+          "save": "Kaydet",
+          "cancel": "İptal",
+          "edit": "Düzenle",
+          "remove": "{{trigger}} metin parçasını kaldır",
+          "enable": "{{trigger}} metin parçasını etkinleştir",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Tetikleyici en az bir alfanümerik sözcük içermelidir.",
+            "expansionRequired": "Eklenecek metni girin.",
+            "duplicateTrigger": "'{{trigger}}' için zaten bir metin parçası var.",
+            "commandFailed": "Metin parçası kaydedilemedi veya kaldırılamadı. Lütfen tekrar deneyin."
+          }
         }
       }
     },

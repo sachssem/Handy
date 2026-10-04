@@ -36,8 +36,12 @@ Conventions used throughout:
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
 | [dictation journal + context](#dictation-journal--app-context)                           | feature | medium         | `actions.rs`, `managers/transcription.rs`, `transcription_coordinator.rs`, `overlay.rs`, `RecordingOverlay.tsx`, `settings.rs`, `lib.rs`, settings UI |
 | [ASR biasing](#asr-biasing-vocabulary--app-context)                                      | feature | medium         | `managers/transcription.rs`, `settings.rs`, `lib.rs`, `ModelSettingsCard.tsx`                                                                         |
+| [snippets](#snippets)                                                                    | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
+| [self-correction LLM pass](#self-correction-llm-pass)                                    | feature | low            | `actions.rs`, `settings.rs`, `lib.rs`, `build.rs`, settings UI                                                                                        |
+| [per-app styles](#per-app-styles)                                                        | feature | low            | `actions.rs` (shared hook), `settings.rs`, `lib.rs`, settings UI                                                                                      |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
+| [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -332,6 +336,293 @@ line), join rules and example queries: [`docs/journal.md`](journal.md).
   `transcription.rs`, re-apply the hooks; they are one-liners next to the
   allowlist / text-rules grafts.
 
+## snippets
+
+Spoken trigger phrase → user-defined text (Wispr "snippets"), e.g. "meine
+Adresse" → a postal address, "mein Calendly" → a link.
+
+- **Semantics** (`snippets/mod.rs`): fires only as a delimited phrase — the
+  trigger's words fill a whole clause, preceded by the text edge, a comma or
+  `. : ! ?` / newline and followed by the text edge or `. : ! ?` / newline.
+  A following comma never qualifies (relative clauses stay prose).
+  ("meine Adresse." / "Hallo Marc, mein Calendly." fire;
+  "Schick das an meine Adresse" does not). Case- and punctuation-insensitive on
+  words ("Meine, Adresse." matches); ASR punctuation around a trigger at a text
+  edge is dropped; longest trigger first; disabled snippets never fire. Spoken
+  punctuation commands ("Komma") are not delimiters — snippets run before the
+  text rules.
+- **Protection:** stage between `normalized` and the text rules. A fired
+  trigger becomes a private-use placeholder (`U+E000…`, no word class) so text
+  rules and learned corrections never touch the expansion; it is restored
+  right after `apply_learned`, inside `post_process_transcription_text`, so no
+  placeholder ever leaves the transcription (history, bench, streaming). The
+  first restoration records actual fired state and byte spans in a small
+  bounded dictation-id-keyed slot inside `snippets`; intermediate journal restorations
+  cannot overwrite it. `output_stages` consumes it once, skips self-correction
+  when a trigger fired, and protects actual inserted spans from app styling.
+  Coincidental expansion text has no protection; changed output never reuses
+  stale offsets.
+- **Settings / commands:** `snippets: Vec<Snippet{id, trigger, expansion,
+enabled}>`; granular `add_snippet`, `update_snippet`, `remove_snippet`
+  (validated: ≥ 1 word, non-empty expansion, unique trigger words; each emits
+  `settings-changed`).
+- **New files:** `src-tauri/src/snippets/` (`mod.rs`, `commands.rs`),
+  `src/components/settings/SmartFormatting.tsx` (shared with the two features
+  below).
+- **Upstream files touched:** `managers/transcription.rs` (`snippets::shield`
+  before `apply_text_rules`, `snippets.restore` after `apply_learned`, journal
+  stage), `settings.rs` (`snippets`), `lib.rs` (`mod snippets;`, commands),
+  `stores/settingsStore.ts`, `AdvancedSettings.tsx` (mounts `SmartFormatting`),
+  `bindings.ts`.
+- **Probe:** `snippets: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream now expand text shortcuts / snippets?
+  ```bash
+  git grep -iE "snippet|text.?expan|shortcut.?phrase" upstream/main -- src-tauri/src src
+  ```
+
+## self-correction LLM pass
+
+Trigger-gated LLM disfluency cleanup (Wispr Flow's "backtrack" plus filler
+cleanup): "um drei, nein warte, um vier" → "um vier", "morgen, äh,
+übermorgen" → "übermorgen", "ist ist" → "ist". Slot-only repairs run
+deterministically before provider selection; the LLM runs **only** when the
+transcript holds a detected disfluency the rules cannot fully repair. Everything else is pasted as the rules
+produced it (no latency, no over-editing). Controlled by
+`self_correction_llm_enabled` (default on). Remote providers additionally
+require upstream's `post_process_enabled`; without that consent, only
+on-device Apple Intelligence may run.
+
+- **Slot rules** (`self_correction/rules.rs`): a detected cue/restart whose
+  retracted tail is exactly one number, weekday, month, relative day or known
+  first name is replaced by the immediate same-class slot after the cue.
+  An omitted preposition stays (`at five, make that six` → `at six`);
+  a repeated preposition/article frame must match exactly and is retained
+  from the replacement (`um drei, nein warte, um vier` → `um vier`). The
+  old slot, cue and boundary punctuation are removed; replacement casing is
+  adjusted at the cut, final punctuation is preserved. The existing guard
+  also checks the rules result. If every detected span is repaired, provider
+  selection/inference is skipped (`provider: rules`, `reason: applied`).
+  Otherwise the LLM sees the whole original text with its original spans.
+  Lists, questions, estimates, mismatched frames, clock times split by a
+  colon and complex retractions stay outside these conservative rules.
+  Disabled, snippet and prior-post-processing gates apply to rules too.
+- **Detection** (`self_correction/disfluency.rs`, on the final text — i.e.
+  **after** upstream's deterministic filler removal and 3+-stutter collapse,
+  so a dictation whose only disfluency upstream already removed costs no LLM
+  call). Each finding is a span; journal kind in brackets:
+  - `filler`: hesitation sounds upstream left in (`äh`, `ähm`, `öhm`, `hm`,
+    `mhm`, `uh`, `uhm`, …; `um` / `er` / `erm` only for English — German
+    words otherwise). A filler between restating clauses also licenses the
+    retraction ("morgen, äh, übermorgen").
+  - `repetition`: an immediate word or two-word repeat without a pause between
+    ("ich ich", "the the", "ich bin ich bin"); never legitimate doubles
+    (`das/die/der/den/dem/des`, `sie`, `that`, `had`, `is`, intensifiers and
+    interjections like `sehr`, `ja`, `very`).
+  - `restart`: a dash / ellipsis whose next clause restates the previous one
+    or restarts a fragment of at most two words with one of its words
+    ("Ich wollte – ich muss los"); or a comma between restating clauses
+    ("morgen, übermorgen", "am Montag, am Dienstag", "den roten Stift, den
+    blauen Stift"). **Design decision:** upstream's filler removal turns
+    "morgen, äh, übermorgen" into "morgen, übermorgen" before this stage and
+    the pre-filler text is not passed here (that would need another graft in
+    `managers/transcription.rs`), so the comma juxtaposition itself is the
+    signal. Qwen can also drop the comma entirely: two adjacent, different
+    weekday / month / relative-day slots then retract the first (`morgen
+übermorgen`); adjacent numbers (`drei vier Tage`) and names (`Anna Maria`)
+    stay untouched. Without a repeated frame word only weekday / month / relative-day
+    slots count (numbers: "drei, vier Tage" is an estimate; names: "Danke
+    Anna, Paul …" is an address); a conjunction after it (`und`, `oder`,
+    `bis`, `and`, `or`, `to`, …) or a third comma item means a list.
+  - Restatement ([`cues::restates`]): the first replacement word shares a
+    slot class (number/time, weekday, month, relative day, first name) with a
+    word in the immediately preceding clause, even if that slot is not the
+    clause's final word. Name slots use the shared lexicon (including its
+    supplemental `Lena` entry). The nearest matching slot starts the retraction.
+    Alternatively, the first replacement word repeats one of the last three
+    clause words (frame), followed within two words by a matching slot or
+    repeated head noun (`Ruf Anna an. Sorry, ruf Lena an.`). Frameless comma
+    restarts still exclude numbers/names; `Guten Morgen` is never a day slot.
+  - `cue:<words>` (`self_correction/cues.rs`, word boundaries,
+    case-insensitive, pauses between cue words skipped). Every cue needs
+    preceding dictation and, except the bounded inline-wait and inline
+    alternative rules below, a
+    pause directly before it (including `.`, `,`, `;`, dash, ellipsis or a
+    newline). A question mark before or inside any cue vetoes detection:
+    `Ist es Montag? Nein, Dienstag.` remains question/answer.
+    - Pause before suffices for existing explicit cues: `nein warte`,
+      `nee warte`, `nein moment`, `nein/sorry ich meine|meinte`, `no wait`,
+      `no/sorry I mean|meant`.
+    - Existing ordinary phrases require pauses before and after:
+      `streich(e) das`, `vergiss das`, `ich meinte`, `wait no`, `actually no`,
+      `scratch that`, `strike that`, `I meant`.
+    - Correction verbs/phrases need an immediate restatement **or** pauses
+      on both sides: `korrigiere`, `korrigier`, `Korrektur`, `ich korrigiere`,
+      `berichtige`, `besser gesagt`, `genauer gesagt`, `oder besser`,
+      `oder vielmehr`, `correction`, `make that`, `let me rephrase`. A
+      delimited cue without a matching slot retracts only its preceding
+      clause. `Ich komme morgen. Korrigiere übermorgen.` now triggers.
+    - Bare negations `nein`, `nee`, `ne`, `nö`, `no`, `nope`, `nah`, and
+      ambiguous `vielmehr`, `beziehungsweise` / `bzw.`, `sorry`,
+      `Entschuldigung`, `pardon`, `rather`, `or rather` **always** require an
+      immediate repeated-frame or same-class-slot restatement. This catches
+      `Ich komme morgen. Ne, übermorgen.` and
+      `Treffen am Montag, beziehungsweise Dienstag.` without triggering
+      `Ne, das passt schon.`, `Nein danke.`, `Das ist gut. Nein, wirklich.`,
+      `Ich nehme Tee bzw. Kaffee.`, `Sorry, ich bin spät dran.`,
+      `Korrigiere bitte den Text.`, `Besser gesagt ist das nicht.` or
+      `Rather than waiting, we go now.`. `naja` is not a correction cue.
+      `beziehungsweise` / `bzw.` also count without preceding punctuation
+      when directly between different slots of the same class:
+      `Treffen am Montag beziehungsweise Dienstag.` → `Treffen am Dienstag.`.
+      The retraction then includes the word directly before the cue;
+      `Tee bzw. Kaffee` still has no slot. A multiword cue owns its words
+      (`nein warte` never also produces an overlapping `warte` span).
+    - `ich meine` / `I mean` keep their existing frequent-filler rule:
+      pauses before and after **and** a number, weekday/month or known
+      first name within three following words, or a restatement. Weak
+      anchors exclude `one`, `may`, `march`, `today`, `heute`, `morgen`.
+      Reported speech (`said` / `asked` / `sagte` / `fragte` nearby, or colon
+      plus opening quote directly before the cue) never triggers.
+    - Bare `Warte` / `Moment` / `Wait` after a clause boundary (`. , ;` /
+      dash / newline): an anchor within three replacement words and an
+      anchor of the same kind in the immediately preceding clause, or a
+      restatement. No dictation-start cue, colon introduction, reported
+      speech, unrelated earlier anchor, or anchor in a later clause. This
+      covers ASR dropping `nein`: `Wir treffen uns um drei. Warte um vier.`
+      Inside a clause, these cues also count when a number/time, weekday,
+      month or relative-day slot in the next two words matches a slot in
+      the preceding six words of the same sentence. A following pronoun
+      vetoes the inline rule. The retraction starts at the earlier slot's
+      repeated frame word (or the slot): `um drei und dann warte um vier`
+      → `um vier`. Ordinary waits remain unchanged.
+- **Prompt:** minimal-edit, deletion-only cleanup (fillers, stutters, aborted
+  starts, retracted part + cue; keep every other word, punctuation, casing,
+  language; keep lists/estimates; return unchanged if nothing to clean) with
+  DE/EN few-shot examples incl. a no-change one and explicit `Ne,`,
+  `Korrigiere` and `beziehungsweise` repairs (both simple slots and internal
+  slots with retained trailing words for the LLM fallback)
+  (`self_correction::SYSTEM_PROMPT`).
+- **Provider:** Apple Intelligence on-device when available; else the active
+  post-process provider only with upstream post-processing enabled, a model
+  **and** an API key; otherwise skipped (`no_local_provider` without remote
+  consent, or `no_provider` / `apple_unavailable`). Apple availability and
+  inference run on blocking workers; at most one Apple call is in flight.
+  A timeout keeps rules output and discards late results; until Swift
+  generation actually unwinds, later calls skip with `busy`, even after the
+  blocking worker returned. Preparation is deferred during generation; a run
+  also skips `busy` while preparation is already creating a session.
+- **Apple session** (`swift/fork_self_correction.swift`, FFI in
+  `self_correction/apple_session.rs`): the pass does **not** use upstream's
+  per-call bridge (fresh session, structured output with a silent unstructured
+  retry, uncancellable). It keeps one `LanguageModelSession` with
+  `SYSTEM_PROMPT` as instructions, `prewarm()`ed ahead of use: `prepare` runs
+  at every recording start (`TranscribeAction::start`, after the mic started;
+  non-blocking, idempotent while fresh, only when the pass is enabled and
+  `choose_provider` would pick Apple). Ready sessions older than 90 s are
+  released and prewarmed again: idle age cannot prove the model stayed resident
+  under memory pressure. No app-start warm-up. A run takes the ready session (or
+  builds a cold one), generates plain text greedily with
+  `maximumResponseTokens = max(48, chars/2)` (≈ 2× input tokens), cancels the
+  Swift task at its deadline and returns `timeout` at once; once the task
+  unwound, a fresh session is prewarmed so no transcript history accumulates.
+  Budget: 3 s when the session was prewarmed 1.5–90 s ago (`WARM_AFTER` /
+  `WARM_FRESH_FOR`, an estimate — `prewarm()` has no completion signal), 4.5 s otherwise
+  (`COLD_TIMEOUT`). Debug log: `Apple session prepared N ms ago → warm|cold`
+  and `Apple run N ms (cap N ms)`. Built by `swift/fork_self_correction_build.rs`
+  (same real/stub decision and swiftc flags as upstream's bridge;
+  `fork_self_correction_stub.swift` reports unavailable).
+- **Guard** (`self_correction/guard.rs`, word alignment plus verbatim retention): result length must be
+  30–110 % of the input; **no** added word (word-level diff, not even a
+  re-inflected one); every removed word lies in a span's deletable words
+  (filler, repeated words, cue) or in a retracted stretch that starts no
+  earlier than the repair's start (explicit cues: anywhere before; bare-no
+  and inline-wait repairs: the matched slot/frame; restart: the frame word /
+  fragment start) and ends at or within two words before the repair. Replacement
+  words after the cue cannot be deleted.
+  A sentence boundary before a negation does not shift the matched-slot
+  start: `Ich komme morgen. Ne, übermorgen.` retracts from word 2 (`morgen`),
+  not from the new clause. Regression tests accept the correct output with
+  a period, no final punctuation or an exclamation mark, while still
+  rejecting inserted words and unrelated deletions.
+  Retained text is byte-identical outside cuts: numbers, symbols, punctuation
+  and casing elsewhere cannot change. Only cut whitespace, one adjacent
+  comma/period/dash on either side, and the first letter after a cut or at text
+  start may change. A final mark on a slot immediately following a cut may
+  be dropped or become a sentence-final mark. Wrapping quotes /
+  `<think>` / `Output:` labels are stripped. A failed guard keeps the rules
+  output; reason journaled. Skipped when a snippet fired or upstream's LLM
+  already rewrote it.
+- **Journal:** `self_correction {requested, applied, ms, reason, cue,
+provider, candidate?}` (only when a disfluency was found; `cue` = the distinct detected
+  kinds, e.g. `cue:nein warte,filler,repetition`) and `text.self_correction`.
+  `candidate` holds the cleaned LLM result when rejected, including
+  `unchanged`; accepted results use `text.self_correction`. Candidate text
+  is local-journal-only, never logged, and omitted under the journal's
+  existing fail-closed text redaction.
+  Debug log: `self-correction: detected '<kinds>' in N µs` and the outcome
+  line with ms.
+- **New files:** `src-tauri/src/self_correction/` (`mod.rs`, `cues.rs`,
+  `disfluency.rs`, `rules.rs`, `guard.rs`, `blocking.rs`, `commands.rs`,
+  `apple_session.rs`), `src-tauri/src/output_stages.rs` (sequences this
+  pass and the per-app style), `src-tauri/swift/fork_self_correction.swift`
+  with its `_stub.swift`, `_bridge.h` and `_build.rs` siblings. `correction_learning::lexicon` became
+  `pub(crate)` (first-name list).
+- **Upstream files touched:** `actions.rs` (one wrapped call:
+  `crate::output_stages::finish(&ah, process_transcription_output(..))` in
+  `TranscribeAction::stop` — live dictations only, not history retries;
+  `crate::self_correction::prepare(&settings)` in `TranscribeAction::start`),
+  `settings.rs` (`self_correction_llm_enabled`), `lib.rs` (`mod
+self_correction;`, `mod output_stages;`, command),
+  `build.rs` (`#[path] mod fork_self_correction_build;` +
+  `fork_self_correction_build::build()` after the upstream bridge),
+  `stores/settingsStore.ts`, `bindings.ts`.
+- **Probe:** `self-correction: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream now detect self-corrections / disfluencies
+  or gate the LLM pass on content? Does its filler removal now cover
+  restarts (then drop the `restart` comma heuristic)? Does upstream's
+  `apple_intelligence.swift` now reuse/prewarm a session and cancel on
+  timeout (then drop the fork Swift bridge and call upstream's)?
+  ```bash
+  git grep -iE "self.?correct|backtrack|scratch that|no wait" upstream/main -- src-tauri/src
+  ```
+
+## per-app styles
+
+Deterministic output style per target app (bundle id from `dictation_context`,
+captured at recording start), the last text stage before the paste.
+`app_styles_enabled` (default on) + `app_styles_categories {chat, terminal,
+code, match_context}` (all default on). Unknown apps and mail/docs (Mail,
+Outlook, Notes, Pages, Word) are unchanged; browsers are not classified.
+
+- **chat** (Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams): a
+  one-sentence, one-line message drops a single trailing `.`; `?`/`!`/`...`
+  stay.
+- **terminal** (Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm):
+  trailing `.` dropped; a leading function word is lowercased; newlines kept
+  (TUIs such as Claude Code take multi-line input, shells get a bracketed
+  paste); no context matching (terminal AX text is the screen buffer).
+- **code** (VS Code, Cursor, Zed, JetBrains `com.jetbrains.*`, Xcode, Sublime,
+  Nova, Android Studio): a single whitespace-free token drops its trailing `.`.
+- **match_context** (all but terminals): when the text before the caret ends
+  mid-sentence (last char letter/digit/`,`/`;` on the same line), the first
+  word is lowercased **only** if it is a known DE/EN function word (list per
+  detected language — `correction_learning::last_transcription_language` —
+  else both; German nouns and formal `Sie`/`Ihr` are never lowercased;
+  acronyms, inner capitals, `I`, custom/learned dictionary words stay). A
+  space is prepended when the caret follows a word or `, . ; : ! ? ) ] }`
+  directly and the dictation starts with a word (upstream only appends a
+  trailing space, so no double spaces).
+- **Journal:** `text.app_style` (text after the stage).
+- **New files:** `src-tauri/src/app_styles/` (`mod.rs`, `commands.rs`).
+- **Upstream files touched:** shares the `actions.rs` hook with the
+  self-correction pass; `settings.rs` (`app_styles_*`), `lib.rs` (`mod
+app_styles;`, commands), `stores/settingsStore.ts`, `bindings.ts`.
+- **Probe:** `app-styles: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream now adapt output per app?
+  ```bash
+  git grep -iE "bundle.?id|per.?app|app.?style|frontmost" upstream/main -- src-tauri/src
+  ```
+
 ## overlay: compact capsule + latency
 
 The Minimal / transcribing / processing overlay is one fixed 144x32 capsule
@@ -394,6 +685,24 @@ tail drain. Recordings without confirmed speech stay empty. Live VAD callbacks
   git show upstream/main:src-tauri/src/audio_toolkit/audio/recorder.rs | grep -n -A6 "VadFrame::Noise"
   ```
   If upstream keeps internal pauses itself, drop this patch.
+
+## history: pasted text
+
+A history entry's processed field holds the text that was actually pasted
+(after `output_stages`: self-correction, per-app style) whenever it differs
+from the raw transcription; otherwise upstream's LLM result as before. The raw
+transcription stays unchanged.
+
+- **New files:** none.
+- **Upstream files touched:** `actions.rs` (`pasted_text` passed to
+  `hm.save_entry` in `TranscribeAction::stop`).
+- **Probe:** `history: pasted text in processed field` in
+  `scripts/fork-check.sh`.
+- **Upstream check:** does upstream now store the final pasted text in history
+  itself?
+  ```bash
+  git grep -n "save_entry" upstream/main -- src-tauri/src/actions.rs
+  ```
 
 ## benchmark harness
 

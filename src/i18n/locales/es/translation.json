@@ -284,7 +284,8 @@
         "history": "Historial",
         "experimental": "Experimental",
         "textRules": "Reglas de Texto",
-        "learnedCorrections": "Correcciones aprendidas"
+        "learnedCorrections": "Correcciones aprendidas",
+        "smartFormatting": "Formato inteligente"
       },
       "experimentalToggle": {
         "label": "Funciones experimentales",
@@ -563,6 +564,55 @@
           "asTranscribed": "Tal como se transcribió",
           "simplified": "Simplificado",
           "traditional": "Tradicional"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autocorrección",
+          "description": "Elimina muletillas (\"uh\", \"um\", \"eh\"), tartamudeos y palabras repetidas, y las partes que retiras al corregirte (\"no wait\", \"I mean\", \"no, espera\", \"quiero decir\"), con Apple Intelligence en este dispositivo. Tu proveedor de posprocesamiento configurado, que puede ser un servicio remoto, solo se usa si el posprocesamiento está activado. Solo se eliminan palabras, nunca se reescriben; los dictados sin esas vacilaciones se pegan sin cambios y, si el modelo es lento o cambia demasiado, se conserva el original."
+        },
+        "appStyles": {
+          "title": "Estilos por aplicación",
+          "description": "Adapta el texto a la aplicación en la que dictas: mensajes de chat sin punto final, salida adecuada para terminal y código, y mayúsculas y espacios acordes al texto anterior al cursor.",
+          "categories": {
+            "title": "Estilos",
+            "summary": "{{active}}/{{total}} activos",
+            "chat": {
+              "label": "Apps de chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: un mensaje de una sola frase pierde el punto final (? y ! se mantienen)."
+            },
+            "terminal": {
+              "label": "Terminales",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sin punto final y sin mayúscula en una palabra funcional inicial."
+            },
+            "code": {
+              "label": "Editores de código",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: una sola palabra o identificador pierde el punto final."
+            },
+            "matchContext": {
+              "label": "Adaptar al texto circundante",
+              "hint": "Al continuar una frase, una palabra funcional inicial pasa a minúscula (\"and\", \"weil\"); se añade un espacio si el cursor está justo después de una palabra."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Fragmentos",
+          "description": "Di una frase activadora sola (o entre signos de puntuación) para insertar su texto, p. ej. \"mi dirección\". Se ignoran mayúsculas y puntuación; las demás reglas nunca modifican el texto insertado.",
+          "triggerPlaceholder": "Frase activadora, p. ej. mi dirección",
+          "expansionPlaceholder": "Texto a insertar (se permiten varias líneas)",
+          "add": "Añadir",
+          "save": "Guardar",
+          "cancel": "Cancelar",
+          "edit": "Editar",
+          "remove": "Eliminar fragmento {{trigger}}",
+          "enable": "Activar fragmento {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "La frase activadora necesita al menos una palabra alfanumérica.",
+            "expansionRequired": "Introduce un texto a insertar.",
+            "duplicateTrigger": "Ya existe un fragmento para «{{trigger}}».",
+            "commandFailed": "No se pudo guardar ni eliminar el fragmento. Inténtalo de nuevo."
+          }
         }
       }
     },

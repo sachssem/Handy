@@ -284,7 +284,8 @@
         "history": "Verlauf",
         "experimental": "Experimentell",
         "textRules": "Textregeln",
-        "learnedCorrections": "Gelernte Korrekturen"
+        "learnedCorrections": "Gelernte Korrekturen",
+        "smartFormatting": "Intelligente Formatierung"
       },
       "experimentalToggle": {
         "label": "Experimentelle Funktionen",
@@ -563,6 +564,55 @@
           "asTranscribed": "Wie transkribiert",
           "simplified": "Vereinfacht",
           "traditional": "Traditionell"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Selbstkorrektur",
+          "description": "Entfernt Füllwörter („äh“, „ähm“), Stotterer und Wortwiederholungen sowie das, was du beim Korrigieren zurücknimmst („nein, warte“, „ich meine“, „Korrektur“, „no wait“) – mit Apple Intelligence auf diesem Gerät. Dein konfigurierter Nachbearbeitungs-Anbieter, der ein entfernter Dienst sein kann, wird nur bei aktivierter Nachbearbeitung verwendet. Es werden nur Wörter entfernt, nie umformuliert; Diktate ohne solche Stolperer werden unverändert eingefügt, und ist das Modell zu langsam oder ändert es zu viel, bleibt das Original."
+        },
+        "appStyles": {
+          "title": "App-Stile",
+          "description": "Passt den Text an die App an, in die du diktierst: Chat-Nachrichten ohne Schlusspunkt, terminal- und codefreundliche Ausgabe sowie Groß-/Kleinschreibung und Leerzeichen passend zum Text vor dem Cursor.",
+          "categories": {
+            "title": "Stile",
+            "summary": "{{active}}/{{total}} aktiv",
+            "chat": {
+              "label": "Chat-Apps",
+              "hint": "Slack, Nachrichten, WhatsApp, Telegram, Discord, Signal, Teams: Eine Nachricht aus einem Satz verliert ihren Schlusspunkt (? und ! bleiben)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: kein Schlusspunkt, kein Großbuchstabe bei einem Funktionswort am Anfang."
+            },
+            "code": {
+              "label": "Code-Editoren",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: Ein einzelnes Wort oder Bezeichner verliert seinen Schlusspunkt."
+            },
+            "matchContext": {
+              "label": "An umgebenden Text anpassen",
+              "hint": "Setzt du einen Satz fort, wird ein Funktionswort am Anfang kleingeschrieben („weil“, „and“); direkt nach einem Wort wird ein Leerzeichen ergänzt."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Textbausteine",
+          "description": "Sprich eine Auslösephrase für sich allein (oder zwischen Satzzeichen), um ihren Text einzufügen, z. B. „meine Adresse“. Groß-/Kleinschreibung und Satzzeichen spielen keine Rolle; der eingefügte Text wird von anderen Regeln nie verändert.",
+          "triggerPlaceholder": "Auslösephrase, z. B. meine Adresse",
+          "expansionPlaceholder": "Einzufügender Text (mehrzeilig möglich)",
+          "add": "Hinzufügen",
+          "save": "Speichern",
+          "cancel": "Abbrechen",
+          "edit": "Bearbeiten",
+          "remove": "Textbaustein {{trigger}} entfernen",
+          "enable": "Textbaustein {{trigger}} aktivieren",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Die Auslösephrase braucht mindestens ein Wort aus Buchstaben oder Ziffern.",
+            "expansionRequired": "Gib einen einzufügenden Text ein.",
+            "duplicateTrigger": "Ein Textbaustein für „{{trigger}}“ existiert bereits.",
+            "commandFailed": "Der Textbaustein konnte nicht gespeichert oder entfernt werden. Bitte versuche es erneut."
+          }
         }
       }
     },

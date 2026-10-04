@@ -284,7 +284,8 @@
         "history": "Lịch sử",
         "experimental": "Thử nghiệm",
         "textRules": "Quy tắc văn bản",
-        "learnedCorrections": "Sửa lỗi đã học"
+        "learnedCorrections": "Sửa lỗi đã học",
+        "smartFormatting": "Định dạng thông minh"
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm",
@@ -563,6 +564,55 @@
           "asTranscribed": "Giữ nguyên bản chép",
           "simplified": "Giản thể",
           "traditional": "Phồn thể"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Tự sửa lỗi",
+          "description": "Loại bỏ từ đệm (\"uh\", \"um\", \"ờ\"), nói lắp và từ lặp lại, cùng những phần bạn rút lại khi tự sửa (\"no wait\", \"I mean\", \"không, khoan\", \"ý tôi là\"), bằng Apple Intelligence trên thiết bị này. Nhà cung cấp hậu xử lý bạn đã cấu hình, có thể là dịch vụ từ xa, chỉ được dùng khi hậu xử lý được bật. Từ chỉ bị xóa, không bao giờ bị viết lại; bản đọc không có những chỗ ngập ngừng như vậy được dán nguyên vẹn, và nếu mô hình chậm hoặc thay đổi quá nhiều, bản gốc được giữ lại."
+        },
+        "appStyles": {
+          "title": "Kiểu theo ứng dụng",
+          "description": "Điều chỉnh văn bản theo ứng dụng bạn đang đọc vào: tin nhắn chat không có dấu chấm cuối, kết quả phù hợp với terminal và mã, cùng cách viết hoa và khoảng trắng khớp với văn bản trước con trỏ.",
+          "categories": {
+            "title": "Kiểu",
+            "summary": "{{active}}/{{total}} đang bật",
+            "chat": {
+              "label": "Ứng dụng chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: tin nhắn một câu sẽ bỏ dấu chấm cuối (giữ nguyên ? và !)."
+            },
+            "terminal": {
+              "label": "Terminal",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: không có dấu chấm cuối, không viết hoa từ chức năng đứng đầu."
+            },
+            "code": {
+              "label": "Trình soạn thảo mã",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: một từ hoặc định danh đơn lẻ sẽ bỏ dấu chấm cuối."
+            },
+            "matchContext": {
+              "label": "Khớp với văn bản xung quanh",
+              "hint": "Khi viết tiếp một câu, từ chức năng đứng đầu được viết thường (\"and\", \"weil\"); thêm khoảng trắng khi con trỏ nằm ngay sau một từ."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Đoạn văn bản mẫu",
+          "description": "Nói riêng một cụm kích hoạt (hoặc giữa các dấu câu) để chèn văn bản của nó, ví dụ \"địa chỉ của tôi\". Bỏ qua hoa/thường và dấu câu; văn bản được chèn không bao giờ bị quy tắc khác thay đổi.",
+          "triggerPlaceholder": "Cụm kích hoạt, ví dụ địa chỉ của tôi",
+          "expansionPlaceholder": "Văn bản cần chèn (cho phép nhiều dòng)",
+          "add": "Thêm",
+          "save": "Lưu",
+          "cancel": "Hủy",
+          "edit": "Sửa",
+          "remove": "Xóa đoạn mẫu {{trigger}}",
+          "enable": "Bật đoạn mẫu {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Cụm kích hoạt cần có ít nhất một từ gồm chữ hoặc số.",
+            "expansionRequired": "Nhập văn bản cần chèn.",
+            "duplicateTrigger": "Đã có đoạn mẫu cho '{{trigger}}'.",
+            "commandFailed": "Không thể lưu hoặc xóa đoạn mẫu. Vui lòng thử lại."
+          }
         }
       }
     },

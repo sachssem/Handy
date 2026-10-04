@@ -562,6 +562,8 @@ impl ShortcutAction for TranscribeAction {
             // fork(voice-control): capture the target app's context off-thread,
             // after the overlay and mic start so neither waits for it.
             crate::dictation_context::capture_async(app, dictation_id);
+            // fork(voice-control): warm the self-correction session (non-blocking).
+            crate::self_correction::prepare(&settings);
         } else {
             // fork(voice-control): the journal record ends here.
             crate::journal::start_failed(dictation_id, recording_error.as_deref());
@@ -754,7 +756,12 @@ impl ShortcutAction for TranscribeAction {
                             }
                             let output_started = Instant::now(); // fork(voice-control)
                             let Some(processed) = complete_unless_cancelled(
-                                process_transcription_output(&ah, &transcription, post_process),
+                                // fork(voice-control): + self-correction LLM pass and
+                                // per-app style (`output_stages`) on the final text.
+                                crate::output_stages::finish(
+                                    &ah,
+                                    process_transcription_output(&ah, &transcription, post_process),
+                                ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
                             .await
@@ -782,11 +789,17 @@ impl ShortcutAction for TranscribeAction {
 
                             // Save to history if WAV was saved
                             if wav_saved {
+                                // fork(voice-control): the processed field holds the
+                                // pasted text (after `output_stages`) when it differs
+                                // from the raw transcription, which stays as is.
+                                let pasted_text = (processed.final_text != transcription)
+                                    .then(|| processed.final_text.clone())
+                                    .or_else(|| processed.post_processed_text.clone());
                                 if let Err(err) = hm.save_entry(
                                     file_name,
                                     transcription,
                                     post_process,
-                                    processed.post_processed_text.clone(),
+                                    pasted_text,
                                     processed.post_process_prompt.clone(),
                                 ) {
                                     error!("Failed to save history entry: {}", err);

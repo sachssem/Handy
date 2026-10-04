@@ -516,6 +516,66 @@ async getAsrBiasSupport(modelId: string) : Promise<boolean | null> {
     return await TAURI_INVOKE("get_asr_bias_support", { modelId });
 },
 /**
+ * Switch for the trigger-gated self-correction LLM pass.
+ */
+async changeSelfCorrectionLlmEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_self_correction_llm_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Master switch for per-app styles and context matching.
+ */
+async changeAppStylesEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_app_styles_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The per-category switches.
+ */
+async changeAppStylesCategoriesSetting(categories: AppStyleCategories) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_app_styles_categories_setting", { categories }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async addSnippet(trigger: string, expansion: string) : Promise<Result<Snippet, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_snippet", { trigger, expansion }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Replace the snippet with `snippet.id` (trigger, expansion, enabled).
+ */
+async updateSnippet(snippet: Snippet) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_snippet", { snippet }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeSnippet(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_snippet", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.
  */
@@ -1232,8 +1292,20 @@ vad_backend?: VadBackend; auto_stop_recording_on_limit?: boolean;
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_corrections_log_only?: boolean; learn_corrections_aggressiveness?: Aggressiveness; learn_corrections_window_secs?: number; learned_corrections?: LearnedCorrection[] }
+overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_from_edits_enabled?: boolean; learn_corrections_aggressiveness?: Aggressiveness; learn_corrections_window_secs?: number; learned_toast_accept_shortcut?: string; learned_toast_dismiss_shortcut?: string; learned_corrections?: LearnedCorrection[]; dictation_journal_enabled?: boolean; 
+/**
+ * Days a journal day file is kept (clamped to 1–365).
+ */
+dictation_journal_retention_days?: number; self_correction_llm_enabled?: boolean; app_styles_enabled?: boolean; app_styles_categories?: AppStyleCategories; snippets?: Snippet[]; asr_context_biasing_enabled?: boolean }
 export type Aggressiveness = "conservative" | "balanced" | "aggressive"
+/**
+ * Which per-app styles are active.
+ */
+export type AppStyleCategories = { chat?: boolean; terminal?: boolean; code?: boolean; 
+/**
+ * Casing and spacing matched to the text before the caret.
+ */
+match_context?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
@@ -1379,6 +1451,18 @@ export type ShortcutActivation =
  */
 "hold_or_toggle"
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
+/**
+ * A user-defined snippet.
+ */
+export type Snippet = { id: string; 
+/**
+ * Spoken trigger phrase, e.g. `"meine Adresse"`.
+ */
+trigger: string; 
+/**
+ * Inserted text (multi-line allowed), inserted verbatim.
+ */
+expansion: string; enabled?: boolean }
 export type SoundTheme = "marimba" | "pop" | "custom"
 export type SpacingPolicy = "attach_left" | "attach_right" | "glue" | "standalone"
 /**

@@ -590,6 +590,16 @@ pub struct AppSettings {
     /// Days a journal day file is kept (clamped to 1–365).
     #[serde(default = "default_dictation_journal_retention_days")]
     pub dictation_journal_retention_days: u32,
+    // fork(voice-control): trigger-gated self-correction LLM pass, per-app
+    // styles and snippets (see `self_correction`, `app_styles`, `snippets`).
+    #[serde(default = "default_true")]
+    pub self_correction_llm_enabled: bool,
+    #[serde(default = "default_true")]
+    pub app_styles_enabled: bool,
+    #[serde(default)]
+    pub app_styles_categories: crate::app_styles::AppStyleCategories,
+    #[serde(default)]
+    pub snippets: Vec<crate::snippets::Snippet>,
     // fork(voice-control): capability-gated ASR vocabulary + app context
     // (see `asr_bias`); existing stores opt in.
     #[serde(default = "default_true")]
@@ -1100,6 +1110,11 @@ pub fn get_default_settings() -> AppSettings {
         learned_corrections: Vec::new(),
         dictation_journal_enabled: default_true(),
         dictation_journal_retention_days: default_dictation_journal_retention_days(),
+        // fork(voice-control): self-correction, app styles, snippets.
+        self_correction_llm_enabled: default_true(),
+        app_styles_enabled: default_true(),
+        app_styles_categories: crate::app_styles::AppStyleCategories::default(),
+        snippets: Vec::new(),
         asr_context_biasing_enabled: default_true(),
     }
 }

@@ -284,7 +284,8 @@
         "history": "历史",
         "experimental": "实验性",
         "textRules": "文本规则",
-        "learnedCorrections": "已学习的修正"
+        "learnedCorrections": "已学习的修正",
+        "smartFormatting": "智能格式化"
       },
       "experimentalToggle": {
         "label": "实验性功能",
@@ -563,6 +564,55 @@
           "asTranscribed": "保持原样",
           "simplified": "简体",
           "traditional": "繁体"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "自我纠正",
+          "description": "使用此设备上的 Apple Intelligence 删除填充词(\"uh\"、\"um\"、“嗯”)、口吃和重复的词,以及你改口时收回的部分(\"no wait\"、\"I mean\"、“不对,等一下”、“我是说”)。你配置的后处理提供商(可能是远程服务)仅在启用后处理时使用。只删除词语,绝不改写;没有此类停顿的听写会原样粘贴,如果模型太慢或改动过多,则保留原文。"
+        },
+        "appStyles": {
+          "title": "应用样式",
+          "description": "根据你听写所在的应用调整文本:聊天消息不加句末句号,输出适合终端和代码,大小写与空格与光标前的文本保持一致。",
+          "categories": {
+            "title": "样式",
+            "summary": "已启用 {{active}}/{{total}}",
+            "chat": {
+              "label": "聊天应用",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams:单句消息会去掉句末句号(保留 ? 和 !)。"
+            },
+            "terminal": {
+              "label": "终端",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm:无句末句号,开头的功能词不大写。"
+            },
+            "code": {
+              "label": "代码编辑器",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova:单个单词或标识符会去掉句末句号。"
+            },
+            "matchContext": {
+              "label": "匹配周围文本",
+              "hint": "接续句子时,开头的功能词改为小写(\"and\"、\"weil\");光标紧跟在单词之后时会补一个空格。"
+            }
+          }
+        },
+        "snippets": {
+          "title": "片段",
+          "description": "单独说出触发短语(或置于标点之间)即可插入对应文本,例如“我的地址”。匹配时忽略大小写和标点;插入的文本不会被其他规则改动。",
+          "triggerPlaceholder": "触发短语,例如 我的地址",
+          "expansionPlaceholder": "要插入的文本(可多行)",
+          "add": "添加",
+          "save": "保存",
+          "cancel": "取消",
+          "edit": "编辑",
+          "remove": "删除片段 {{trigger}}",
+          "enable": "启用片段 {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "触发短语至少需要一个由字母或数字组成的词。",
+            "expansionRequired": "请输入要插入的文本。",
+            "duplicateTrigger": "“{{trigger}}”的片段已存在。",
+            "commandFailed": "无法保存或删除该片段。请重试。"
+          }
         }
       }
     },

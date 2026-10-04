@@ -284,7 +284,8 @@
         "history": "히스토리",
         "experimental": "실험적",
         "textRules": "텍스트 규칙",
-        "learnedCorrections": "학습된 수정"
+        "learnedCorrections": "학습된 수정",
+        "smartFormatting": "스마트 서식"
       },
       "experimentalToggle": {
         "label": "실험적 기능",
@@ -563,6 +564,55 @@
           "asTranscribed": "전사된 그대로",
           "simplified": "간체",
           "traditional": "번체"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "자기 수정",
+          "description": "군더더기 말(\"uh\", \"um\", \"음\"), 말더듬과 반복된 단어, 그리고 스스로 정정할 때 취소한 부분(\"no wait\", \"I mean\", \"아니, 잠깐\", \"내 말은\")을 이 기기의 Apple Intelligence로 제거합니다. 설정한 후처리 제공자(원격 서비스일 수 있음)는 후처리가 켜져 있을 때만 사용됩니다. 단어는 삭제만 될 뿐 다시 쓰이지 않습니다. 이런 머뭇거림이 없는 받아쓰기는 그대로 붙여넣어지며, 모델이 느리거나 너무 많이 바꾸면 원문이 유지됩니다."
+        },
+        "appStyles": {
+          "title": "앱별 스타일",
+          "description": "받아쓰는 앱에 맞게 텍스트를 조정합니다. 채팅 메시지는 마침표 없이, 터미널과 코드에 알맞은 출력, 커서 앞 텍스트에 맞춘 대소문자와 공백이 적용됩니다.",
+          "categories": {
+            "title": "스타일",
+            "summary": "{{active}}/{{total}} 활성",
+            "chat": {
+              "label": "채팅 앱",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: 한 문장짜리 메시지는 끝의 마침표가 빠집니다(? 와 ! 는 유지)."
+            },
+            "terminal": {
+              "label": "터미널",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: 끝 마침표 없음, 맨 앞 기능어를 대문자로 쓰지 않음."
+            },
+            "code": {
+              "label": "코드 편집기",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: 단어 하나 또는 식별자는 끝의 마침표가 빠집니다."
+            },
+            "matchContext": {
+              "label": "주변 텍스트에 맞추기",
+              "hint": "문장을 이어 쓸 때 맨 앞 기능어는 소문자가 되고(\"and\", \"weil\"), 커서가 단어 바로 뒤에 있으면 공백이 추가됩니다."
+            }
+          }
+        },
+        "snippets": {
+          "title": "스니펫",
+          "description": "트리거 문구만 따로(또는 문장부호 사이에) 말하면 해당 텍스트가 삽입됩니다. 예: \"내 주소\". 대소문자와 문장부호는 무시되며, 삽입된 텍스트는 다른 규칙으로 바뀌지 않습니다.",
+          "triggerPlaceholder": "트리거 문구, 예: 내 주소",
+          "expansionPlaceholder": "삽입할 텍스트(여러 줄 가능)",
+          "add": "추가",
+          "save": "저장",
+          "cancel": "취소",
+          "edit": "편집",
+          "remove": "스니펫 {{trigger}} 삭제",
+          "enable": "스니펫 {{trigger}} 사용",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "트리거에는 영숫자 단어가 하나 이상 있어야 합니다.",
+            "expansionRequired": "삽입할 텍스트를 입력하세요.",
+            "duplicateTrigger": "'{{trigger}}'에 대한 스니펫이 이미 있습니다.",
+            "commandFailed": "스니펫을 저장하거나 삭제할 수 없습니다. 다시 시도해 주세요."
+          }
         }
       }
     },

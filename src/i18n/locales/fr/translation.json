@@ -284,7 +284,8 @@
         "history": "Historique",
         "experimental": "Expérimental",
         "textRules": "Règles de texte",
-        "learnedCorrections": "Corrections apprises"
+        "learnedCorrections": "Corrections apprises",
+        "smartFormatting": "Mise en forme intelligente"
       },
       "experimentalToggle": {
         "label": "Fonctionnalités Expérimentales",
@@ -563,6 +564,55 @@
           "asTranscribed": "Tel que transcrit",
           "simplified": "Simplifié",
           "traditional": "Traditionnel"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autocorrection",
+          "description": "Supprime les mots de remplissage (\"uh\", \"um\", \"euh\"), les bégaiements et les mots répétés, ainsi que les passages que vous retirez en vous corrigeant (\"no wait\", \"I mean\", \"non, attends\", \"je veux dire\"), avec Apple Intelligence sur cet appareil. Votre fournisseur de post-traitement configuré, qui peut être un service distant, n'est utilisé que si le post-traitement est activé. Les mots sont seulement supprimés, jamais reformulés ; les dictées sans ces hésitations sont collées telles quelles, et si le modèle est lent ou modifie trop, l'original est conservé."
+        },
+        "appStyles": {
+          "title": "Styles par application",
+          "description": "Adapte le texte à l'application dans laquelle vous dictez : messages de chat sans point final, sortie adaptée au terminal et au code, majuscules et espaces alignés sur le texte avant le curseur.",
+          "categories": {
+            "title": "Styles",
+            "summary": "{{active}}/{{total}} actifs",
+            "chat": {
+              "label": "Applications de chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams : un message d'une seule phrase perd son point final (? et ! restent)."
+            },
+            "terminal": {
+              "label": "Terminaux",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm : pas de point final, pas de majuscule sur un mot-outil en début de phrase."
+            },
+            "code": {
+              "label": "Éditeurs de code",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova : un mot ou identifiant isolé perd son point final."
+            },
+            "matchContext": {
+              "label": "Adapter au texte environnant",
+              "hint": "Quand vous poursuivez une phrase, un mot-outil initial passe en minuscule (\"and\", \"weil\") ; une espace est ajoutée si le curseur suit directement un mot."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Extraits de texte",
+          "description": "Dites une phrase déclencheur seule (ou entre deux signes de ponctuation) pour insérer son texte, p. ex. \"mon adresse\". La casse et la ponctuation sont ignorées ; le texte inséré n'est jamais modifié par d'autres règles.",
+          "triggerPlaceholder": "Phrase déclencheur, p. ex. mon adresse",
+          "expansionPlaceholder": "Texte à insérer (plusieurs lignes possibles)",
+          "add": "Ajouter",
+          "save": "Enregistrer",
+          "cancel": "Annuler",
+          "edit": "Modifier",
+          "remove": "Supprimer l'extrait {{trigger}}",
+          "enable": "Activer l'extrait {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Le déclencheur doit contenir au moins un mot alphanumérique.",
+            "expansionRequired": "Saisissez un texte à insérer.",
+            "duplicateTrigger": "Un extrait pour « {{trigger}} » existe déjà.",
+            "commandFailed": "L'extrait n'a pas pu être enregistré ou supprimé. Veuillez réessayer."
+          }
         }
       }
     },

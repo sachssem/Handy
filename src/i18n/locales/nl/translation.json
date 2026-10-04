@@ -284,7 +284,8 @@
         "history": "Geschiedenis",
         "experimental": "Experimenteel",
         "textRules": "Tekstregels",
-        "learnedCorrections": "Geleerde correcties"
+        "learnedCorrections": "Geleerde correcties",
+        "smartFormatting": "Slim opmaken"
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
@@ -563,6 +564,55 @@
           "asTranscribed": "Zoals getranscribeerd",
           "simplified": "Vereenvoudigd",
           "traditional": "Traditioneel"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Zelfcorrectie",
+          "description": "Verwijdert stopwoordjes (\"uh\", \"um\", \"eh\"), gestotter en herhaalde woorden, en de delen die je terugneemt als je jezelf verbetert (\"no wait\", \"I mean\", \"nee, wacht\", \"ik bedoel\"), met Apple Intelligence op dit apparaat. Je ingestelde nabewerkingsprovider, mogelijk een externe dienst, wordt alleen gebruikt als nabewerking is ingeschakeld. Woorden worden alleen verwijderd, nooit herschreven; dictaten zonder zulke haperingen worden ongewijzigd geplakt, en is het model traag of verandert het te veel, dan blijft het origineel behouden."
+        },
+        "appStyles": {
+          "title": "App-stijlen",
+          "description": "Past de tekst aan de app aan waarin je dicteert: chatberichten zonder slotpunt, terminal- en codevriendelijke uitvoer, en hoofdletters en spaties passend bij de tekst vóór de cursor.",
+          "categories": {
+            "title": "Stijlen",
+            "summary": "{{active}}/{{total}} actief",
+            "chat": {
+              "label": "Chat-apps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: een bericht van één zin verliest het slotpunt (? en ! blijven)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: geen slotpunt, geen hoofdletter bij een functiewoord aan het begin."
+            },
+            "code": {
+              "label": "Code-editors",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: een los woord of identifier verliest het slotpunt."
+            },
+            "matchContext": {
+              "label": "Aanpassen aan omliggende tekst",
+              "hint": "Bij het vervolgen van een zin wordt een functiewoord aan het begin klein geschreven (\"and\", \"weil\"); er wordt een spatie toegevoegd als de cursor direct na een woord staat."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Tekstfragmenten",
+          "description": "Zeg een triggerzin los (of tussen leestekens) om de bijbehorende tekst in te voegen, bijv. \"mijn adres\". Hoofdletters en leestekens worden genegeerd; de ingevoegde tekst wordt nooit door andere regels gewijzigd.",
+          "triggerPlaceholder": "Triggerzin, bijv. mijn adres",
+          "expansionPlaceholder": "In te voegen tekst (meerdere regels mogelijk)",
+          "add": "Toevoegen",
+          "save": "Opslaan",
+          "cancel": "Annuleren",
+          "edit": "Bewerken",
+          "remove": "Tekstfragment {{trigger}} verwijderen",
+          "enable": "Tekstfragment {{trigger}} inschakelen",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "De triggerzin moet minstens één alfanumeriek woord bevatten.",
+            "expansionRequired": "Voer een in te voegen tekst in.",
+            "duplicateTrigger": "Er bestaat al een tekstfragment voor '{{trigger}}'.",
+            "commandFailed": "Het tekstfragment kon niet worden opgeslagen of verwijderd. Probeer het opnieuw."
+          }
         }
       }
     },

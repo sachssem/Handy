@@ -284,7 +284,8 @@
         "history": "Riwayat",
         "experimental": "Eksperimental",
         "textRules": "Aturan Teks",
-        "learnedCorrections": "Koreksi yang Dipelajari"
+        "learnedCorrections": "Koreksi yang Dipelajari",
+        "smartFormatting": "Pemformatan Cerdas"
       },
       "experimentalToggle": {
         "label": "Fitur Eksperimental",
@@ -563,6 +564,55 @@
           "asTranscribed": "Sesuai transkripsi",
           "simplified": "Sederhana",
           "traditional": "Tradisional"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Koreksi Diri",
+          "description": "Menghapus kata pengisi (\"uh\", \"um\", \"eh\"), gagap dan kata yang berulang, serta bagian yang Anda tarik kembali saat mengoreksi diri (\"no wait\", \"I mean\", \"nein, warte\", \"Korrektur\"), dengan Apple Intelligence di perangkat ini. Penyedia pascaproses yang Anda konfigurasi, yang bisa berupa layanan jarak jauh, hanya digunakan jika pascaproses diaktifkan. Kata hanya dihapus, tidak pernah ditulis ulang; dikte tanpa keraguan semacam itu ditempel tanpa diubah, dan jika model lambat atau mengubah terlalu banyak, teks asli dipertahankan."
+        },
+        "appStyles": {
+          "title": "Gaya Aplikasi",
+          "description": "Menyesuaikan teks dengan aplikasi tempat Anda mendikte: pesan obrolan tanpa titik di akhir, keluaran yang ramah terminal dan kode, serta huruf besar/kecil dan spasi yang disesuaikan dengan teks sebelum kursor.",
+          "categories": {
+            "title": "Gaya",
+            "summary": "{{active}}/{{total}} aktif",
+            "chat": {
+              "label": "Aplikasi obrolan",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: pesan satu kalimat akan kehilangan titik di akhirnya (? dan ! tetap dipertahankan)."
+            },
+            "terminal": {
+              "label": "Terminal",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: tanpa titik di akhir, tanpa huruf kapital pada kata fungsi di awal."
+            },
+            "code": {
+              "label": "Editor kode",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: satu kata atau pengenal akan kehilangan titik di akhirnya."
+            },
+            "matchContext": {
+              "label": "Sesuaikan dengan teks sekitar",
+              "hint": "Saat melanjutkan kalimat, kata fungsi di awal ditulis dengan huruf kecil (\"and\", \"weil\"); spasi ditambahkan jika kursor berada tepat setelah sebuah kata."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Cuplikan",
+          "description": "Ucapkan frasa pemicu secara tersendiri (atau di antara tanda baca) untuk menyisipkan teksnya, misalnya \"alamat saya\". Pencocokan mengabaikan huruf besar/kecil dan tanda baca; teks yang disisipkan tidak pernah diubah oleh aturan lain.",
+          "triggerPlaceholder": "Frasa pemicu, misalnya alamat saya",
+          "expansionPlaceholder": "Teks yang akan disisipkan (boleh beberapa baris)",
+          "add": "Tambah",
+          "save": "Simpan",
+          "cancel": "Batal",
+          "edit": "Edit",
+          "remove": "Hapus cuplikan {{trigger}}",
+          "enable": "Aktifkan cuplikan {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Frasa pemicu harus berisi setidaknya satu kata alfanumerik.",
+            "expansionRequired": "Masukkan teks yang akan disisipkan.",
+            "duplicateTrigger": "Cuplikan untuk '{{trigger}}' sudah ada.",
+            "commandFailed": "Cuplikan tidak dapat disimpan atau dihapus. Silakan coba lagi."
+          }
         }
       }
     },

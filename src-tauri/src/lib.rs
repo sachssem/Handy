@@ -1,4 +1,6 @@
 mod actions;
+// fork(voice-control): per-app output styles (see `app_styles`).
+mod app_styles;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 // fork(voice-control): vocabulary + context bias for capable ASR models.
@@ -26,13 +28,19 @@ mod journal;
 mod llm_client;
 mod managers;
 mod memory;
+// fork(voice-control): self-correction pass + per-app style after the result.
+mod output_stages;
 mod overlay;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
+// fork(voice-control): trigger-gated self-correction LLM pass.
+mod self_correction;
 mod settings;
 mod shortcut;
 mod signal_handle;
+// fork(voice-control): spoken trigger phrase → expansion text.
+mod snippets;
 mod text_rules;
 mod transcription_coordinator;
 mod tray;
@@ -743,6 +751,13 @@ pub fn run(cli_args: CliArgs) {
             // fork(voice-control): ASR biasing (vocabulary + app context).
             asr_bias::change_asr_context_biasing_setting,
             asr_bias::get_asr_bias_support,
+            // fork(voice-control): self-correction, app styles, snippets.
+            self_correction::commands::change_self_correction_llm_enabled_setting,
+            app_styles::commands::change_app_styles_enabled_setting,
+            app_styles::commands::change_app_styles_categories_setting,
+            snippets::commands::add_snippet,
+            snippets::commands::update_snippet,
+            snippets::commands::remove_snippet,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,

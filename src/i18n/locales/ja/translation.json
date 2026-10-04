@@ -284,7 +284,8 @@
         "history": "履歴",
         "experimental": "実験的",
         "textRules": "テキストルール",
-        "learnedCorrections": "学習した修正"
+        "learnedCorrections": "学習した修正",
+        "smartFormatting": "スマート整形"
       },
       "experimentalToggle": {
         "label": "実験的な機能",
@@ -563,6 +564,55 @@
           "asTranscribed": "文字起こしのまま",
           "simplified": "簡体字",
           "traditional": "繁体字"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "言い直しの修正",
+          "description": "つなぎ言葉(\"uh\"、\"um\"、「えーと」)、どもりや繰り返された語、言い直しで取り消した部分(\"no wait\"、\"I mean\"、「いや、待って」、「つまり」)を、このデバイス上の Apple Intelligence で取り除きます。設定済みの後処理プロバイダー(リモートサービスの場合があります)は後処理が有効なときにのみ使用されます。語は削除されるだけで書き換えられることはありません。こうした言いよどみのない口述はそのまま貼り付けられ、モデルが遅い場合や変更が多すぎる場合は元のテキストが維持されます。"
+        },
+        "appStyles": {
+          "title": "アプリ別スタイル",
+          "description": "口述先のアプリに合わせてテキストを調整します。チャットメッセージは末尾の句点なし、ターミナルやコードに適した出力、カーソル前のテキストに合わせた大文字小文字とスペースになります。",
+          "categories": {
+            "title": "スタイル",
+            "summary": "{{active}}/{{total}} 有効",
+            "chat": {
+              "label": "チャットアプリ",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams:1文だけのメッセージは末尾のピリオドが省かれます(? と ! は残ります)。"
+            },
+            "terminal": {
+              "label": "ターミナル",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm:末尾のピリオドなし、先頭の機能語を大文字にしません。"
+            },
+            "code": {
+              "label": "コードエディタ",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova:単語1つまたは識別子は末尾のピリオドが省かれます。"
+            },
+            "matchContext": {
+              "label": "周囲のテキストに合わせる",
+              "hint": "文の続きでは先頭の機能語が小文字になり(\"and\"、\"weil\")、カーソルが単語の直後にある場合はスペースが追加されます。"
+            }
+          }
+        },
+        "snippets": {
+          "title": "スニペット",
+          "description": "トリガーフレーズだけ(または句読点で区切って)話すと、対応するテキストが挿入されます。例:「私の住所」。大文字小文字と句読点は無視され、挿入されたテキストが他のルールで変更されることはありません。",
+          "triggerPlaceholder": "トリガーフレーズ(例:私の住所)",
+          "expansionPlaceholder": "挿入するテキスト(複数行可)",
+          "add": "追加",
+          "save": "保存",
+          "cancel": "キャンセル",
+          "edit": "編集",
+          "remove": "スニペット {{trigger}} を削除",
+          "enable": "スニペット {{trigger}} を有効にする",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "トリガーには英数字の単語が少なくとも1つ必要です。",
+            "expansionRequired": "挿入するテキストを入力してください。",
+            "duplicateTrigger": "「{{trigger}}」のスニペットはすでに存在します。",
+            "commandFailed": "スニペットを保存または削除できませんでした。もう一度お試しください。"
+          }
         }
       }
     },

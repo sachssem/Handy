@@ -284,7 +284,8 @@
         "history": "Historik",
         "experimental": "Experimentellt",
         "textRules": "Textregler",
-        "learnedCorrections": "Inlärda korrigeringar"
+        "learnedCorrections": "Inlärda korrigeringar",
+        "smartFormatting": "Smart formatering"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
@@ -563,6 +564,55 @@
           "asTranscribed": "Som transkriberat",
           "simplified": "Förenklad",
           "traditional": "Traditionell"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Självkorrigering",
+          "description": "Tar bort utfyllnadsord (\"uh\", \"um\", \"öh\"), stamningar och upprepade ord samt det du tar tillbaka när du rättar dig själv (\"no wait\", \"I mean\", \"nej, vänta\", \"jag menar\"), med Apple Intelligence på den här enheten. Din konfigurerade efterbehandlingsleverantör, som kan vara en fjärrtjänst, används bara när efterbehandling är aktiverad. Ord tas bara bort, de skrivs aldrig om; dikteringar utan sådana tvekanden klistras in oförändrade, och om modellen är långsam eller ändrar för mycket behålls originalet."
+        },
+        "appStyles": {
+          "title": "Appstilar",
+          "description": "Anpassar texten efter appen du dikterar i: chattmeddelanden utan avslutande punkt, terminal- och kodvänlig utdata samt versaler och mellanslag som passar texten före markören.",
+          "categories": {
+            "title": "Stilar",
+            "summary": "{{active}}/{{total}} aktiva",
+            "chat": {
+              "label": "Chattappar",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: ett meddelande på en enda mening förlorar sin avslutande punkt (? och ! behålls)."
+            },
+            "terminal": {
+              "label": "Terminaler",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: ingen avslutande punkt, ingen versal på ett inledande funktionsord."
+            },
+            "code": {
+              "label": "Kodredigerare",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: ett enskilt ord eller en identifierare förlorar sin avslutande punkt."
+            },
+            "matchContext": {
+              "label": "Anpassa efter omgivande text",
+              "hint": "När du fortsätter en mening blir ett inledande funktionsord gemener (\"and\", \"weil\"); ett mellanslag läggs till när markören står direkt efter ett ord."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Textsnuttar",
+          "description": "Säg en utlösarfras för sig själv (eller mellan skiljetecken) för att infoga dess text, t.ex. \"min adress\". Versaler och skiljetecken ignoreras; den infogade texten ändras aldrig av andra regler.",
+          "triggerPlaceholder": "Utlösarfras, t.ex. min adress",
+          "expansionPlaceholder": "Text att infoga (flera rader tillåtna)",
+          "add": "Lägg till",
+          "save": "Spara",
+          "cancel": "Avbryt",
+          "edit": "Redigera",
+          "remove": "Ta bort textsnutten {{trigger}}",
+          "enable": "Aktivera textsnutten {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Utlösarfrasen måste innehålla minst ett alfanumeriskt ord.",
+            "expansionRequired": "Ange en text att infoga.",
+            "duplicateTrigger": "Det finns redan en textsnutt för ”{{trigger}}”.",
+            "commandFailed": "Textsnutten kunde inte sparas eller tas bort. Försök igen."
+          }
         }
       }
     },

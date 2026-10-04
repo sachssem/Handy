@@ -23,6 +23,7 @@ import { useSettings } from "../../../hooks/useSettings";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
 import { DictationJournal } from "../DictationJournal"; // fork(voice-control)
+import { SmartFormatting } from "../SmartFormatting"; // fork(voice-control)
 import { RecordingLimitAutoStop } from "../RecordingLimitAutoStop";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
@@ -66,6 +67,9 @@ export const AdvancedSettings: React.FC = () => {
       <SettingsGroup title={t("settings.advanced.groups.textRules")}>
         <TextRules descriptionMode="tooltip" grouped />
       </SettingsGroup>
+
+      {/* fork(voice-control): self-correction, app styles, snippets */}
+      <SmartFormatting />
 
       <SettingsGroup title={t("settings.advanced.groups.learnedCorrections")}>
         <LearnedCorrections descriptionMode="tooltip" grouped />

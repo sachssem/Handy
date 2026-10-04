@@ -284,7 +284,8 @@
         "history": "Histórico",
         "experimental": "Experimental",
         "textRules": "Regras de Texto",
-        "learnedCorrections": "Correções aprendidas"
+        "learnedCorrections": "Correções aprendidas",
+        "smartFormatting": "Formatação inteligente"
       },
       "experimentalToggle": {
         "label": "Recursos Experimentais",
@@ -563,6 +564,55 @@
           "asTranscribed": "Como transcrito",
           "simplified": "Simplificado",
           "traditional": "Tradicional"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autocorreção",
+          "description": "Remove palavras de preenchimento (\"uh\", \"um\", \"é...\"), gaguejos e palavras repetidas, e as partes que você retira ao se corrigir (\"no wait\", \"I mean\", \"não, espera\", \"quer dizer\"), com o Apple Intelligence neste dispositivo. Seu provedor de pós-processamento configurado, que pode ser um serviço remoto, só é usado quando o pós-processamento está ativado. As palavras são apenas removidas, nunca reescritas; ditados sem essas hesitações são colados sem alterações e, se o modelo for lento ou mudar demais, o original é mantido."
+        },
+        "appStyles": {
+          "title": "Estilos por app",
+          "description": "Adapta o texto ao app em que você dita: mensagens de chat sem ponto final, saída adequada para terminal e código, e maiúsculas e espaços alinhados ao texto antes do cursor.",
+          "categories": {
+            "title": "Estilos",
+            "summary": "{{active}}/{{total}} ativos",
+            "chat": {
+              "label": "Apps de chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: uma mensagem de uma frase perde o ponto final (? e ! permanecem)."
+            },
+            "terminal": {
+              "label": "Terminais",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sem ponto final e sem maiúscula numa palavra funcional inicial."
+            },
+            "code": {
+              "label": "Editores de código",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: uma única palavra ou identificador perde o ponto final."
+            },
+            "matchContext": {
+              "label": "Ajustar ao texto ao redor",
+              "hint": "Ao continuar uma frase, uma palavra funcional inicial fica em minúscula (\"and\", \"weil\"); um espaço é adicionado quando o cursor está logo após uma palavra."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Trechos",
+          "description": "Diga uma frase de ativação sozinha (ou entre sinais de pontuação) para inserir o texto dela, p. ex. \"meu endereço\". Maiúsculas e pontuação são ignoradas; o texto inserido nunca é alterado por outras regras.",
+          "triggerPlaceholder": "Frase de ativação, p. ex. meu endereço",
+          "expansionPlaceholder": "Texto a inserir (várias linhas permitidas)",
+          "add": "Adicionar",
+          "save": "Salvar",
+          "cancel": "Cancelar",
+          "edit": "Editar",
+          "remove": "Remover trecho {{trigger}}",
+          "enable": "Ativar trecho {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "A frase de ativação precisa de pelo menos uma palavra alfanumérica.",
+            "expansionRequired": "Digite um texto para inserir.",
+            "duplicateTrigger": "Já existe um trecho para \"{{trigger}}\".",
+            "commandFailed": "Não foi possível salvar ou remover o trecho. Tente novamente."
+          }
         }
       }
     },

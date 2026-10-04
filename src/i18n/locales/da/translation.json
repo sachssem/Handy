@@ -284,7 +284,8 @@
         "history": "Historik",
         "experimental": "Eksperimentel",
         "textRules": "Tekstregler",
-        "learnedCorrections": "Lærte rettelser"
+        "learnedCorrections": "Lærte rettelser",
+        "smartFormatting": "Smart formatering"
       },
       "experimentalToggle": {
         "label": "Eksperimentelle funktioner",
@@ -563,6 +564,55 @@
           "asTranscribed": "Som transskriberet",
           "simplified": "Forenklet",
           "traditional": "Traditionel"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Selvkorrektion",
+          "description": "Fjerner fyldord (\"uh\", \"um\", \"øh\"), stammen og gentagne ord samt de dele, du trækker tilbage, når du retter dig selv (\"no wait\", \"I mean\", \"nein, warte\", \"Korrektur\"), med Apple Intelligence på denne enhed. Din konfigurerede efterbehandlingsudbyder, som kan være en fjerntjeneste, bruges kun, når efterbehandling er slået til. Ord fjernes kun, de omskrives aldrig; dikteringer uden sådanne tøven indsættes uændret, og hvis modellen er langsom eller ændrer for meget, bevares originalen."
+        },
+        "appStyles": {
+          "title": "App-stilarter",
+          "description": "Tilpasser teksten til den app, du dikterer i: chatbeskeder uden afsluttende punktum, output egnet til terminal og kode samt store/små bogstaver og mellemrum tilpasset teksten før markøren.",
+          "categories": {
+            "title": "Stilarter",
+            "summary": "{{active}}/{{total}} aktive",
+            "chat": {
+              "label": "Chatapps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: en besked på én sætning mister sit afsluttende punktum (? og ! bevares)."
+            },
+            "terminal": {
+              "label": "Terminaler",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: intet afsluttende punktum og intet stort bogstav på et indledende funktionsord."
+            },
+            "code": {
+              "label": "Kodeeditorer",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: et enkelt ord eller en identifikator mister sit afsluttende punktum."
+            },
+            "matchContext": {
+              "label": "Tilpas til omgivende tekst",
+              "hint": "Når en sætning fortsættes, skrives et indledende funktionsord (\"and\", \"weil\") med lille; der tilføjes et mellemrum, når markøren står lige efter et ord."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Tekststumper",
+          "description": "Sig en udløserfrase alene (eller mellem tegnsætning) for at indsætte dens tekst, f.eks. \"min adresse\". Matchning ignorerer store/små bogstaver og tegnsætning; den indsatte tekst ændres aldrig af andre regler.",
+          "triggerPlaceholder": "Udløserfrase, f.eks. min adresse",
+          "expansionPlaceholder": "Tekst, der skal indsættes (flere linjer tilladt)",
+          "add": "Tilføj",
+          "save": "Gem",
+          "cancel": "Annuller",
+          "edit": "Rediger",
+          "remove": "Fjern tekststump {{trigger}}",
+          "enable": "Aktivér tekststump {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Udløserfrasen skal indeholde mindst ét alfanumerisk ord.",
+            "expansionRequired": "Angiv en tekst, der skal indsættes.",
+            "duplicateTrigger": "Der findes allerede en tekststump for '{{trigger}}'.",
+            "commandFailed": "Tekststumpen kunne ikke gemmes eller fjernes. Prøv igen."
+          }
         }
       }
     },

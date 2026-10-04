@@ -284,7 +284,8 @@
         "history": "歷史",
         "experimental": "實驗性",
         "textRules": "文字規則",
-        "learnedCorrections": "已學習的修正"
+        "learnedCorrections": "已學習的修正",
+        "smartFormatting": "智慧格式化"
       },
       "experimentalToggle": {
         "label": "實驗性功能",
@@ -563,6 +564,55 @@
           "asTranscribed": "保持原樣",
           "simplified": "簡體",
           "traditional": "繁體"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "自我修正",
+          "description": "使用此裝置上的 Apple Intelligence 刪除贅詞(\"uh\"、\"um\"、「嗯」)、口吃和重複的詞,以及你改口時收回的部分(\"no wait\"、\"I mean\"、「不對,等一下」、「我是說」)。你設定的後處理供應商(可能是遠端服務)僅在啟用後處理時使用。只刪除詞語,絕不改寫;沒有此類停頓的聽寫會原樣貼上,如果模型太慢或改動過多,則保留原文。"
+        },
+        "appStyles": {
+          "title": "App 樣式",
+          "description": "依據你聽寫所在的 App 調整文字:聊天訊息不加句尾句號,輸出適合終端機與程式碼,大小寫與空格與游標前的文字一致。",
+          "categories": {
+            "title": "樣式",
+            "summary": "已啟用 {{active}}/{{total}}",
+            "chat": {
+              "label": "聊天 App",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams:單句訊息會去掉句尾句號(保留 ? 和 !)。"
+            },
+            "terminal": {
+              "label": "終端機",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm:無句尾句號,開頭的功能詞不大寫。"
+            },
+            "code": {
+              "label": "程式碼編輯器",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova:單一單字或識別碼會去掉句尾句號。"
+            },
+            "matchContext": {
+              "label": "符合周圍文字",
+              "hint": "接續句子時,開頭的功能詞改為小寫(\"and\"、\"weil\");游標緊接在單字之後時會補一個空格。"
+            }
+          }
+        },
+        "snippets": {
+          "title": "片段",
+          "description": "單獨說出觸發詞組(或置於標點之間)即可插入對應文字,例如「我的地址」。比對時忽略大小寫與標點;插入的文字不會被其他規則更動。",
+          "triggerPlaceholder": "觸發詞組,例如 我的地址",
+          "expansionPlaceholder": "要插入的文字(可多行)",
+          "add": "新增",
+          "save": "儲存",
+          "cancel": "取消",
+          "edit": "編輯",
+          "remove": "移除片段 {{trigger}}",
+          "enable": "啟用片段 {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "觸發詞組至少需要一個由字母或數字組成的詞。",
+            "expansionRequired": "請輸入要插入的文字。",
+            "duplicateTrigger": "「{{trigger}}」的片段已存在。",
+            "commandFailed": "無法儲存或移除該片段。請再試一次。"
+          }
         }
       }
     },

@@ -284,7 +284,8 @@
         "history": "Historie",
         "experimental": "Experimentální",
         "textRules": "Textová pravidla",
-        "learnedCorrections": "Naučené opravy"
+        "learnedCorrections": "Naučené opravy",
+        "smartFormatting": "Chytré formátování"
       },
       "experimentalToggle": {
         "label": "Experimentální funkce",
@@ -563,6 +564,55 @@
           "asTranscribed": "Jak bylo přepsáno",
           "simplified": "Zjednodušené",
           "traditional": "Tradiční"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Samoopravy",
+          "description": "Odstraňuje vycpávková slova (\"uh\", \"um\", „ehm“), zakoktání a opakovaná slova i části, které při opravě odvoláte (\"no wait\", \"I mean\", „ne, počkej“, „myslím“), pomocí Apple Intelligence v tomto zařízení. Nastavený poskytovatel následného zpracování, který může být vzdálenou službou, se použije jen při zapnutém následném zpracování. Slova se pouze odstraňují, nikdy nepřepisují; diktáty bez takového zaváhání se vloží beze změny, a je-li model pomalý nebo mění příliš, zůstane původní text."
+        },
+        "appStyles": {
+          "title": "Styly aplikací",
+          "description": "Přizpůsobí text aplikaci, do které diktujete: zprávy v chatu bez koncové tečky, výstup vhodný pro terminál a kód a velikost písmen a mezery podle textu před kurzorem.",
+          "categories": {
+            "title": "Styly",
+            "summary": "Aktivní: {{active}}/{{total}}",
+            "chat": {
+              "label": "Chatovací aplikace",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: jednověté zprávě odpadne koncová tečka (? a ! zůstanou)."
+            },
+            "terminal": {
+              "label": "Terminály",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: bez koncové tečky, bez velkého písmena u úvodního funkčního slova."
+            },
+            "code": {
+              "label": "Editory kódu",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: jednotlivému slovu nebo identifikátoru odpadne koncová tečka."
+            },
+            "matchContext": {
+              "label": "Přizpůsobit okolnímu textu",
+              "hint": "Při pokračování věty se úvodní funkční slovo píše malým písmenem (\"and\", \"weil\"); stojí-li kurzor těsně za slovem, přidá se mezera."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Textové úryvky",
+          "description": "Řekněte samotnou spouštěcí frázi (nebo mezi interpunkcí) a vloží se její text, např. \"moje adresa\". Velikost písmen a interpunkce se ignorují; vložený text nikdy nemění jiná pravidla.",
+          "triggerPlaceholder": "Spouštěcí fráze, např. moje adresa",
+          "expansionPlaceholder": "Text k vložení (povoleno více řádků)",
+          "add": "Přidat",
+          "save": "Uložit",
+          "cancel": "Zrušit",
+          "edit": "Upravit",
+          "remove": "Odebrat úryvek {{trigger}}",
+          "enable": "Povolit úryvek {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Spouštěcí fráze musí obsahovat alespoň jedno alfanumerické slovo.",
+            "expansionRequired": "Zadejte text k vložení.",
+            "duplicateTrigger": "Úryvek pro „{{trigger}}“ už existuje.",
+            "commandFailed": "Úryvek se nepodařilo uložit ani odebrat. Zkuste to prosím znovu."
+          }
         }
       }
     },

@@ -284,7 +284,8 @@
         "history": "History",
         "experimental": "Experimental",
         "textRules": "Text Rules",
-        "learnedCorrections": "Learned Corrections"
+        "learnedCorrections": "Learned Corrections",
+        "smartFormatting": "Smart Formatting"
       },
       "experimentalToggle": {
         "label": "Experimental Features",
@@ -563,6 +564,55 @@
           "asTranscribed": "As Transcribed",
           "simplified": "Simplified",
           "traditional": "Traditional"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Self-Correction",
+          "description": "Removes filler words (\"uh\", \"um\", \"ähm\"), stutters and repeated words, and the parts you take back when you correct yourself (\"no wait\", \"I mean\", \"scratch that\", \"nein, warte\"), using Apple Intelligence on this device. Your configured post-processing provider, which may be a remote service, is used only when post-processing is enabled. Words are only removed, never rewritten; dictations without such hesitations are pasted untouched, and if the model is slow or changes too much, the original is kept."
+        },
+        "appStyles": {
+          "title": "App Styles",
+          "description": "Adapts the text to the app you dictate into: chat messages without a final period, terminal and code-friendly output, and casing and spacing matched to the text before the cursor.",
+          "categories": {
+            "title": "Styles",
+            "summary": "{{active}}/{{total}} active",
+            "chat": {
+              "label": "Chat apps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: a one-sentence message drops its final period (? and ! stay)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: no final period, no capital on a leading function word."
+            },
+            "code": {
+              "label": "Code editors",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Android Studio, Xcode, Sublime, Nova: a single word or identifier drops its final period."
+            },
+            "matchContext": {
+              "label": "Match surrounding text",
+              "hint": "Continuing a sentence lowercases a leading function word (\"and\", \"weil\"); a space is added when the cursor sits right after a word."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Snippets",
+          "description": "Say a trigger phrase on its own (or between punctuation) to insert its text, e.g. \"my address\". Matching ignores case and punctuation; the inserted text is never changed by other rules.",
+          "triggerPlaceholder": "Trigger phrase, e.g. my address",
+          "expansionPlaceholder": "Text to insert (multiple lines allowed)",
+          "add": "Add",
+          "save": "Save",
+          "cancel": "Cancel",
+          "edit": "Edit",
+          "remove": "Remove snippet {{trigger}}",
+          "enable": "Enable snippet {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "The trigger needs at least one alphanumeric word.",
+            "expansionRequired": "Enter an expansion.",
+            "duplicateTrigger": "A snippet for '{{trigger}}' already exists.",
+            "commandFailed": "The snippet could not be saved or removed. Please try again."
+          }
         }
       }
     },

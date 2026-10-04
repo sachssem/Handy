@@ -2366,8 +2366,13 @@ pub(crate) fn post_process_transcription_text(
 
         let normalized = normalize_transcription_output(&without_fillers);
 
+        // fork(voice-control): snippets — a delimited trigger phrase becomes a
+        // placeholder, so text rules / learned corrections never touch its
+        // expansion; `restore` puts the expansion back after them.
+        let snippets = crate::snippets::shield(&normalized, &settings.snippets);
+
         // fork(voice-control): deterministic text rules
-        let ruled = crate::text_rules::apply_text_rules(&normalized, settings);
+        let ruled = crate::text_rules::apply_text_rules(&snippets.text, settings);
 
         // fork(voice-control): exact misheard→intended learned corrections
         let learned = crate::correction_learning::apply_learned(
@@ -2376,12 +2381,17 @@ pub(crate) fn post_process_transcription_text(
             &output_language,
             supported_languages,
         );
+        let learned = snippets.restore(&learned); // fork(voice-control): snippets
 
         // fork(voice-control): journal every stage's text.
         if crate::journal::is_enabled() {
             use crate::journal::{record_text_stage, Stage};
             record_text_stage(Stage::Fillers, &without_fillers);
             record_text_stage(Stage::Normalized, &normalized);
+            if snippets.fired() {
+                record_text_stage(Stage::Snippets, &snippets.restore(&snippets.text));
+            }
+            record_text_stage(Stage::TextRules, &snippets.restore(&ruled));
             record_text_stage(Stage::Learned, &learned);
         }
         learned

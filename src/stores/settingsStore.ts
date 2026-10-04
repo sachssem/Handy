@@ -10,6 +10,7 @@ import type {
   ShortcutActivation,
   VadBackend,
   TextRule,
+  AppStyleCategories, // fork(voice-control)
 } from "@/bindings";
 import { commands } from "@/bindings";
 import { toast } from "sonner";
@@ -171,6 +172,14 @@ const settingUpdaters: {
     commands.changeDictationJournalEnabledSetting(value as boolean),
   dictation_journal_retention_days: (value) =>
     commands.changeDictationJournalRetentionDaysSetting(value as number),
+  // fork(voice-control): self-correction pass + per-app styles. Snippets have
+  // no whole-list updater: add / update / remove are granular commands.
+  self_correction_llm_enabled: (value) =>
+    commands.changeSelfCorrectionLlmEnabledSetting(value as boolean),
+  app_styles_enabled: (value) =>
+    commands.changeAppStylesEnabledSetting(value as boolean),
+  app_styles_categories: (value) =>
+    commands.changeAppStylesCategoriesSetting(value as AppStyleCategories),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

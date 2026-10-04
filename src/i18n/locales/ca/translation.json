@@ -284,7 +284,8 @@
         "history": "Historial",
         "experimental": "Experimental",
         "textRules": "Regles de text",
-        "learnedCorrections": "Correccions apreses"
+        "learnedCorrections": "Correccions apreses",
+        "smartFormatting": "Format intel·ligent"
       },
       "experimentalToggle": {
         "label": "Funcions experimentals",
@@ -563,6 +564,55 @@
           "asTranscribed": "Tal com s'ha transcrit",
           "simplified": "Simplificat",
           "traditional": "Tradicional"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autocorrecció",
+          "description": "Elimina les paraules de farciment (\"uh\", \"um\", \"eh\"), els quequeigs i les paraules repetides, i les parts que retires quan et corregeixes (\"no wait\", \"I mean\", \"nein, warte\", \"Korrektur\"), amb l'Apple Intelligence d'aquest dispositiu. El proveïdor de postprocessament configurat, que pot ser un servei remot, només s'utilitza quan el postprocessament està activat. Només s'eliminen paraules, mai no es reescriuen; els dictats sense aquestes vacil·lacions s'enganxen sense canvis i, si el model és lent o canvia massa, es conserva l'original."
+        },
+        "appStyles": {
+          "title": "Estils per aplicació",
+          "description": "Adapta el text a l'aplicació on dicteu: missatges de xat sense punt final, sortida adequada per a terminals i codi, i majúscules i espais ajustats al text que hi ha abans del cursor.",
+          "categories": {
+            "title": "Estils",
+            "summary": "{{active}}/{{total}} actius",
+            "chat": {
+              "label": "Aplicacions de xat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: un missatge d'una sola frase perd el punt final (? i ! es mantenen)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sense punt final i sense majúscula en una paraula funcional inicial."
+            },
+            "code": {
+              "label": "Editors de codi",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: una sola paraula o identificador perd el punt final."
+            },
+            "matchContext": {
+              "label": "Adapta't al text del voltant",
+              "hint": "En continuar una frase, una paraula funcional inicial (\"and\", \"weil\") passa a minúscula; s'afegeix un espai quan el cursor és just després d'una paraula."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Fragments",
+          "description": "Digueu una frase activadora sola (o entre signes de puntuació) per inserir-ne el text, p. ex. \"la meva adreça\". La coincidència no té en compte les majúscules ni la puntuació; les altres regles no modifiquen mai el text inserit.",
+          "triggerPlaceholder": "Frase activadora, p. ex. la meva adreça",
+          "expansionPlaceholder": "Text que s'inserirà (es permeten diverses línies)",
+          "add": "Afegiu",
+          "save": "Desa",
+          "cancel": "Cancel·la",
+          "edit": "Edita",
+          "remove": "Suprimiu el fragment {{trigger}}",
+          "enable": "Activa el fragment {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "La frase activadora necessita almenys una paraula alfanumèrica.",
+            "expansionRequired": "Introduïu un text per inserir.",
+            "duplicateTrigger": "Ja existeix un fragment per a «{{trigger}}».",
+            "commandFailed": "No s'ha pogut desar ni suprimir el fragment. Torneu-ho a provar."
+          }
         }
       }
     },
