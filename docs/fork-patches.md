@@ -31,7 +31,7 @@ Conventions used throughout:
 | Feature                                                                                  | Kind    | Risk on rebase | Upstream files touched                                                                                                                                |
 | ---------------------------------------------------------------------------------------- | ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [text-rules engine](#text-rules-engine)                                                  | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
-| [correction learning](#correction-learning)                          | feature | medium         | `shortcut/mod.rs`, `settings.rs`, `lib.rs`, `clipboard.rs`, overlay, settings UI      |
+| [correction learning](#correction-learning)                                              | feature | medium         | `actions.rs`, `managers/transcription.rs`, `settings.rs`, `lib.rs`, `cli.rs`, settings UI                                                             |
 | [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                                                                |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
@@ -112,28 +112,96 @@ missed command is cheaper than corrupted prose; details in each module's docs):
 
 ## correction learning
 
-Learns user corrections: after a paste, reads the focused field via macOS
-Accessibility, diffs against what was pasted, and offers to remember the fix
-(applied on future transcriptions), with a trial-mode toast + undo.
+Wispr-Flow-style vocabulary learning: after a paste, reads the focused field via
+macOS Accessibility, anchors the pasted span in it and diffs the user's edit
+inside that span. Gated pairs (names, jargon — not grammar: inflections,
+numbers, everyday-word swaps are rejected) are stored as **suggestions**; a
+pair becomes **active** (applied on future transcriptions) when observed again
+or confirmed. Undo (toast or UI) removes an auto pair and blocks it for good;
+manually reverting an applied pair is detected as its inverse (before any
+vocabulary gate) and blocks it. The master switch ("Personal dictionary",
+`learn_corrections_enabled`) applies the dictionary; the macOS-only sub-switch
+"Learn from my corrections" (`learn_from_edits_enabled`, default on) controls
+the post-paste watcher alone. Disabling either switch cancels the active watcher
+and drops uncommitted candidates, including a quick disable/re-enable. An
+anchored composer clearing on submit ends the session even after its previous
+correction already settled. Learning journal pair texts follow the originating
+dictation's saved redaction decision; counts, pair ids and outcomes survive.
 
-- **New files:** `src-tauri/src/correction_learning/` (`mod.rs`, `ax_reader.rs`,
-  `differ.rs`, `session.rs`, `store.rs`, `toast.rs`),
-  `src/components/settings/LearnedCorrections.tsx`, `src/toast/*`,
-  `src/components/icons/RemoveIcon.tsx`, `docs/design/auto-learn-corrections.md`.
-- **Upstream files touched:** `lib.rs` (`mod correction_learning;`, toast init,
-  command exports, specta events), `shortcut/mod.rs` (learn/apply commands, paste
-  flow hook), `settings.rs` (`learned_corrections` + aggressiveness fields),
-  `clipboard.rs` (post-paste field capture), `actions.rs`, `overlay.rs`,
-  `RecordingOverlay.tsx`, `AdvancedSettings.tsx`.
-- **Probe:** `correction-learning: *` in `scripts/fork-check.sh`.
+- **Gates:** `empty`, `phrase_length`, `case_or_punctuation`, `number`,
+  `distance`, `likely_typo`, `inflection`, `common_words`, `phonetic`.
+  `likely_typo` rejects small edits (≤2 edits or relative distance ≤0.34)
+  from a common de/en word to an unknown word, unless the target is
+  distinctive (inner capitals, an all-caps acronym, or mixed digits/letters).
+  First names are known and distinctive case-insensitively, even when also
+  common words (`mark → marc`, `Mark → Marc`); case-only edits remain rejected.
+  Field diffs split `@`, `.`, `/` into separate tokens, so e-mail local-part
+  and URL corrections yield individual word pairs without losing byte offsets.
+- **Toast focus:** the toast panel never becomes key
+  (`can_become_key_window: false`, `focusable(false)`) and is revealed via the
+  nspanel API (`orderFrontRegardless`), never `WebviewWindow::show` (tao's
+  `makeKeyAndOrderFront:`) — otherwise it captured the keyboard and e.g. a
+  Return meant for a chat composer was lost. Clicks still work through
+  `accept_first_mouse(true)` + the non-activating style mask.
+- **Toast shortcuts:** Accept (`learned_toast_accept_shortcut`, default
+  `ctrl+enter`, plus the keypad-Enter twin) and Never / Undo
+  (`learned_toast_dismiss_shortcut`, default `ctrl+backspace`) are registered
+  only while a toast is visible (`toast_shortcuts.rs`: armed on reveal,
+  disarmed on every hide, generation-guarded take-once claim), through the
+  active keyboard backend. Each reveal carries its own event into the main-thread
+  closure; delayed hides match the current toast id/generation, and
+  `hide_learned_toast(id: Option<String>)` also supports legacy unscoped calls.
+  Reconciliation uses blocking workers. Shortcut capture suspends transient
+  registrations and claims, restoring only the current visible toast afterwards.
+  Bare/Shift-only combos return `needs-modifier`; conflicts retain the
+  `conflict:<binding_id>` marker. Editable under "Learning options"
+  (`LearnedToastShortcutInput.tsx`); the toast buttons show them as key hints.
+- **New files:** `src-tauri/src/correction_learning/` (`mod.rs` apply stage +
+  language, `ax_reader.rs`, `commands.rs` Tauri commands, `differ.rs` gates,
+  `lexicon.rs` + `data/` word lists, `session.rs`, `store.rs` lifecycle +
+  persistence, `toast.rs`, `toast_shortcuts.rs`),
+  `src/components/settings/LearnedCorrections.tsx`,
+  `src/components/settings/LearnedToastShortcutInput.tsx`, `src/toast/*`, `src/components/icons/RemoveIcon.tsx`,
+  `docs/design/auto-learn-corrections.md`.
+- **Data licences:** `data/common_de.txt` / `data/common_en.txt` are adapted
+  from hermitdave/FrequencyWords (OpenSubtitles 2018, **CC BY-SA 4.0**,
+  attribution in the file headers); `data/names.txt` is BSD `propernames`.
+- **Storage:** the pairs and the block list live under their own key
+  (`learned_corrections`) in `settings_store.json`, not in `AppSettings`, so
+  learning never races whole-settings writes. The legacy
+  `AppSettings.learned_corrections` list is migrated once (marked by
+  `learned_corrections_migrated`, so a stale settings write cannot resurrect
+  deleted pairs) and emptied; the retired `learn_corrections_log_only` key is
+  ignored.
+- **Upstream files touched:**
+  - `lib.rs`: `mod correction_learning;`, `correction_learning::init` + toast
+    init at startup, `correction_learning::commands::*` registrations in
+    `collect_commands!` (incl. `toast_shortcuts::change_learned_toast_shortcut_setting`),
+    specta events, `--debug-toast` forwarding.
+  - `shortcut/handler.rs`: routes the transient toast bindings to
+    `toast_shortcuts::handle_shortcut_event` before the `ACTION_MAP` lookup.
+  - `shortcut/mod.rs`: marked suspend/resume hooks include transient toast
+    shortcuts in settings shortcut capture.
+  - `bindings.ts`: optional toast id on the generated hide command.
+  - `cli.rs`: the hidden `--debug-toast` flag.
+  - `settings.rs`: `learn_corrections_*`, `learn_from_edits_enabled` and
+    `learned_toast_*_shortcut` fields, legacy `learned_corrections`.
+  - `actions.rs`: `begin_session` after paste.
+  - `managers/transcription.rs`: `apply_learned` with the transcription's
+    language evidence.
+  - `stores/settingsStore.ts`, `AdvancedSettings.tsx`; the collapsible rows
+    use the shared fork-owned `components/ui/Disclosure.tsx` (also used by
+    text rules, smart formatting and the language allowlist).
+- **Probe:** `correction-learning: *` in `scripts/fork-check.sh` (the commands
+  probe targets `correction_learning::commands::` in `lib.rs`).
 - **Upstream check:** does upstream ship any "learn from edits" / dictionary /
   custom-replacement feature?
   ```bash
   git grep -iE "learn|correction|replacement|dictionary|vocab" upstream/main -- src-tauri/src src
   ```
-  Unlikely (upstream is frozen). This is the most invasive feature — if a rebase
-  conflicts here, adapt carefully rather than dropping; verify with
-  `handy --debug-toast` (see AGENTS.md "Fork Debug Helpers").
+  Unlikely (upstream is frozen). If a rebase conflicts here, adapt carefully
+  rather than dropping; verify with `handy --debug-toast` (see AGENTS.md "Fork
+  Debug Helpers").
 
 ## language-allowlist guard
 

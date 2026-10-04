@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "학습된 수정",
-        "description": "모든 전사에 적용되는 정확한 단어 수정의 개인 사전으로, 선택적 AI 후처리 전에 적용됩니다. 인식기가 계속 잘못 인식하는 단어(이름, 전문 용어, 움라우트 등)에 대한 수정을 추가하면 결정적으로 대체됩니다. macOS에서는 Handy가 스스로 학습할 수도 있습니다. 붙여넣기 직후 단어를 수정하면 해당 수정이 자동으로 캡처됩니다.",
-        "trialMode": {
-          "title": "시험 모드(모의 실행)",
-          "description": "전체 학습 파이프라인을 실행하지만 수정을 저장하지 않고 기록만 합니다. 사전을 변경하도록 허용하기 전에 며칠 동안 Handy가 무엇을 학습할지 지켜보는 데 사용하세요."
+        "title": "개인 사전",
+        "description": "인식기가 계속 틀리는 단어(이름, 전문 용어 등)를 선택적 AI 후처리 전에 모든 전사에서 바꿉니다. macOS에서는 Handy가 편집 내용에서도 학습합니다. 붙여넣은 직후 단어를 고치면 그 수정을 제안합니다. 끄면 둘 다 일시 중지됩니다.",
+        "learnFromEdits": {
+          "title": "내 수정에서 학습",
+          "description": "붙여넣은 뒤 입력란을 지켜보고 직접 한 수정을 제안합니다. 끄면 새로 학습하지 않으며 사전은 계속 적용됩니다."
+        },
+        "suggestions": {
+          "title": "제안",
+          "description": "Handy가 편집 내용에서 발견한 수정입니다. 수락하면 지금부터 적용되며, 반복해서 하는 수정은 자동으로 추가됩니다. '다시 안 함'을 선택하면 영구적으로 차단됩니다.",
+          "accept": "수락",
+          "dismiss": "다시 안 함"
+        },
+        "dictionary": {
+          "title": "사전",
+          "filterPlaceholder": "필터…",
+          "noMatches": "일치하는 항목이 없습니다."
+        },
+        "blocked": {
+          "title": "차단됨",
+          "description": "거절했거나 실행 취소한 수정입니다. 차단을 해제하지 않으면 Handy가 다시 학습하지 않습니다.",
+          "unblock": "차단 해제"
+        },
+        "options": {
+          "title": "학습 옵션"
         },
         "aggressiveness": {
           "title": "학습 적극성",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "적극적",
-            "description": "일상적인 단어를 포함해 느슨하게 관련된 수정까지 학습합니다. 잘못된 항목의 위험이 가장 높습니다."
+            "description": "느슨하게 관련된 수정도 받아들이며 발음 유사성을 확인하지 않습니다. 일상적인 단어끼리 바꾼 것은 여전히 학습하지 않습니다. 잘못된 항목의 위험이 가장 높습니다."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "{{misheard}} 활성화",
         "remove": "{{misheard}} 제거",
-        "empty": "아직 수정이 없습니다. 인식기가 계속 잘못 인식하는 단어(이름이나 전문 용어 등)를 추가하면 앞으로의 모든 전사에 그 수정이 적용됩니다."
+        "empty": "아직 수정이 없습니다. 인식기가 계속 잘못 인식하는 단어(이름이나 전문 용어 등)를 추가하면 앞으로의 모든 전사에 그 수정이 적용됩니다.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "단축키: 수락",
+            "description": "학습된 교정 알림의 제안을 수락합니다. 알림이 표시되는 동안에만 작동합니다."
+          },
+          "dismiss": {
+            "title": "단축키: 다시 안 함 / 실행 취소",
+            "description": "제안을 거부하거나(다시 안 함) 방금 학습한 교정을 되돌립니다(실행 취소). 알림이 표시되는 동안에만 작동합니다."
+          },
+          "errors": {
+            "needsModifier": "보조 키(Control, Option, Shift, Command)를 하나 이상 사용하세요.",
+            "invalid": "이 키 조합은 단축키로 사용할 수 없습니다.",
+            "conflict": "이 조합은 이미 다른 Handy 단축키에서 사용 중입니다.",
+            "conflictWith": "이 조합은 이미 \"{{name}}\"에서 사용 중입니다.",
+            "save": "단축키를 저장하지 못했습니다: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "잘못 인식된 단어와 수정할 단어를 모두 입력하세요.",
+          "generic": "변경 사항을 저장하지 못했습니다. 다시 시도해 주세요."
+        }
       },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "학습됨: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Dry-Run: 학습됨: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "제안: “{{misheard}}” → “{{intended}}”",
     "undo": "실행 취소",
+    "accept": "수락",
+    "dismiss": "다시 안 함",
     "more": "외 {{count}}개"
   },
   "whatsNew": {

@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "已學習的修正",
-        "description": "一個包含精確詞彙修正的個人詞典，會在可選的 AI 後處理之前套用於每次轉錄。為辨識器反覆聽錯的內容新增修正——姓名、行話、變音符號——它們會被確定性地替換。在 macOS 上，Handy 還能自行學習：當您在貼上後不久修正某個詞時，該修正會被自動擷取。",
-        "trialMode": {
-          "title": "試用模式（試執行）",
-          "description": "執行完整的學習流程，但僅記錄可能的修正而不儲存它們。用它在幾天內觀察 Handy 會學到什麼，然後再讓它變更您的詞典。"
+        "title": "個人字典",
+        "description": "在選用的 AI 後處理之前，於每次轉錄中替換辨識器反覆聽錯的詞語（名稱、術語等）。在 macOS 上，Handy 也會從你的編輯中學習：貼上後立即修正某個詞，它就會建議這項修正。關閉後兩者都會暫停。",
+        "learnFromEdits": {
+          "title": "從我的修正中學習",
+          "description": "貼上後監看輸入欄，並建議你手動做的修正。關閉時不會學習新內容，字典仍會套用。"
+        },
+        "suggestions": {
+          "title": "建議",
+          "description": "Handy 在你的編輯中發現的修正。接受後即從現在起套用；你反覆進行的修正會自動加入。選擇「永不」即可永久封鎖。",
+          "accept": "接受",
+          "dismiss": "永不"
+        },
+        "dictionary": {
+          "title": "字典",
+          "filterPlaceholder": "篩選…",
+          "noMatches": "沒有符合的項目。"
+        },
+        "blocked": {
+          "title": "已封鎖",
+          "description": "你忽略或復原的修正。除非解除封鎖，否則 Handy 不會再次學習。",
+          "unblock": "解除封鎖"
+        },
+        "options": {
+          "title": "學習選項"
         },
         "aggressiveness": {
           "title": "學習積極程度",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "積極",
-            "description": "甚至學習鬆散相關的修正，包括日常詞彙。錯誤項目風險最高。"
+            "description": "即使是鬆散相關的修正也會接受，且不檢查發音是否相近。日常詞彙之間的替換仍然不會被學習。錯誤項目風險最高。"
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "啟用 {{misheard}}",
         "remove": "刪除 {{misheard}}",
-        "empty": "還沒有修正。新增一個辨識器反覆聽錯的詞——例如姓名或技術術語——它的修正將套用於日後每次轉錄。"
+        "empty": "還沒有修正。新增一個辨識器反覆聽錯的詞——例如姓名或技術術語——它的修正將套用於日後每次轉錄。",
+        "toastShortcuts": {
+          "accept": {
+            "title": "快捷鍵：接受",
+            "description": "接受已學習修正通知中的建議。僅在通知顯示時有效。"
+          },
+          "dismiss": {
+            "title": "快捷鍵：永不 / 復原",
+            "description": "拒絕建議（永不）或復原剛學習的修正（復原）。僅在通知顯示時有效。"
+          },
+          "errors": {
+            "needsModifier": "請至少使用一個修飾鍵（Control、Option、Shift 或 Command）。",
+            "invalid": "此按鍵組合無法用作快捷鍵。",
+            "conflict": "此組合已被另一個 Handy 快捷鍵使用。",
+            "conflictWith": "此組合鍵已被「{{name}}」使用。",
+            "save": "無法儲存快捷鍵：{{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "請同時輸入聽錯的詞與更正後的詞。",
+          "generic": "無法儲存變更，請再試一次。"
+        }
       },
       "voiceActivityDetection": {
         "title": "語音活動偵測",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "已學習：「{{misheard}}」→「{{intended}}」",
-    "trialTitle": "Dry-Run：「{{misheard}}」→「{{intended}}」",
+    "suggestionTitle": "建議：「{{misheard}}」→「{{intended}}」",
     "undo": "復原",
+    "accept": "接受",
+    "dismiss": "永不",
     "more": "另 {{count}} 個"
   },
   "whatsNew": {

@@ -444,6 +444,29 @@
       "learnedCorrections": {
         "title": "Personlig ordbog",
         "description": "Erstatter ord, som genkendelsen bliver ved med at tage fejl af – navne, fagudtryk, omlyde – i hver transskription, før valgfri AI-efterbehandling. På macOS lærer Handy også af dine redigeringer: Ret et ord lige efter indsætning, så foreslår Handy den rettelse. Slås dette fra, sættes begge dele på pause.",
+        "learnFromEdits": {
+          "title": "Lær af mine rettelser",
+          "description": "Overvåger feltet efter indsættelse og foreslår de rettelser, du laver i hånden. Slået fra: intet nyt læres, ordbogen anvendes stadig."
+        },
+        "suggestions": {
+          "title": "Forslag",
+          "description": "Rettelser, som Handy har bemærket i dine redigeringer. Acceptér en for at anvende den fremover; en rettelse, du bliver ved med at lave, tilføjes automatisk. Vælg Aldrig for at blokere den permanent.",
+          "accept": "Acceptér",
+          "dismiss": "Aldrig"
+        },
+        "dictionary": {
+          "title": "Ordbog",
+          "filterPlaceholder": "Filtrer…",
+          "noMatches": "Ingen poster matcher."
+        },
+        "blocked": {
+          "title": "Blokeret",
+          "description": "Rettelser, du har afvist eller fortrudt. Handy lærer dem ikke igen, medmindre du fjerner blokeringen.",
+          "unblock": "Fjern blokering"
+        },
+        "options": {
+          "title": "Indlæringsindstillinger"
+        },
         "aggressiveness": {
           "title": "Indlæringsgrad",
           "description": "Hvor let en redigering accepteres som en reel fejlgenkendelse. Løsere niveauer lærer mere, men risikerer at forurene ordbogen.",
@@ -480,7 +503,28 @@
         },
         "enable": "Aktivér {{misheard}}",
         "remove": "Fjern {{misheard}}",
-        "empty": "Ingen rettelser endnu. Tilføj et ord, som genkendelsen bliver ved med at høre forkert – f.eks. et navn eller et fagudtryk – så anvendes rettelsen på alle fremtidige transskriptioner."
+        "empty": "Ingen rettelser endnu. Tilføj et ord, som genkendelsen bliver ved med at høre forkert – f.eks. et navn eller et fagudtryk – så anvendes rettelsen på alle fremtidige transskriptioner.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Genvej: Acceptér",
+            "description": "Accepterer forslaget i meddelelsen om lærte rettelser. Kun aktiv, mens meddelelsen er synlig."
+          },
+          "dismiss": {
+            "title": "Genvej: Aldrig / Fortryd",
+            "description": "Afviser forslaget (Aldrig) eller fortryder en netop lært rettelse (Fortryd). Kun aktiv, mens meddelelsen er synlig."
+          },
+          "errors": {
+            "needsModifier": "Brug mindst én ændringstast (Control, Option, Skift eller Kommando).",
+            "invalid": "Denne tastekombination kan ikke bruges som genvej.",
+            "conflict": "Denne kombination bruges allerede af en anden Handy-genvej.",
+            "conflictWith": "Denne kombination bruges allerede af “{{name}}”.",
+            "save": "Genvejen kunne ikke gemmes: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Angiv både det fejlhørte ord og rettelsen.",
+          "generic": "Ændringen kunne ikke gemmes. Prøv igen."
+        }
       },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
@@ -828,7 +872,10 @@
   },
   "learnedToast": {
     "title": "Lært: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Forslag: “{{misheard}}” → “{{intended}}”",
     "undo": "Fortryd",
+    "accept": "Acceptér",
+    "dismiss": "Aldrig",
     "more": "+{{count}} mere"
   }
 }

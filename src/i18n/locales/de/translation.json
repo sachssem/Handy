@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Gelernte Korrekturen",
-        "description": "Ein persönliches Wörterbuch exakter Wortkorrekturen, das vor der optionalen KI-Nachbearbeitung auf jede Transkription angewendet wird. Füge Korrekturen für das hinzu, was die Erkennung immer wieder falsch versteht — Namen, Fachbegriffe, Umlaute — und sie werden deterministisch ersetzt. Unter macOS kann Handy sie auch selbst lernen: Wenn du ein Wort kurz nach dem Einfügen korrigierst, wird diese Korrektur automatisch übernommen.",
-        "trialMode": {
-          "title": "Testmodus (Probelauf)",
-          "description": "Führt die gesamte Lern-Pipeline aus, protokolliert mögliche Korrekturen aber nur, statt sie zu speichern. So kannst du ein paar Tage lang beobachten, was Handy lernen würde, bevor du dein Wörterbuch ändern lässt."
+        "title": "Persönliches Wörterbuch",
+        "description": "Ersetzt Wörter, die die Erkennung immer wieder falsch versteht — Namen, Fachbegriffe, Umlaute — in jeder Transkription, vor der optionalen KI-Nachbearbeitung. Unter macOS lernt Handy zusätzlich aus deinen Änderungen: Korrigierst du ein Wort kurz nach dem Einfügen, schlägt Handy diese Korrektur vor. Ausschalten pausiert beides.",
+        "learnFromEdits": {
+          "title": "Aus meinen Korrekturen lernen",
+          "description": "Beobachtet das Feld nach dem Einfügen und schlägt deine manuellen Korrekturen vor. Aus: Es wird nichts Neues gelernt, das Wörterbuch gilt weiter."
+        },
+        "suggestions": {
+          "title": "Vorschläge",
+          "description": "Korrekturen, die Handy in deinen Änderungen bemerkt hat. Übernimm eine, damit sie ab sofort angewendet wird; eine Korrektur, die du wiederholt machst, wird automatisch aufgenommen. Mit „Nie lernen“ wird sie dauerhaft blockiert.",
+          "accept": "Übernehmen",
+          "dismiss": "Nie lernen"
+        },
+        "dictionary": {
+          "title": "Wörterbuch",
+          "filterPlaceholder": "Filtern…",
+          "noMatches": "Keine passenden Einträge."
+        },
+        "blocked": {
+          "title": "Blockiert",
+          "description": "Korrekturen, die du verworfen oder rückgängig gemacht hast. Handy lernt sie nicht erneut, solange du sie nicht freigibst.",
+          "unblock": "Freigeben"
+        },
+        "options": {
+          "title": "Lernoptionen"
         },
         "aggressiveness": {
           "title": "Lern-Aggressivität",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Aggressiv",
-            "description": "Lernt selbst lose verwandte Korrekturen, auch Alltagswörter. Höchstes Risiko für Fehleinträge."
+            "description": "Übernimmt auch lose verwandte Korrekturen und prüft den Klang nicht. Vertauschte Alltagswörter werden trotzdem nie gelernt. Höchstes Risiko für Fehleinträge."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "{{misheard}} aktivieren",
         "remove": "{{misheard}} entfernen",
-        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet."
+        "empty": "Noch keine Korrekturen. Füge ein Wort hinzu, das die Erkennung immer wieder falsch versteht — etwa einen Namen oder Fachbegriff — und seine Korrektur wird auf jede künftige Transkription angewendet.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Tastenkürzel: Übernehmen",
+            "description": "Übernimmt den Vorschlag im Hinweis zu gelernten Korrekturen. Nur aktiv, solange der Hinweis sichtbar ist."
+          },
+          "dismiss": {
+            "title": "Tastenkürzel: Nie lernen / Rückgängig",
+            "description": "Lehnt den Vorschlag ab (Nie lernen) oder macht eine gerade gelernte Korrektur rückgängig. Nur aktiv, solange der Hinweis sichtbar ist."
+          },
+          "errors": {
+            "needsModifier": "Verwende mindestens eine Sondertaste (Control, Option, Umschalt oder Befehl).",
+            "invalid": "Diese Tastenkombination kann nicht als Kürzel verwendet werden.",
+            "conflict": "Diese Kombination ist bereits einem anderen Handy-Kürzel zugewiesen.",
+            "conflictWith": "Diese Kombination wird bereits von „{{name}}“ verwendet.",
+            "save": "Kürzel konnte nicht gespeichert werden: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Gib sowohl das falsch erkannte Wort als auch die Korrektur ein.",
+          "generic": "Die Änderung konnte nicht gespeichert werden. Bitte versuche es erneut."
+        }
       },
       "voiceActivityDetection": {
         "title": "Sprachaktivitätserkennung (VAD)",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Dry-Run: Gelernt: „{{misheard}}“ → „{{intended}}“",
+    "suggestionTitle": "Vorschlag: „{{misheard}}“ → „{{intended}}“",
     "undo": "Rückgängig",
+    "accept": "Übernehmen",
+    "dismiss": "Nie lernen",
     "more": "+{{count}} weitere"
   },
   "whatsNew": {

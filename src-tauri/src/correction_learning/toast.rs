@@ -1,29 +1,39 @@
 //! Learned-correction toast window (fork feature: voice-control).
 //!
-//! Phase C's user-visible surface: a small, self-dismissing toast shown after a
-//! correction is auto-learned, carrying the learned pair and an "Undo" button.
+//! A self-dismissing toast for new suggestions (Accept / Never) and promoted
+//! corrections (Undo).
 //! It is a **separate** window from the recording overlay ([`crate::overlay`]):
 //! the overlay is bound to the record lifecycle and non-interactive, whereas the
-//! toast lives ~5 s on its own and must be clickable. The two only share the
+//! toast owns its dismissal timer and must be clickable. The two only share the
 //! same NSPanel recipe and monitor math.
 //!
 //! ## Focus policy (macOS)
 //!
-//! The toast has one hard requirement: it must be clickable (Undo) yet must
-//! never steal focus from the app the user is typing in — not when it appears,
-//! and not when Undo is clicked. It is therefore a **non-activating** NSPanel,
-//! the same class the overlay uses, but with one flag flipped:
+//! The toast has one hard requirement: it must be clickable (Accept / Never /
+//! Undo) yet must never take keyboard focus from the app the user is typing in
+//! — not when it appears, and not when a button is clicked. A user pressing
+//! Return in a chat composer right after the toast appeared must still send
+//! the message. It is therefore the overlay's recipe exactly:
 //!
-//! - showing it uses [`tauri::WebviewWindow::show`], which on the converted
-//!   panel orders the window front without making it key, so appearing never
-//!   activates Handy or pulls the caret out of the user's field;
-//! - the `NonactivatingPanel` style mask means clicking anywhere in the panel —
-//!   including the Undo button — routes the click *without* activating Handy, so
-//!   the user's frontmost app stays frontmost;
-//! - `can_become_key_window: true` (the overlay uses `false`) lets the webview
-//!   become first responder for that click. A non-activating panel can be the
-//!   key window without activating its owning app, which is exactly what makes
-//!   the Undo button reliably clickable while focus stays put.
+//! - **never key**: `can_become_key_window: false` and `focusable(false)`. The
+//!   `NonactivatingPanel` style mask alone only keeps Handy from being
+//!   *activated*; a non-activating panel can still become the key window and
+//!   then receives every keystroke while the user's app stays frontmost;
+//! - **revealed via the panel API** ([`reveal`] → `orderFrontRegardless`), not
+//!   [`tauri::WebviewWindow::show`]: tao implements `show` as
+//!   `makeKeyAndOrderFront:`, which made the panel key on every reveal;
+//! - **clickable without focus**: `accept_first_mouse(true)` makes the WKWebView
+//!   take the first click in a window that is not key (wry overrides
+//!   `acceptsFirstMouse:`), and the non-activating style mask keeps that click
+//!   from activating Handy. Mouse events go to the window under the cursor
+//!   regardless of key status — the recording overlay's cancel button works the
+//!   same way on the same panel config;
+//! - **hidden with `orderOut:`** (`WebviewWindow::hide`), which never activates
+//!   anything; as the panel is never key, AppKit has no key window to hand on.
+//!
+//! The buttons also have keyboard shortcuts ([`super::toast_shortcuts`]),
+//! registered only while the toast is visible: [`show_learned_toast`] arms them
+//! after a successful reveal, every hide path disarms them.
 //!
 //! Windows/Linux get a plain always-on-top webview window as a graceful
 //! fallback. The learning session that fires the toast only runs on macOS
@@ -51,12 +61,36 @@ const TOAST_LABEL: &str = "learned_toast";
 /// Bumped on every reveal; the failsafe hide fires only when no newer reveal
 /// has restarted the clock.
 static SHOW_GENERATION: AtomicU64 = AtomicU64::new(0);
+static CURRENT_TOAST: Mutex<Option<RevealIdentity>> = Mutex::new(None);
 
-/// The webview owns the pretty 5s auto-dismiss; this is the guarantee behind
-/// it. A lazily created panel's webview can stall its timers (and rAF) while
-/// the compositor still considers it occluded, which left the toast stuck on
-/// screen — Rust orders it out regardless.
-const FAILSAFE_HIDE: Duration = Duration::from_secs(8);
+#[derive(Debug, PartialEq)]
+struct RevealIdentity {
+    generation: u64,
+    id: String,
+}
+
+fn hide_matches(
+    current: Option<&RevealIdentity>,
+    id: Option<&str>,
+    generation: Option<u64>,
+) -> bool {
+    match current {
+        Some(current) => {
+            id.is_none_or(|id| id == current.id)
+                && generation.is_none_or(|generation| generation == current.generation)
+        }
+        None => id.is_none() && generation.is_none(),
+    }
+}
+
+/// The webview auto-dismisses after 5–8 s plus its exit animation; this timer
+/// leaves slack beyond that and guarantees dismissal if an occluded webview
+/// stalls its timers and rAF. Rust orders the window out regardless.
+const FAILSAFE_HIDE: Duration = Duration::from_secs(11);
+
+/// After a shortcut acted, the webview's exit animation (200 ms) normally
+/// hides the window; this orders it out if the webview stalls.
+const SHORTCUT_HIDE_BACKUP: Duration = Duration::from_millis(600);
 
 /// Toast window size (logical points). The pill card is centered inside this
 /// frame, with vertical slack for the slide-in/out animation; keep it at least
@@ -71,7 +105,7 @@ const TOAST_BOTTOM_OFFSET: f64 = 96.0;
 tauri_panel! {
     panel!(LearnedToastPanel {
         config: {
-            can_become_key_window: true,
+            can_become_key_window: false,
             is_floating_panel: true
         }
     })
@@ -144,12 +178,13 @@ pub fn create_learned_toast(app_handle: &AppHandle) {
         .no_activate(true)
         .corner_radius(0.0)
         .style_mask(StyleMask::empty().borderless().nonactivating_panel())
-        // Unlike the overlay we keep the window focusable and accept the first
-        // mouse click, so the Undo button responds without a preceding focus
-        // click. `nonactivating_panel` keeps that click from activating Handy.
+        // Never focusable (see the module docs), but the first mouse click
+        // reaches the buttons; `nonactivating_panel` keeps that click from
+        // activating Handy.
         .with_window(|w| {
             w.decorations(false)
                 .transparent(true)
+                .focusable(false)
                 .accept_first_mouse(true)
         })
         .collection_behavior(
@@ -161,10 +196,23 @@ pub fn create_learned_toast(app_handle: &AppHandle) {
     {
         Ok(panel) => {
             panel.hide();
+            watch_toast_window(app_handle);
         }
         Err(e) => {
             log::error!("Failed to create learned-correction toast panel: {}", e);
         }
+    }
+}
+
+/// Release the toast shortcuts if the window ever goes away for good.
+fn watch_toast_window(app_handle: &AppHandle) {
+    if let Some(window) = app_handle.get_webview_window(TOAST_LABEL) {
+        let app = app_handle.clone();
+        window.on_window_event(move |event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                super::toast_shortcuts::disarm(&app);
+            }
+        });
     }
 }
 
@@ -196,8 +244,9 @@ pub fn create_learned_toast(app_handle: &AppHandle) {
         builder = builder.data_directory(data_dir.join("webview"));
     }
 
-    if let Err(e) = builder.build() {
-        log::debug!("Failed to create learned-correction toast window: {}", e);
+    match builder.build() {
+        Ok(_) => watch_toast_window(app_handle),
+        Err(e) => log::debug!("Failed to create learned-correction toast window: {}", e),
     }
 }
 
@@ -251,27 +300,30 @@ pub fn toast_stage(stage: String) {
     log::debug!("toast-webview: {}", stage);
 }
 
-/// Show a sample trial toast on the running instance (`handy --debug-toast`,
-/// forwarded via single-instance). Exercises the exact production path —
-/// stash, lazy window creation, positioning, reveal — without needing a real
-/// dictation + manual correction round trip.
+/// Show a sample suggestion toast on the running instance (`handy
+/// --debug-toast`, forwarded via single-instance). Exercises the exact
+/// production path — stash, lazy window creation, positioning, reveal —
+/// without needing a real dictation + manual correction round trip. The ids
+/// match no stored pair, so its Undo is a harmless no-op.
 pub fn debug_show_learned_toast(app: &AppHandle) {
     use tauri_specta::Event as _;
-    log::info!("debug-toast: staging sample trial toast");
+    log::info!("debug-toast: staging sample suggestion toast");
     let event = LearnedCorrectionEvent {
         id: "debug-toast".to_string(),
         misheard: "raha".to_string(),
         intended: "waha".to_string(),
-        trial: true,
+        status: crate::correction_learning::CorrectionStatus::Suggested,
+        suggested_ids: vec!["debug-toast".to_string(), "debug-toast-2".to_string()],
+        active_ids: Vec::new(),
         extra: 1,
     };
     set_pending_learned_toast(event.clone());
-    // Mirror the real trial path: the stash feeds a cold first mount, the event
+    // Mirror the real path: the stash feeds a cold first mount, the event
     // refreshes an already-open webview.
     if let Err(err) = event.emit(app) {
         log::error!("Failed to emit debug toast event: {}", err);
     }
-    show_learned_toast(app);
+    show_learned_toast(app, event);
 }
 
 /// Position the toast bottom-center on the active screen and show it without
@@ -286,9 +338,22 @@ pub fn debug_show_learned_toast(app: &AppHandle) {
 ///
 /// Only the macOS learning session calls this; elsewhere the toast never fires.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub fn show_learned_toast(app_handle: &AppHandle) {
+pub fn show_learned_toast(app_handle: &AppHandle, event: LearnedCorrectionEvent) {
+    let generation = {
+        let mut current = CURRENT_TOAST.lock().unwrap_or_else(|e| e.into_inner());
+        let generation = SHOW_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+        *current = Some(RevealIdentity {
+            generation,
+            id: event.id.clone(),
+        });
+        generation
+    };
     let app = app_handle.clone();
     if let Err(e) = app_handle.run_on_main_thread(move || {
+        let current = CURRENT_TOAST.lock().unwrap_or_else(|e| e.into_inner());
+        if !hide_matches(current.as_ref(), Some(&event.id), Some(generation)) {
+            return;
+        }
         let existed = app.get_webview_window(TOAST_LABEL).is_some();
         if !existed {
             create_learned_toast(&app);
@@ -300,16 +365,17 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
                     let _ = window
                         .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
                 }
-                let show_result = window.show();
-                // Breadcrumbs for the invisible-toast hunt: every value here has
-                // at some point been the missing link.
+                let show_result = reveal(&app, &window);
                 log::debug!(
                     "toast-show: existed={}, position={:?}, show={:?}, visible_after={:?}",
                     existed,
                     position,
-                    show_result.as_ref().map(|_| ()),
+                    show_result,
                     window.is_visible()
                 );
+                if show_result.is_ok() {
+                    super::toast_shortcuts::arm(&app, generation, &event);
+                }
             }
             None => {
                 log::error!("toast-show: window missing after creation attempt");
@@ -321,34 +387,108 @@ pub fn show_learned_toast(app_handle: &AppHandle) {
     }
 
     // Failsafe hide, independent of the webview's own timers.
-    let generation = SHOW_GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    hide_if_current(app_handle, generation, FAILSAFE_HIDE, "failsafe");
+}
+
+/// Order the toast front without making it key (see the module docs). Never
+/// falls back to `WebviewWindow::show`, which would make it key.
+#[cfg(target_os = "macos")]
+fn reveal(app: &AppHandle, _window: &tauri::WebviewWindow) -> Result<(), String> {
+    use tauri_nspanel::ManagerExt;
+    let panel = app
+        .get_webview_panel(TOAST_LABEL)
+        .map_err(|e| format!("toast panel not registered: {:?}", e))?;
+    panel.show();
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn reveal(_app: &AppHandle, window: &tauri::WebviewWindow) -> Result<(), String> {
+    window.show().map_err(|e| e.to_string())
+}
+
+/// After `delay`, order the toast out (and release its shortcuts) unless a
+/// newer reveal has taken over in the meantime.
+fn hide_if_current(app_handle: &AppHandle, generation: u64, delay: Duration, reason: &'static str) {
     let app = app_handle.clone();
     std::thread::spawn(move || {
-        std::thread::sleep(FAILSAFE_HIDE);
+        std::thread::sleep(delay);
         if SHOW_GENERATION.load(Ordering::SeqCst) != generation {
             return; // a newer reveal restarted the clock
         }
         let app_main = app.clone();
         let _ = app.run_on_main_thread(move || {
+            let mut current = CURRENT_TOAST.lock().unwrap_or_else(|e| e.into_inner());
+            if !hide_matches(current.as_ref(), None, Some(generation)) {
+                return;
+            }
+            *current = None;
             if let Some(window) = app_main.get_webview_window(TOAST_LABEL) {
                 if window.is_visible().unwrap_or(false) {
-                    log::debug!("toast-hide: failsafe");
+                    log::debug!("toast-hide: {}", reason);
                     let _ = window.hide();
                 }
             }
+            super::toast_shortcuts::disarm(&app_main);
         });
     });
 }
 
-/// Hide the toast window. Invoked by the frontend after the 5 s auto-hide timer
-/// or an Undo click (the exit animation plays first, then this orders the window
+/// Event telling the toast webview a keyboard shortcut acted on it; the payload
+/// is the toast's first-pair id, so a dismissal racing a newer toast is ignored.
+const SHORTCUT_DISMISS_EVENT: &str = "learned-toast-shortcut-dismiss";
+
+/// A toast shortcut already performed its action: let the webview play its
+/// exit animation, and order the window out shortly after in case the webview
+/// is suspended (the same stall the failsafe exists for).
+pub(super) fn dismiss_after_shortcut(app: &AppHandle, generation: u64, toast_id: &str) {
+    use tauri::Emitter;
+    if let Err(e) = app.emit(SHORTCUT_DISMISS_EVENT, toast_id) {
+        log::error!("Failed to emit toast dismiss event: {}", e);
+    }
+    hide_if_current(app, generation, SHORTCUT_HIDE_BACKUP, "shortcut-backup");
+}
+
+/// Hide the toast window after auto-dismissal or a user action
+/// (the exit animation plays first, then this orders the window
 /// out so it stops intercepting clicks in the bottom-center region).
 #[tauri::command]
 #[specta::specta]
-pub fn hide_learned_toast(app: AppHandle) -> Result<(), String> {
-    log::debug!("toast-hide: webview dismiss");
-    if let Some(window) = app.get_webview_window(TOAST_LABEL) {
-        window.hide().map_err(|e| e.to_string())?;
+pub fn hide_learned_toast(app: AppHandle, id: Option<String>) -> Result<(), String> {
+    let app_main = app.clone();
+    app.run_on_main_thread(move || {
+        let mut current = CURRENT_TOAST.lock().unwrap_or_else(|e| e.into_inner());
+        if !hide_matches(current.as_ref(), id.as_deref(), None) {
+            return;
+        }
+        *current = None;
+        log::debug!("toast-hide: webview dismiss");
+        super::toast_shortcuts::disarm(&app_main);
+        if let Some(window) = app_main.get_webview_window(TOAST_LABEL) {
+            if let Err(e) = window.hide() {
+                log::warn!("Failed to hide learned-correction toast: {}", e);
+            }
+        }
+    })
+    .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hides_are_scoped_to_the_current_toast_id_and_generation() {
+        let current = RevealIdentity {
+            generation: 2,
+            id: "new".into(),
+        };
+        assert!(!hide_matches(Some(&current), Some("old"), None));
+        assert!(!hide_matches(Some(&current), None, Some(1)));
+        assert!(hide_matches(Some(&current), Some("new"), Some(2)));
+        assert!(hide_matches(Some(&current), None, None));
+        assert!(!hide_matches(None, Some("old"), None));
+        assert!(!hide_matches(None, None, Some(2)));
+        assert!(hide_matches(None, None, None));
     }
-    Ok(())
 }

@@ -377,12 +377,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
 
-    // fork(voice-control): create the learned-correction toast window eagerly,
-    // exactly like the overlay. A panel webview created lazily — hidden, while
-    // the app is inactive — gets suspended by WebKit before its first frame
-    // commits, so the toast only appeared once something reactivated the app.
-    // A webview born at startup (app active) keeps rendering for the process
-    // lifetime; the overlay proves the pattern.
+    // fork(voice-control): load the learned pairs, then create the toast window
+    // eagerly like the overlay (a lazily created panel is suspended by WebKit).
+    correction_learning::init(app_handle);
     correction_learning::toast::init_learned_toast(app_handle);
 }
 
@@ -713,16 +710,22 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_text_rules_custom,
             shortcut::update_text_rules_disabled_builtins,
             shortcut::get_text_rules_builtins,
-            shortcut::change_learn_corrections_enabled_setting,
-            shortcut::change_learn_corrections_log_only_setting,
-            shortcut::change_learn_corrections_aggressiveness_setting,
-            shortcut::change_learn_corrections_window_secs_setting,
-            shortcut::set_learned_correction_enabled,
-            shortcut::add_learned_correction,
-            shortcut::remove_learned_correction,
+            // fork(voice-control): learned-corrections commands.
+            correction_learning::commands::change_learn_corrections_enabled_setting,
+            correction_learning::commands::change_learn_from_edits_enabled_setting,
+            correction_learning::commands::change_learn_corrections_aggressiveness_setting,
+            correction_learning::commands::change_learn_corrections_window_secs_setting,
+            correction_learning::commands::get_learned_corrections,
+            correction_learning::commands::add_learned_correction,
+            correction_learning::commands::accept_learned_correction,
+            correction_learning::commands::reject_learned_corrections,
+            correction_learning::commands::remove_learned_correction,
+            correction_learning::commands::set_learned_correction_enabled,
+            correction_learning::commands::unblock_learned_correction,
             correction_learning::toast::hide_learned_toast,
             correction_learning::toast::take_pending_learned_toast,
             correction_learning::toast::toast_stage,
+            correction_learning::toast_shortcuts::change_learned_toast_shortcut_setting,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
@@ -805,8 +808,7 @@ pub fn run(cli_args: CliArgs) {
             managers::history::HistoryUpdatePayload,
             managers::transcription::StreamTextEvent,
             managers::transcription::StreamPhaseEvent,
-            // fork(voice-control): auto-learned correction toast event (Phase B
-            // ships the contract; the Phase C listener consumes it).
+            // fork(voice-control): learned-correction toast + list-changed events.
             correction_learning::LearnedCorrectionEvent,
             correction_learning::LearnedCorrectionsChanged,
         ]);

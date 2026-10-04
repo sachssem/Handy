@@ -157,15 +157,12 @@ const settingUpdaters: {
     commands.updateTextRulesDisabledBuiltins(value as string[]),
   learn_corrections_enabled: (value) =>
     commands.changeLearnCorrectionsEnabledSetting(value as boolean),
-  learn_corrections_log_only: (value) =>
-    commands.changeLearnCorrectionsLogOnlySetting(value as boolean),
+  learn_from_edits_enabled: (value) =>
+    commands.changeLearnFromEditsEnabledSetting(value as boolean),
   learn_corrections_aggressiveness: (value) =>
     commands.changeLearnCorrectionsAggressivenessSetting(value as string),
   learn_corrections_window_secs: (value) =>
     commands.changeLearnCorrectionsWindowSecsSetting(value as number),
-  // No `learned_corrections` whole-list updater: the list is mutated only via
-  // granular commands (add / setLearnedCorrectionEnabled / remove) so a stale
-  // copy can never clobber a concurrently auto-learned pair.
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

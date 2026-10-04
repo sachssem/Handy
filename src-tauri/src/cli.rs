@@ -24,7 +24,8 @@ pub struct CliArgs {
     #[arg(long)]
     pub cancel: bool,
 
-    /// Debug: show a sample learned-correction trial toast (sent to running
+    // fork(voice-control): exercise the learned-correction toast display path.
+    /// Debug: show a sample learned-correction toast (sent to running
     /// instance). Exercises the toast display path without a dictation.
     #[arg(long, hide = true)]
     pub debug_toast: bool,

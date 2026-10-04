@@ -559,26 +559,49 @@ pub struct AppSettings {
     #[serde(default)]
     pub text_rules_disabled_builtins: Vec<String>,
     // fork(voice-control): auto-learned corrections (see `correction_learning`).
+    // The retired `learn_corrections_log_only` trial switch is ignored on read
+    // (suggestions replaced it) and dropped on the next write.
     #[serde(default)]
     pub learn_corrections_enabled: bool,
-    /// Dry-run soak: run the full learning pipeline but only log would-be pairs
-    /// instead of storing them.
-    #[serde(default)]
-    pub learn_corrections_log_only: bool,
-    /// How aggressively the gate pipeline accepts a candidate. Defaults to the
-    /// safest level (`Conservative`) against dictionary poisoning.
+    /// Whether the post-paste watcher learns from the user's edits. Off keeps
+    /// the dictionary (manual and already learned pairs) applying.
+    #[serde(default = "default_true")]
+    pub learn_from_edits_enabled: bool,
+    /// How permissive the learning gates are. Defaults to the safest level.
     #[serde(default)]
     pub learn_corrections_aggressiveness: Aggressiveness,
     /// How long (seconds) the post-paste learning window stays open. Clamped to a
     /// sane range in the session.
     #[serde(default = "default_learn_corrections_window_secs")]
     pub learn_corrections_window_secs: u32,
-    #[serde(default)]
+    // fork(voice-control): learned-toast shortcuts, registered only while the
+    // toast is visible (see `correction_learning::toast_shortcuts`).
+    #[serde(default = "default_learned_toast_accept_shortcut")]
+    pub learned_toast_accept_shortcut: String,
+    #[serde(default = "default_learned_toast_dismiss_shortcut")]
+    pub learned_toast_dismiss_shortcut: String,
+    /// Legacy home of the learned pairs, read once to migrate them into the
+    /// correction-learning store (which owns them since) and then emptied.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub learned_corrections: Vec<LearnedCorrection>,
 }
 
 fn default_learn_corrections_window_secs() -> u32 {
     45
+}
+
+// fork(voice-control): learned-toast shortcut defaults.
+fn default_learned_toast_accept_shortcut() -> String {
+    crate::correction_learning::toast_shortcuts::DEFAULT_ACCEPT.to_string()
+}
+
+fn default_learned_toast_dismiss_shortcut() -> String {
+    crate::correction_learning::toast_shortcuts::DEFAULT_DISMISS.to_string()
+}
+
+// fork(voice-control): serde default for the fork's default-on switches.
+pub(crate) fn default_true() -> bool {
+    true
 }
 
 fn default_model() -> String {
@@ -1054,9 +1077,11 @@ pub fn get_default_settings() -> AppSettings {
         text_rules_custom: Vec::new(),
         text_rules_disabled_builtins: Vec::new(),
         learn_corrections_enabled: false,
-        learn_corrections_log_only: false,
+        learn_from_edits_enabled: default_true(),
         learn_corrections_aggressiveness: Aggressiveness::default(),
         learn_corrections_window_secs: default_learn_corrections_window_secs(),
+        learned_toast_accept_shortcut: default_learned_toast_accept_shortcut(),
+        learned_toast_dismiss_shortcut: default_learned_toast_dismiss_shortcut(),
         learned_corrections: Vec::new(),
     }
 }

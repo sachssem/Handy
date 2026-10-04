@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Inlärda korrigeringar",
-        "description": "En personlig ordlista med exakta ordkorrigeringar som tillämpas på varje transkription, före valfri AI-efterbearbetning. Lägg till korrigeringar för det som igenkänningen ständigt får fel — namn, jargong, omljud — så ersätts de deterministiskt. På macOS kan Handy även lära sig dem på egen hand: när du rättar ett ord strax efter att det klistrats in fångas den korrigeringen automatiskt.",
-        "trialMode": {
-          "title": "Testläge (torrkörning)",
-          "description": "Kör hela inlärningspipelinen men loggar endast tänkbara korrigeringar istället för att spara dem. Använd det för att se vad Handy skulle lära sig i några dagar innan du låter det ändra din ordlista."
+        "title": "Personlig ordlista",
+        "description": "Ersätter ord som igenkänningen gång på gång missuppfattar — namn, fackord, specialtecken — i varje transkribering, före valfri AI-efterbearbetning. På macOS lär sig Handy även av dina redigeringar: rätta ett ord direkt efter inklistring så föreslår Handy den rättelsen. Att stänga av pausar båda.",
+        "learnFromEdits": {
+          "title": "Lär av mina korrigeringar",
+          "description": "Bevakar fältet efter inklistring och föreslår rättelser du gör för hand. Av: inget nytt lärs in, ordlistan används fortfarande."
+        },
+        "suggestions": {
+          "title": "Förslag",
+          "description": "Rättelser som Handy har lagt märke till i dina redigeringar. Godkänn en för att använda den från och med nu; en rättelse du gör upprepade gånger läggs till automatiskt. Välj Aldrig för att blockera den för gott.",
+          "accept": "Godkänn",
+          "dismiss": "Aldrig"
+        },
+        "dictionary": {
+          "title": "Ordlista",
+          "filterPlaceholder": "Filtrera…",
+          "noMatches": "Inga matchande poster."
+        },
+        "blocked": {
+          "title": "Blockerade",
+          "description": "Rättelser som du har avvisat eller ångrat. Handy lär sig dem inte igen om du inte avblockerar dem.",
+          "unblock": "Avblockera"
+        },
+        "options": {
+          "title": "Inlärningsalternativ"
         },
         "aggressiveness": {
           "title": "Inlärningsaggressivitet",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Aggressiv",
-            "description": "Lär sig även löst relaterade korrigeringar, inklusive vardagsord. Högst risk för felaktiga poster."
+            "description": "Godtar även löst relaterade korrigeringar och kontrollerar inte om de låter lika. Byten mellan vardagsord lärs ändå aldrig in. Högst risk för felaktiga poster."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Aktivera {{misheard}}",
         "remove": "Ta bort {{misheard}}",
-        "empty": "Inga korrigeringar ännu. Lägg till ett ord som igenkänningen ständigt hör fel — som ett namn eller en teknisk term — så tillämpas dess korrigering på varje framtida transkription."
+        "empty": "Inga korrigeringar ännu. Lägg till ett ord som igenkänningen ständigt hör fel — som ett namn eller en teknisk term — så tillämpas dess korrigering på varje framtida transkription.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Kortkommando: Godkänn",
+            "description": "Godkänner förslaget i aviseringen om inlärda korrigeringar. Endast aktivt medan aviseringen visas."
+          },
+          "dismiss": {
+            "title": "Kortkommando: Aldrig / Ångra",
+            "description": "Avvisar förslaget (Aldrig) eller ångrar en nyss inlärd korrigering (Ångra). Endast aktivt medan aviseringen visas."
+          },
+          "errors": {
+            "needsModifier": "Använd minst en modifieringstangent (Control, Alternativ, Skift eller Kommando).",
+            "invalid": "Den här tangentkombinationen kan inte användas som kortkommando.",
+            "conflict": "Den här kombinationen används redan av ett annat Handy-kortkommando.",
+            "conflictWith": "Den här kombinationen används redan av ”{{name}}”.",
+            "save": "Det gick inte att spara kortkommandot: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Ange både det felhörda ordet och rättelsen.",
+          "generic": "Ändringen kunde inte sparas. Försök igen."
+        }
       },
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
-    "trialTitle": "Dry-Run: Inlärt: ”{{misheard}}” → ”{{intended}}”",
+    "suggestionTitle": "Förslag: ”{{misheard}}” → ”{{intended}}”",
     "undo": "Ångra",
+    "accept": "Godkänn",
+    "dismiss": "Aldrig",
     "more": "+{{count}} till"
   },
   "whatsNew": {

@@ -371,9 +371,9 @@ async changeLearnCorrectionsEnabledSetting(enabled: boolean) : Promise<Result<nu
     else return { status: "error", error: e  as any };
 }
 },
-async changeLearnCorrectionsLogOnlySetting(logOnly: boolean) : Promise<Result<null, string>> {
+async changeLearnFromEditsEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_log_only_setting", { logOnly }) };
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_from_edits_enabled_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -395,17 +395,28 @@ async changeLearnCorrectionsWindowSecsSetting(windowSecs: number) : Promise<Resu
     else return { status: "error", error: e  as any };
 }
 },
-async setLearnedCorrectionEnabled(id: string, enabled: boolean) : Promise<Result<null, string>> {
+async getLearnedCorrections() : Promise<LearnedCorrections> {
+    return await TAURI_INVOKE("get_learned_corrections");
+},
+async addLearnedCorrection(misheard: string, intended: string) : Promise<Result<LearnedCorrection, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("set_learned_correction_enabled", { id, enabled }) };
+    return { status: "ok", data: await TAURI_INVOKE("add_learned_correction", { misheard, intended }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
-async addLearnedCorrection(misheard: string, intended: string) : Promise<Result<LearnedCorrection, string>> {
+async acceptLearnedCorrection(id: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("add_learned_correction", { misheard, intended }) };
+    return { status: "ok", data: await TAURI_INVOKE("accept_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async rejectLearnedCorrections(ids: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reject_learned_corrections", { ids }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -419,9 +430,26 @@ async removeLearnedCorrection(id: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async hideLearnedToast() : Promise<Result<null, string>> {
+async setLearnedCorrectionEnabled(id: string, enabled: boolean) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("hide_learned_toast") };
+    return { status: "ok", data: await TAURI_INVOKE("set_learned_correction_enabled", { id, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async unblockLearnedCorrection(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("unblock_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+// fork(voice-control): scope delayed dismissals to the toast being dismissed.
+async hideLearnedToast(id?: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("hide_learned_toast", { id }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -432,6 +460,14 @@ async takePendingLearnedToast() : Promise<LearnedCorrectionEvent | null> {
 },
 async toastStage(stage: string) : Promise<void> {
     await TAURI_INVOKE("toast_stage", { stage });
+},
+async changeLearnedToastShortcutSetting(action: LearnedToastShortcut, binding: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learned_toast_shortcut_setting", { action, binding }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 },
 /**
  * Temporarily unregister all bindings while the user is recording a
@@ -1156,6 +1192,7 @@ export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AvailableAccelerators = { transcribe: string[]; ort: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
+export type BlockedCorrection = { id: string; misheard: string; intended: string; blocked_at: number }
 /**
  * Script applied to Mandarin and Cantonese output. Other languages are never
  * converted.
@@ -1167,6 +1204,7 @@ export type ChineseScript =
 "as_transcribed" | "simplified" | "traditional"
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
 export type CorrectionSource = "auto" | "manual"
+export type CorrectionStatus = "suggested" | "active"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type EngineType = 
 /**
@@ -1193,9 +1231,14 @@ export type KeyboardDiagnosticReport = { secure_input_enabled: boolean; culprit_
 key_down: number; key_up: number; flags_changed: number; mouse: number; duration_ms: number }
 export type KeyboardImplementation = "tauri" | "handy_keys"
 export type LLMPrompt = { id: string; name: string; prompt: string }
-export type LearnedCorrection = { id: string; misheard: string; intended: string; count: number; last_seen: number; source: CorrectionSource; enabled: boolean; lang: string | null }
-export type LearnedCorrectionEvent = { id: string; misheard: string; intended: string; trial: boolean; extra: number }
+export type LearnedCorrection = { id: string; misheard: string; intended: string; count: number; last_seen: number; source: CorrectionSource; status: CorrectionStatus; enabled: boolean; lang: string | null; sentence_start: boolean }
+export type LearnedCorrectionEvent = { id: string; misheard: string; intended: string; status: CorrectionStatus; suggested_ids: string[]; active_ids: string[]; extra: number }
+export type LearnedCorrections = { corrections: LearnedCorrection[]; blocked: BlockedCorrection[] }
 export type LearnedCorrectionsChanged = Record<string, never>
+/**
+ * Which toast shortcut a setting / command refers to.
+ */
+export type LearnedToastShortcut = "accept" | "dismiss"
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; source: ModelSource; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean; supports_streaming: boolean; supports_language_detection: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }

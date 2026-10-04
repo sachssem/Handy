@@ -2263,7 +2263,13 @@ pub(crate) fn post_process_transcription_text(
         let ruled = crate::text_rules::apply_text_rules(&normalized, settings);
 
         // fork(voice-control): exact misheard→intended learned corrections
-        crate::correction_learning::apply_learned(&ruled, settings)
+        let learned = crate::correction_learning::apply_learned(
+            &ruled,
+            settings,
+            &output_language,
+            supported_languages,
+        );
+        learned
     })
 }
 

@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "已学习的修正",
-        "description": "一个包含精确词汇修正的个人词典，在可选的 AI 后处理之前应用于每次转录。为识别器反复听错的内容添加修正——姓名、行话、变音符号——它们会被确定性地替换。在 macOS 上，Handy 还可以自行学习：当您在粘贴后不久修正某个词时，该修正会被自动捕获。",
-        "trialMode": {
-          "title": "试用模式（试运行）",
-          "description": "运行完整的学习流程，但仅记录可能的修正而不保存它们。用它在几天内观察 Handy 会学到什么，然后再让它更改您的词典。"
+        "title": "个人词典",
+        "description": "在可选的 AI 后处理之前，于每次转录中替换识别器反复听错的词语（名称、术语等）。在 macOS 上，Handy 还会从你的编辑中学习：粘贴后立即更正某个词，它就会建议这项更正。关闭后两者都会暂停。",
+        "learnFromEdits": {
+          "title": "从我的更正中学习",
+          "description": "粘贴后监视输入框，并建议你手动做的更正。关闭时不会学习新内容，词典仍会应用。"
+        },
+        "suggestions": {
+          "title": "建议",
+          "description": "Handy 在你的编辑中发现的更正。接受后即从现在起应用；你反复进行的更正会自动加入。选择“永不”即可永久屏蔽。",
+          "accept": "接受",
+          "dismiss": "永不"
+        },
+        "dictionary": {
+          "title": "词典",
+          "filterPlaceholder": "筛选…",
+          "noMatches": "没有匹配的条目。"
+        },
+        "blocked": {
+          "title": "已屏蔽",
+          "description": "你忽略或撤销的更正。除非解除屏蔽，否则 Handy 不会再次学习。",
+          "unblock": "解除屏蔽"
+        },
+        "options": {
+          "title": "学习选项"
         },
         "aggressiveness": {
           "title": "学习激进程度",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "激进",
-            "description": "甚至学习松散相关的修正，包括日常词汇。错误条目风险最高。"
+            "description": "即使是松散相关的修正也会接受，且不检查发音是否相近。日常词汇之间的替换仍然不会被学习。错误条目风险最高。"
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "启用 {{misheard}}",
         "remove": "删除 {{misheard}}",
-        "empty": "还没有修正。添加一个识别器反复听错的词——例如姓名或技术术语——它的修正将应用于以后的每次转录。"
+        "empty": "还没有修正。添加一个识别器反复听错的词——例如姓名或技术术语——它的修正将应用于以后的每次转录。",
+        "toastShortcuts": {
+          "accept": {
+            "title": "快捷键：接受",
+            "description": "接受已学习纠正提示中的建议。仅在提示显示时有效。"
+          },
+          "dismiss": {
+            "title": "快捷键：永不 / 撤销",
+            "description": "拒绝建议（永不）或撤销刚学习的纠正（撤销）。仅在提示显示时有效。"
+          },
+          "errors": {
+            "needsModifier": "请至少使用一个修饰键（Control、Option、Shift 或 Command）。",
+            "invalid": "此组合键不能用作快捷键。",
+            "conflict": "此组合已被另一个 Handy 快捷键使用。",
+            "conflictWith": "此组合键已被“{{name}}”使用。",
+            "save": "无法保存快捷键：{{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "请同时输入听错的词和更正后的词。",
+          "generic": "无法保存更改，请重试。"
+        }
       },
       "voiceActivityDetection": {
         "title": "语音活动检测",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "已学习：“{{misheard}}”→“{{intended}}”",
-    "trialTitle": "Dry-Run：“{{misheard}}”→“{{intended}}”",
+    "suggestionTitle": "建议：“{{misheard}}”→“{{intended}}”",
     "undo": "撤销",
+    "accept": "接受",
+    "dismiss": "永不",
     "more": "另 {{count}} 个"
   },
   "whatsNew": {

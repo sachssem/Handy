@@ -19,7 +19,6 @@ use specta::Type;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::correction_learning::{self, Aggressiveness, CorrectionSource, LearnedCorrection};
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 use crate::settings::APPLE_INTELLIGENCE_DEFAULT_MODEL_ID;
 use crate::settings::{
@@ -285,6 +284,8 @@ pub fn reset_binding(app: AppHandle, id: String) -> Result<BindingResponse, Stri
 /// mid-capture. The "cancel" binding is untouched: it is managed dynamically
 /// by the recording lifecycle.
 pub fn suspend_all_shortcuts(app: &AppHandle) {
+    // fork(voice-control): transient toast shortcuts must not swallow captured keys.
+    crate::correction_learning::toast_shortcuts::suspend(app);
     for (id, binding) in settings::get_bindings(app) {
         if id == "cancel" {
             continue;
@@ -302,6 +303,8 @@ pub fn suspend_all_shortcuts(app: &AppHandle) {
 /// Registering an already-registered shortcut fails cleanly in both
 /// implementations, so this is idempotent and safe on every exit path.
 pub fn resume_all_shortcuts(app: &AppHandle) {
+    // fork(voice-control): restore toast shortcuts only while the toast remains visible.
+    crate::correction_learning::toast_shortcuts::resume(app);
     let settings = get_settings(app);
     for (id, binding) in &settings.bindings {
         if id == "cancel" {
@@ -964,144 +967,6 @@ pub fn update_text_rules_disabled_builtins(
 #[specta::specta]
 pub fn get_text_rules_builtins() -> Vec<TextRule> {
     text_rules::builtin_rules()
-}
-
-// fork(voice-control): learned-corrections settings commands.
-
-#[tauri::command]
-#[specta::specta]
-pub fn change_learn_corrections_enabled_setting(
-    app: AppHandle,
-    enabled: bool,
-) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    settings.learn_corrections_enabled = enabled;
-    settings::write_settings(&app, settings);
-    Ok(())
-}
-
-/// Toggle the dry-run soak: when on, the learning pipeline runs fully but only
-/// logs `would-learn: X → Y` instead of storing pairs.
-#[tauri::command]
-#[specta::specta]
-pub fn change_learn_corrections_log_only_setting(
-    app: AppHandle,
-    log_only: bool,
-) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    settings.learn_corrections_log_only = log_only;
-    settings::write_settings(&app, settings);
-    Ok(())
-}
-
-/// Set how aggressively the gate pipeline accepts a candidate. An unknown value
-/// falls back to the safest level (`Conservative`).
-#[tauri::command]
-#[specta::specta]
-pub fn change_learn_corrections_aggressiveness_setting(
-    app: AppHandle,
-    aggressiveness: String,
-) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    let parsed = match aggressiveness.as_str() {
-        "conservative" => Aggressiveness::Conservative,
-        "balanced" => Aggressiveness::Balanced,
-        "aggressive" => Aggressiveness::Aggressive,
-        other => {
-            warn!(
-                "Invalid learn-corrections aggressiveness '{}', defaulting to conservative",
-                other
-            );
-            Aggressiveness::Conservative
-        }
-    };
-    settings.learn_corrections_aggressiveness = parsed;
-    settings::write_settings(&app, settings);
-    Ok(())
-}
-
-/// Set the post-paste learning window length in seconds. The session clamps the
-/// stored value to a sane range, so no bounds are enforced here.
-#[tauri::command]
-#[specta::specta]
-pub fn change_learn_corrections_window_secs_setting(
-    app: AppHandle,
-    window_secs: u32,
-) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    settings.learn_corrections_window_secs = window_secs;
-    settings::write_settings(&app, settings);
-    Ok(())
-}
-
-/// Enable or disable a single learned correction by id, mutating the persisted
-/// list server-side. Unlike a whole-list write, this never clobbers a pair that
-/// was auto-learned concurrently while the review UI held a stale copy. A no-op
-/// when the id is unknown (e.g. the entry was removed in the meantime).
-#[tauri::command]
-#[specta::specta]
-pub fn set_learned_correction_enabled(
-    app: AppHandle,
-    id: String,
-    enabled: bool,
-) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    if let Some(correction) = settings
-        .learned_corrections
-        .iter_mut()
-        .find(|correction| correction.id == id)
-    {
-        correction.enabled = enabled;
-    }
-    settings::write_settings(&app, settings);
-    Ok(())
-}
-
-/// Add a correction by hand. Upserts on the (case-insensitive) pair so adding
-/// the same correction twice bumps its count instead of duplicating it. Returns
-/// the stored entry so the UI can reflect the backend-assigned id.
-#[tauri::command]
-#[specta::specta]
-pub fn add_learned_correction(
-    app: AppHandle,
-    misheard: String,
-    intended: String,
-) -> Result<LearnedCorrection, String> {
-    let misheard = misheard.trim();
-    let intended = intended.trim();
-    if misheard.is_empty() || intended.is_empty() {
-        return Err("misheard and intended text must not be empty".to_string());
-    }
-
-    let mut settings = settings::get_settings(&app);
-    let entry = LearnedCorrection::new(
-        misheard,
-        intended,
-        CorrectionSource::Manual,
-        chrono::Utc::now().timestamp(),
-    );
-    let id = correction_learning::upsert(&mut settings.learned_corrections, entry);
-    let stored = settings
-        .learned_corrections
-        .iter()
-        .find(|correction| correction.id == id)
-        .cloned();
-    settings::write_settings(&app, settings);
-    stored.ok_or_else(|| "failed to locate the stored correction".to_string())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn remove_learned_correction(app: AppHandle, id: String) -> Result<(), String> {
-    let mut settings = settings::get_settings(&app);
-    correction_learning::remove(&mut settings.learned_corrections, &id);
-    settings::write_settings(&app, settings);
-    // Notify the settings window (a toast Undo edits the list behind its back).
-    use tauri_specta::Event;
-    if let Err(err) = (correction_learning::LearnedCorrectionsChanged {}).emit(&app) {
-        error!("Failed to emit learned-corrections-changed event: {}", err);
-    }
-    Ok(())
 }
 
 #[tauri::command]

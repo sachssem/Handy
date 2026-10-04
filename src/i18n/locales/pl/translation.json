@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Wyuczone korekty",
-        "description": "Osobisty słownik dokładnych poprawek słów stosowanych do każdej transkrypcji, przed opcjonalnym przetwarzaniem AI. Dodaj poprawki dla tego, co system rozpoznawania wciąż źle rozpoznaje — nazwy, żargon, umlauty — a zostaną one zamienione w sposób deterministyczny. Na macOS Handy może też uczyć się ich samodzielnie: gdy poprawisz słowo krótko po wklejeniu, ta poprawka zostanie zarejestrowana automatycznie.",
-        "trialMode": {
-          "title": "Tryb próbny (przebieg testowy)",
-          "description": "Uruchamia cały mechanizm uczenia, ale tylko zapisuje w logu potencjalne poprawki zamiast je przechowywać. Użyj go, aby przez kilka dni obserwować, czego Handy by się nauczył, zanim pozwolisz mu zmienić Twój słownik."
+        "title": "Słownik osobisty",
+        "description": "Zastępuje słowa, które rozpoznawanie ciągle przekręca — imiona, żargon, polskie znaki — w każdej transkrypcji, przed opcjonalnym przetwarzaniem AI. W macOS Handy uczy się też z Twoich poprawek: popraw słowo zaraz po wklejeniu, a zaproponuje tę korektę. Wyłączenie wstrzymuje oba mechanizmy.",
+        "learnFromEdits": {
+          "title": "Ucz się z moich poprawek",
+          "description": "Obserwuje pole po wklejeniu i proponuje poprawki wprowadzone ręcznie. Wyłączone: nic nowego nie jest zapamiętywane, słownik nadal działa."
+        },
+        "suggestions": {
+          "title": "Sugestie",
+          "description": "Korekty, które Handy zauważył w Twoich poprawkach. Zaakceptuj jedną, aby stosować ją od teraz; korekta, którą powtarzasz, jest dodawana automatycznie. Wybierz Nigdy, aby zablokować ją na stałe.",
+          "accept": "Akceptuj",
+          "dismiss": "Nigdy"
+        },
+        "dictionary": {
+          "title": "Słownik",
+          "filterPlaceholder": "Filtruj…",
+          "noMatches": "Brak pasujących wpisów."
+        },
+        "blocked": {
+          "title": "Zablokowane",
+          "description": "Korekty, które odrzuciłeś lub cofnąłeś. Handy nie nauczy się ich ponownie, dopóki ich nie odblokujesz.",
+          "unblock": "Odblokuj"
+        },
+        "options": {
+          "title": "Opcje uczenia"
         },
         "aggressiveness": {
           "title": "Agresywność uczenia",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agresywny",
-            "description": "Uczy się nawet luźno powiązanych poprawek, w tym codziennych słów. Najwyższe ryzyko błędnych wpisów."
+            "description": "Przyjmuje nawet luźno powiązane poprawki i nie sprawdza podobieństwa brzmienia. Zamiany codziennych słów nadal nigdy nie są zapamiętywane. Najwyższe ryzyko błędnych wpisów."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Włącz {{misheard}}",
         "remove": "Usuń {{misheard}}",
-        "empty": "Brak poprawek. Dodaj słowo, które system rozpoznawania wciąż źle rozpoznaje — jak nazwa lub termin techniczny — a jego poprawka zostanie zastosowana do każdej przyszłej transkrypcji."
+        "empty": "Brak poprawek. Dodaj słowo, które system rozpoznawania wciąż źle rozpoznaje — jak nazwa lub termin techniczny — a jego poprawka zostanie zastosowana do każdej przyszłej transkrypcji.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Skrót: Akceptuj",
+            "description": "Akceptuje sugestię w powiadomieniu o wyuczonej poprawce. Aktywny tylko wtedy, gdy powiadomienie jest widoczne."
+          },
+          "dismiss": {
+            "title": "Skrót: Nigdy / Cofnij",
+            "description": "Odrzuca sugestię (Nigdy) lub cofa właśnie wyuczoną poprawkę (Cofnij). Aktywny tylko wtedy, gdy powiadomienie jest widoczne."
+          },
+          "errors": {
+            "needsModifier": "Użyj co najmniej jednego klawisza modyfikującego (Control, Option, Shift lub Command).",
+            "invalid": "Tej kombinacji klawiszy nie można użyć jako skrótu.",
+            "conflict": "Ta kombinacja jest już używana przez inny skrót Handy.",
+            "conflictWith": "Ta kombinacja jest już używana przez „{{name}}”.",
+            "save": "Nie udało się zapisać skrótu: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Wpisz zarówno błędnie rozpoznane słowo, jak i jego poprawkę.",
+          "generic": "Nie udało się zapisać zmiany. Spróbuj ponownie."
+        }
       },
       "voiceActivityDetection": {
         "title": "Wykrywanie aktywności głosowej",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Nauczono: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Dry-Run: Nauczono: „{{misheard}}“ → „{{intended}}“",
+    "suggestionTitle": "Sugestia: „{{misheard}}“ → „{{intended}}“",
     "undo": "Cofnij",
+    "accept": "Akceptuj",
+    "dismiss": "Nigdy",
     "more": "+{{count}} więcej"
   },
   "whatsNew": {

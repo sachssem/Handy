@@ -39,9 +39,15 @@ PROBES=(
   # -- correction learning (AX reader, differ, session, store, toast) --
   "correction-learning: module wired in|src-tauri/src/lib.rs|^(pub )?mod correction_learning;"
   "correction-learning: toast init|src-tauri/src/lib.rs|correction_learning::toast::init_learned_toast"
-  "correction-learning: shortcut commands|src-tauri/src/shortcut/mod.rs|correction_learning::"
+  "correction-learning: tauri commands registered|src-tauri/src/lib.rs|correction_learning::commands::"
+  "correction-learning: init at startup|src-tauri/src/lib.rs|correction_learning::init\\(app_handle\\)"
+  "correction-learning: toast shortcut hook|src-tauri/src/shortcut/handler.rs|toast_shortcuts::handle_shortcut_event"
+  "correction-learning: toast shortcut command|src-tauri/src/lib.rs|toast_shortcuts::change_learned_toast_shortcut_setting"
+  "correction-learning: toast shortcut settings|src-tauri/src/settings.rs|learned_toast_accept_shortcut"
   "correction-learning: settings fields|src-tauri/src/settings.rs|learned_corrections"
   "correction-learning: settings UI mounted|src/components/settings/advanced/AdvancedSettings.tsx|LearnedCorrections"
+  "correction-learning: paste session hook|src-tauri/src/actions.rs|correction_learning::begin_session"
+  "correction-learning: pipeline hook|src-tauri/src/managers/transcription.rs|correction_learning::apply_learned"
 
   # -- language-allowlist guard (+ fallback model) --
   "language-allowlist: transcription guard|src-tauri/src/managers/transcription.rs|language_allowlist"
@@ -86,6 +92,8 @@ MARKER_FILES=(
   "src/components/settings/advanced/AdvancedSettings.tsx"
   "src/components/settings/general/ModelSettingsCard.tsx"
   "src-tauri/src/overlay.rs"
+  "src-tauri/src/cli.rs"
+  "src-tauri/src/shortcut/handler.rs"
   "src-tauri/src/audio_toolkit/audio/recorder.rs"
   "src/overlay/RecordingOverlay.css"
 )

@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Correcciones aprendidas",
-        "description": "Un diccionario personal de correcciones exactas de palabras que se aplican a cada transcripción, antes del posprocesamiento opcional con IA. Agrega correcciones para lo que el reconocedor sigue equivocando —nombres, jerga, tildes— y se reemplazan de forma determinista. En macOS, Handy también puede aprenderlas por su cuenta: cuando corriges una palabra poco después de pegarla, esa corrección se captura automáticamente.",
-        "trialMode": {
-          "title": "Modo de prueba (simulación)",
-          "description": "Ejecuta todo el proceso de aprendizaje pero solo registra las correcciones potenciales en lugar de guardarlas. Úsalo para observar durante unos días qué aprendería Handy antes de dejar que modifique tu diccionario."
+        "title": "Diccionario personal",
+        "description": "Reemplaza las palabras que el reconocedor confunde una y otra vez — nombres, jerga, acentos — en cada transcripción, antes del posprocesamiento opcional con IA. En macOS, Handy también aprende de tus ediciones: corrige una palabra justo después de pegar y te sugerirá esa corrección. Desactivarlo pausa ambas cosas.",
+        "learnFromEdits": {
+          "title": "Aprender de mis correcciones",
+          "description": "Vigila el campo tras pegar y sugiere las correcciones que haces a mano. Desactivado: no se aprende nada nuevo y el diccionario se sigue aplicando."
+        },
+        "suggestions": {
+          "title": "Sugerencias",
+          "description": "Correcciones que Handy detectó en tus ediciones. Acepta una para aplicarla a partir de ahora; una corrección que repites se añade automáticamente. Elige Nunca para bloquearla para siempre.",
+          "accept": "Aceptar",
+          "dismiss": "Nunca"
+        },
+        "dictionary": {
+          "title": "Diccionario",
+          "filterPlaceholder": "Filtrar…",
+          "noMatches": "Ninguna entrada coincide."
+        },
+        "blocked": {
+          "title": "Bloqueadas",
+          "description": "Correcciones que descartaste o deshiciste. Handy no las volverá a aprender a menos que las desbloquees.",
+          "unblock": "Desbloquear"
+        },
+        "options": {
+          "title": "Opciones de aprendizaje"
         },
         "aggressiveness": {
           "title": "Intensidad del aprendizaje",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agresivo",
-            "description": "Aprende incluso correcciones poco relacionadas, incluidas palabras cotidianas. El mayor riesgo de entradas erróneas."
+            "description": "Acepta incluso correcciones poco relacionadas y no comprueba si suenan igual. Los cambios entre palabras cotidianas nunca se aprenden. El mayor riesgo de entradas erróneas."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Activar {{misheard}}",
         "remove": "Eliminar {{misheard}}",
-        "empty": "Aún no hay correcciones. Agrega una palabra que el reconocedor sigue escuchando mal —como un nombre o un término técnico— y su corrección se aplicará a todas las transcripciones futuras."
+        "empty": "Aún no hay correcciones. Agrega una palabra que el reconocedor sigue escuchando mal —como un nombre o un término técnico— y su corrección se aplicará a todas las transcripciones futuras.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Atajo: Aceptar",
+            "description": "Acepta la sugerencia del aviso de corrección aprendida. Solo está activo mientras el aviso es visible."
+          },
+          "dismiss": {
+            "title": "Atajo: Nunca / Deshacer",
+            "description": "Rechaza la sugerencia (Nunca) o deshace una corrección recién aprendida (Deshacer). Solo está activo mientras el aviso es visible."
+          },
+          "errors": {
+            "needsModifier": "Usa al menos una tecla modificadora (Control, Opción, Mayúsculas o Comando).",
+            "invalid": "Esta combinación de teclas no se puede usar como atajo.",
+            "conflict": "Esta combinación ya la usa otro atajo de Handy.",
+            "conflictWith": "Esta combinación ya la usa «{{name}}».",
+            "save": "No se pudo guardar el atajo: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Introduce tanto la palabra mal reconocida como su corrección.",
+          "generic": "No se pudo guardar el cambio. Inténtalo de nuevo."
+        }
       },
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Aprendido: «{{misheard}}» → «{{intended}}»",
-    "trialTitle": "Dry-Run: Aprendido: «{{misheard}}» → «{{intended}}»",
+    "suggestionTitle": "Sugerencia: «{{misheard}}» → «{{intended}}»",
     "undo": "Deshacer",
+    "accept": "Aceptar",
+    "dismiss": "Nunca",
     "more": "+{{count}} más"
   },
   "whatsNew": {

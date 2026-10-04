@@ -444,6 +444,29 @@
       "learnedCorrections": {
         "title": "Kamus pribadi",
         "description": "Mengganti kata-kata yang terus salah dikenali — nama, istilah khusus, umlaut — di setiap transkripsi, sebelum pascaproses AI opsional. Di macOS, Handy juga belajar dari suntingan Anda: perbaiki sebuah kata tepat setelah menempel, dan Handy akan menyarankan perbaikan itu. Menonaktifkan ini akan menjeda keduanya.",
+        "learnFromEdits": {
+          "title": "Belajar dari koreksi saya",
+          "description": "Memantau kolom setelah menempel dan menyarankan perbaikan yang Anda buat secara manual. Jika mati, tidak ada yang baru dipelajari; kamus tetap diterapkan."
+        },
+        "suggestions": {
+          "title": "Saran",
+          "description": "Perbaikan yang diperhatikan Handy dari suntingan Anda. Terima salah satunya untuk menerapkannya mulai sekarang; perbaikan yang terus Anda lakukan akan ditambahkan secara otomatis. Pilih Jangan pernah untuk memblokirnya selamanya.",
+          "accept": "Terima",
+          "dismiss": "Jangan pernah"
+        },
+        "dictionary": {
+          "title": "Kamus",
+          "filterPlaceholder": "Saring…",
+          "noMatches": "Tidak ada entri yang cocok."
+        },
+        "blocked": {
+          "title": "Diblokir",
+          "description": "Perbaikan yang Anda tolak atau batalkan. Handy tidak akan mempelajarinya lagi kecuali Anda membuka blokirnya.",
+          "unblock": "Buka blokir"
+        },
+        "options": {
+          "title": "Opsi pembelajaran"
+        },
         "aggressiveness": {
           "title": "Tingkat agresivitas pembelajaran",
           "description": "Seberapa mudah suatu suntingan diterima sebagai salah dengar yang sebenarnya. Tingkat yang lebih longgar mempelajari lebih banyak, tetapi berisiko merusak kamus.",
@@ -480,7 +503,28 @@
         },
         "enable": "Aktifkan {{misheard}}",
         "remove": "Hapus {{misheard}}",
-        "empty": "Belum ada koreksi. Tambahkan kata yang terus salah didengar oleh pengenal ucapan — seperti nama atau istilah teknis — dan perbaikannya akan diterapkan pada setiap transkripsi berikutnya."
+        "empty": "Belum ada koreksi. Tambahkan kata yang terus salah didengar oleh pengenal ucapan — seperti nama atau istilah teknis — dan perbaikannya akan diterapkan pada setiap transkripsi berikutnya.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Pintasan: Terima",
+            "description": "Menerima saran di notifikasi koreksi yang dipelajari. Hanya aktif selama notifikasi terlihat."
+          },
+          "dismiss": {
+            "title": "Pintasan: Jangan pernah / Urungkan",
+            "description": "Menolak saran (Jangan pernah) atau mengurungkan koreksi yang baru dipelajari (Urungkan). Hanya aktif selama notifikasi terlihat."
+          },
+          "errors": {
+            "needsModifier": "Gunakan setidaknya satu tombol pengubah (Control, Option, Shift, atau Command).",
+            "invalid": "Kombinasi tombol ini tidak dapat digunakan sebagai pintasan.",
+            "conflict": "Kombinasi ini sudah digunakan oleh pintasan Handy lain.",
+            "conflictWith": "Kombinasi ini sudah digunakan oleh “{{name}}”.",
+            "save": "Gagal menyimpan pintasan: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Masukkan kata yang salah dengar beserta koreksinya.",
+          "generic": "Perubahan tidak dapat disimpan. Silakan coba lagi."
+        }
       },
       "voiceActivityDetection": {
         "title": "Deteksi Aktivitas Suara",
@@ -828,7 +872,10 @@
   },
   "learnedToast": {
     "title": "Dipelajari: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Saran: “{{misheard}}” → “{{intended}}”",
     "undo": "Urungkan",
+    "accept": "Terima",
+    "dismiss": "Jangan pernah",
     "more": "+{{count}} lainnya"
   }
 }

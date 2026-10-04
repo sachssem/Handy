@@ -444,6 +444,29 @@
       "learnedCorrections": {
         "title": "Diccionari personal",
         "description": "Substitueix les paraules que el reconeixedor transcriu malament de manera repetida (noms, argot tècnic, dièresis) a cada transcripció, abans del postprocessament opcional amb IA. Al macOS, el Handy també aprèn de les vostres edicions: si corregiu una paraula just després d'enganxar-la, us suggereix aquesta correcció. Si ho desactiveu, s'aturen totes dues funcions.",
+        "learnFromEdits": {
+          "title": "Aprèn de les meves correccions",
+          "description": "Vigila el camp després d'enganxar i suggereix les correccions que feu a mà. Desactivat: no s'aprèn res de nou i el diccionari continua aplicant-se."
+        },
+        "suggestions": {
+          "title": "Suggeriments",
+          "description": "Correccions que el Handy ha detectat a les vostres edicions. Accepteu-ne una per aplicar-la a partir d'ara; una correcció que feu repetidament s'afegeix automàticament. Trieu Mai per bloquejar-la definitivament.",
+          "accept": "Accepta",
+          "dismiss": "Mai"
+        },
+        "dictionary": {
+          "title": "Diccionari",
+          "filterPlaceholder": "Filtra…",
+          "noMatches": "Cap entrada no coincideix."
+        },
+        "blocked": {
+          "title": "Blocades",
+          "description": "Correccions que heu descartat o desfet. El Handy no les tornarà a aprendre tret que les desbloqueu.",
+          "unblock": "Desbloca"
+        },
+        "options": {
+          "title": "Opcions d'aprenentatge"
+        },
         "aggressiveness": {
           "title": "Intensitat de l'aprenentatge",
           "description": "Amb quina facilitat s'accepta una edició com un error de reconeixement real. Els nivells més permissius aprenen més, però poden contaminar el diccionari.",
@@ -480,7 +503,28 @@
         },
         "enable": "Activa {{misheard}}",
         "remove": "Suprimiu {{misheard}}",
-        "empty": "Encara no hi ha correccions. Afegiu una paraula que el reconeixedor entén malament de manera repetida (com ara un nom o un terme tècnic) i la correcció s'aplicarà a totes les transcripcions futures."
+        "empty": "Encara no hi ha correccions. Afegiu una paraula que el reconeixedor entén malament de manera repetida (com ara un nom o un terme tècnic) i la correcció s'aplicarà a totes les transcripcions futures.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Drecera: Accepta",
+            "description": "Accepta el suggeriment de l'avís de correcció apresa. Només és activa mentre l'avís és visible."
+          },
+          "dismiss": {
+            "title": "Drecera: Mai / Desfés",
+            "description": "Rebutja el suggeriment (Mai) o desfà una correcció que s'acaba d'aprendre (Desfés). Només és activa mentre l'avís és visible."
+          },
+          "errors": {
+            "needsModifier": "Fes servir almenys una tecla modificadora (Control, Opció, Majúscules o Ordre).",
+            "invalid": "Aquesta combinació de tecles no es pot fer servir com a drecera.",
+            "conflict": "Aquesta combinació ja la fa servir una altra drecera del Handy.",
+            "conflictWith": "Aquesta combinació ja la fa servir «{{name}}».",
+            "save": "No s'ha pogut desar la drecera: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Introdueix tant la paraula mal entesa com la correcció.",
+          "generic": "No s'ha pogut desar el canvi. Torna-ho a provar."
+        }
       },
       "voiceActivityDetection": {
         "title": "Detecció d'activitat de veu",
@@ -828,7 +872,10 @@
   },
   "learnedToast": {
     "title": "Après: «{{misheard}}» → «{{intended}}»",
+    "suggestionTitle": "Suggeriment: «{{misheard}}» → «{{intended}}»",
     "undo": "Desfés",
+    "accept": "Accepta",
+    "dismiss": "Mai",
     "more": "+{{count}} més"
   }
 }

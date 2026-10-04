@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Sửa lỗi đã học",
-        "description": "Một từ điển cá nhân gồm các sửa lỗi từ chính xác, được áp dụng cho mọi bản phiên âm, trước bước xử lý sau bằng AI tùy chọn. Thêm các sửa lỗi cho những gì bộ nhận dạng liên tục nghe sai — tên riêng, thuật ngữ, dấu — và chúng được thay thế một cách xác định. Trên macOS, Handy cũng có thể tự học: khi bạn sửa một từ ngay sau khi dán, sửa lỗi đó được ghi lại tự động.",
-        "trialMode": {
-          "title": "Chế độ thử nghiệm (chạy thử)",
-          "description": "Chạy toàn bộ quy trình học nhưng chỉ ghi lại các sửa lỗi tiềm năng thay vì lưu chúng. Dùng nó để theo dõi những gì Handy sẽ học trong vài ngày trước khi cho phép nó thay đổi từ điển của bạn."
+        "title": "Từ điển cá nhân",
+        "description": "Thay thế những từ mà trình nhận dạng liên tục nhận sai — tên riêng, thuật ngữ, dấu — trong mọi bản chép lời, trước bước hậu xử lý AI tùy chọn. Trên macOS, Handy còn học từ các chỉnh sửa của bạn: sửa một từ ngay sau khi dán và Handy sẽ đề xuất cách sửa đó. Tắt tính năng này sẽ tạm dừng cả hai.",
+        "learnFromEdits": {
+          "title": "Học từ các chỉnh sửa của tôi",
+          "description": "Theo dõi ô nhập sau khi dán và gợi ý các sửa lỗi bạn làm thủ công. Khi tắt, không học thêm gì mới; từ điển vẫn được áp dụng."
+        },
+        "suggestions": {
+          "title": "Đề xuất",
+          "description": "Các cách sửa Handy nhận thấy trong chỉnh sửa của bạn. Chấp nhận để áp dụng từ bây giờ; cách sửa bạn lặp lại sẽ được tự động thêm vào. Chọn Không bao giờ để chặn vĩnh viễn.",
+          "accept": "Chấp nhận",
+          "dismiss": "Không bao giờ"
+        },
+        "dictionary": {
+          "title": "Từ điển",
+          "filterPlaceholder": "Lọc…",
+          "noMatches": "Không có mục nào khớp."
+        },
+        "blocked": {
+          "title": "Đã chặn",
+          "description": "Các cách sửa bạn đã bỏ qua hoặc hoàn tác. Handy sẽ không học lại chúng trừ khi bạn bỏ chặn.",
+          "unblock": "Bỏ chặn"
+        },
+        "options": {
+          "title": "Tùy chọn học"
         },
         "aggressiveness": {
           "title": "Mức độ tích cực khi học",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Tích cực",
-            "description": "Học cả những sửa lỗi liên quan lỏng lẻo, bao gồm cả từ thông dụng. Nguy cơ mục sai cao nhất."
+            "description": "Chấp nhận cả những sửa lỗi liên quan lỏng lẻo và không kiểm tra độ giống âm. Việc đổi qua lại giữa các từ thông dụng vẫn không bao giờ được học. Nguy cơ mục sai cao nhất."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Bật {{misheard}}",
         "remove": "Xóa {{misheard}}",
-        "empty": "Chưa có sửa lỗi nào. Thêm một từ mà bộ nhận dạng liên tục nghe sai — như tên riêng hoặc thuật ngữ kỹ thuật — và sửa lỗi của nó sẽ được áp dụng cho mọi bản phiên âm trong tương lai."
+        "empty": "Chưa có sửa lỗi nào. Thêm một từ mà bộ nhận dạng liên tục nghe sai — như tên riêng hoặc thuật ngữ kỹ thuật — và sửa lỗi của nó sẽ được áp dụng cho mọi bản phiên âm trong tương lai.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Phím tắt: Chấp nhận",
+            "description": "Chấp nhận gợi ý trong thông báo sửa lỗi đã học. Chỉ hoạt động khi thông báo đang hiển thị."
+          },
+          "dismiss": {
+            "title": "Phím tắt: Không bao giờ / Hoàn tác",
+            "description": "Từ chối gợi ý (Không bao giờ) hoặc hoàn tác một sửa lỗi vừa học (Hoàn tác). Chỉ hoạt động khi thông báo đang hiển thị."
+          },
+          "errors": {
+            "needsModifier": "Hãy dùng ít nhất một phím bổ trợ (Control, Option, Shift hoặc Command).",
+            "invalid": "Không thể dùng tổ hợp phím này làm phím tắt.",
+            "conflict": "Tổ hợp này đã được một phím tắt Handy khác sử dụng.",
+            "conflictWith": "Tổ hợp phím này đã được “{{name}}” sử dụng.",
+            "save": "Không thể lưu phím tắt: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Hãy nhập cả từ bị nghe nhầm và từ đã sửa.",
+          "generic": "Không thể lưu thay đổi. Vui lòng thử lại."
+        }
       },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Đã học: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Dry-Run: Đã học: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Đề xuất: “{{misheard}}” → “{{intended}}”",
     "undo": "Hoàn tác",
+    "accept": "Chấp nhận",
+    "dismiss": "Không bao giờ",
     "more": "+{{count}} nữa"
   },
   "whatsNew": {

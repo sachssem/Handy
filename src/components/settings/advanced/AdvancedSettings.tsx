@@ -61,6 +61,7 @@ export const AdvancedSettings: React.FC = () => {
         <AppendTrailingSpace descriptionMode="tooltip" grouped={true} />
       </SettingsGroup>
 
+      {/* fork(voice-control): text rules + learned corrections */}
       <SettingsGroup title={t("settings.advanced.groups.textRules")}>
         <TextRules descriptionMode="tooltip" grouped />
       </SettingsGroup>

@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Naučené opravy",
-        "description": "Osobní slovník přesných oprav slov, které se použijí na každý přepis, před volitelným následným zpracováním pomocí AI. Přidejte opravy pro to, co rozpoznávač opakovaně plete — jména, žargon, přehlásky — a nahradí se deterministicky. V systému macOS je Handy dokáže naučit i sám: když slovo opravíte krátce po vložení, tato oprava se zachytí automaticky.",
-        "trialMode": {
-          "title": "Zkušební režim (nanečisto)",
-          "description": "Spustí celý proces učení, ale místo ukládání pouze zaznamená možné opravy. Použijte jej, abyste několik dní sledovali, co by se Handy naučil, než mu dovolíte měnit váš slovník."
+        "title": "Osobní slovník",
+        "description": "Nahrazuje slova, která rozpoznávání opakovaně chybně zachytí — jména, odborné termíny, diakritiku — v každém přepisu, před volitelným AI zpracováním. V macOS se Handy navíc učí z vašich úprav: opravte slovo hned po vložení a Handy tuto opravu navrhne. Vypnutím pozastavíte obojí.",
+        "learnFromEdits": {
+          "title": "Učit se z mých oprav",
+          "description": "Po vložení sleduje pole a navrhuje opravy, které uděláte ručně. Vypnuto: nic nového se nenaučí, slovník se dál používá."
+        },
+        "suggestions": {
+          "title": "Návrhy",
+          "description": "Opravy, kterých si Handy všiml ve vašich úpravách. Přijměte některou, aby se od teď používala; oprava, kterou děláte opakovaně, se přidá automaticky. Volbou Nikdy ji trvale zablokujete.",
+          "accept": "Přijmout",
+          "dismiss": "Nikdy"
+        },
+        "dictionary": {
+          "title": "Slovník",
+          "filterPlaceholder": "Filtrovat…",
+          "noMatches": "Žádné odpovídající položky."
+        },
+        "blocked": {
+          "title": "Blokované",
+          "description": "Opravy, které jste zamítli nebo vrátili zpět. Handy se je znovu nenaučí, dokud je neodblokujete.",
+          "unblock": "Odblokovat"
+        },
+        "options": {
+          "title": "Možnosti učení"
         },
         "aggressiveness": {
           "title": "Agresivita učení",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agresivní",
-            "description": "Učí se i volně související opravy, včetně běžných slov. Nejvyšší riziko chybných záznamů."
+            "description": "Přijímá i volně související opravy a nekontroluje podobnost zvuku. Záměny běžných slov se ale nikdy nenaučí. Nejvyšší riziko chybných záznamů."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Povolit {{misheard}}",
         "remove": "Odebrat {{misheard}}",
-        "empty": "Zatím žádné opravy. Přidejte slovo, které rozpoznávač opakovaně špatně slyší — například jméno nebo odborný termín — a jeho oprava se použije na všechny budoucí přepisy."
+        "empty": "Zatím žádné opravy. Přidejte slovo, které rozpoznávač opakovaně špatně slyší — například jméno nebo odborný termín — a jeho oprava se použije na všechny budoucí přepisy.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Zkratka: Přijmout",
+            "description": "Přijme návrh v oznámení o naučené opravě. Aktivní jen, dokud je oznámení viditelné."
+          },
+          "dismiss": {
+            "title": "Zkratka: Nikdy / Zpět",
+            "description": "Odmítne návrh (Nikdy) nebo vrátí právě naučenou opravu (Zpět). Aktivní jen, dokud je oznámení viditelné."
+          },
+          "errors": {
+            "needsModifier": "Použijte alespoň jednu modifikační klávesu (Control, Option, Shift nebo Command).",
+            "invalid": "Tuto kombinaci kláves nelze použít jako zkratku.",
+            "conflict": "Tuto kombinaci už používá jiná zkratka Handy.",
+            "conflictWith": "Tuto kombinaci už používá „{{name}}“.",
+            "save": "Zkratku se nepodařilo uložit: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Zadejte špatně rozpoznané slovo i jeho opravu.",
+          "generic": "Změnu se nepodařilo uložit. Zkuste to prosím znovu."
+        }
       },
       "voiceActivityDetection": {
         "title": "Detekce hlasové aktivity",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
-    "trialTitle": "Dry-Run: Naučeno: „{{misheard}}“ → „{{intended}}“",
+    "suggestionTitle": "Návrh: „{{misheard}}“ → „{{intended}}“",
     "undo": "Zpět",
+    "accept": "Přijmout",
+    "dismiss": "Nikdy",
     "more": "+{{count}} další"
   },
   "whatsNew": {

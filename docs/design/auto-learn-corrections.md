@@ -1,3 +1,5 @@
+> Historical plan — current state: [docs/fork-patches.md#correction-learning](../fork-patches.md#correction-learning)
+
 # Auto-Lernen aus Korrekturen — Machbarkeit & Implementationsplan
 
 > Stand: 2026-07-07 · Status: **Implementiert — Phasen A–D committet** (Store + Apply, macOS-AX-Session, Toast, Aggressivität/Phonetik/Fenster) · Referenz: [REQUIREMENTS.md](../REQUIREMENTS.md) 🍴 „Auto-Lernen aus Korrekturen"
@@ -100,7 +102,7 @@ transcription.rs:1618 (nach apply_text_rules)
 
 Schmale Upstream-Berührungspunkte (Text-Rules-Muster): `actions.rs` (~:765, 1 Call), `transcription.rs:1618` (1 Call), `settings.rs` (Felder + Defaults), `shortcut/mod.rs` (Commands, Muster `change_text_rules_*` ~:730), `lib.rs` (mod + invoke_handler). Frontend: `settingsStore.ts`, `bindings.ts` (handgepflegt), neu `LearnedCorrections.tsx` + `LearnedToast.tsx`, Locale-JSONs.
 
-**Storage-Entscheidung:** `learned_corrections: Vec<LearnedCorrection>` in `AppSettings` (Klon des bewährten `text_rules_custom`-Pfads: JSON-Persistenz, specta-Bindings, Hot-Path-Zugriff gratis). SQLite (`history.db`-Migration) nur, falls die Liste groß wird oder Analytics braucht.
+**Implementierte Storage-Entscheidung:** Paare und Blockliste liegen im eigenen Store-Key `learned_corrections`, getrennt von `AppSettings`. Granulare Commands und ein serialisierter Hot-Cache verhindern, dass ein Settings-Write gleichzeitig gelernte Paare überschreibt. Eine alte Liste in `AppSettings` wird einmalig migriert.
 
 ## Diff-Gating (gegen Wörterbuch-Vergiftung)
 
@@ -114,28 +116,31 @@ Reihenfolge: Case/Punktuation normalisieren → nur **Substitutionen** (reine In
 
 ## Toast-UI
 
-**Eigenes kleines Fenster** (`learned_toast`), nicht neuer Phase des Recording-Overlays: das Overlay (NSPanel, `focusable(false)`, overlay.rs:322) ist an den Record-Lifecycle gekoppelt und nicht klickbar; der Toast braucht ~5 s Eigenleben + klickbaren Undo-Button (`can_become_key_window: true`). Event `learned-correction-event` `{id, misheard, intended}` (tauri-specta, Muster `HistoryUpdatePayload`), Auto-Hide 5 s, Undo → Command `remove_learned_correction(id)`. i18n: `learnedCorrection.toast`, `learnedCorrection.undo` (en+de zuerst).
+**Eigenes kleines Fenster** (`learned_toast`), keine neue Phase des Recording-Overlays: das Overlay ist an den Record-Lifecycle gekoppelt und nicht klickbar. Der nicht aktivierende Toast bleibt für Vorschläge 8 s, für aktive Paare 5 s sichtbar, danach läuft eine 200-ms-Exit-Animation; ein Rust-Failsafe blendet nach 11 s aus. Vorschläge bieten Accept / Never, aktivierte Paare Undo. Never und Undo → Command `reject_learned_corrections(ids)`: Paar entfernen und erneutes Lernen blockieren. Accept aktiviert nur die vorgeschlagenen Paare.
 
 **Implementiert (Abweichungen vom Plan):**
 
-- **Feld-Events statt Key-Hook** (Risiko #5 aufgelöst): Die Session hängt einen `AXObserver` an das gepinnte Feld und wacht bei jeder Wertänderung (und beim Zerstören des Elements) auf, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Ein 2-s-Poll bleibt als Fallback (Apps ohne verlässliche AX-Notifications; kein Observer erstellbar → reines Polling wie zuvor). Damit wird auch die Korrektur-dann-sofort-Submit-Lücke geschlossen, die reines Polling nie sah. Wakeup-Bursts werden auf max. einen Read pro 100 ms zusammengefasst. Details im Modul-Doc von `session.rs`.
-- **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event` (nicht `learned-correction`).
-- **i18n-Namespace**: sämtliche Strings liegen unter `settings.advanced.learnedCorrections.*` (inkl. `trialMode`, `aggressiveness`, `window`), nicht unter einem Top-Level `learnedCorrection.*`.
+- **Feld-Events statt Key-Hook** (Risiko #5 aufgelöst): Die Session hängt einen `AXObserver` an das gepinnte Feld und wacht bei jeder Wertänderung (und beim Zerstören des Elements) auf, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Ein 2-s-Poll bleibt als Fallback (Apps ohne verlässliche AX-Notifications; kein Observer erstellbar → reines Polling). Zwischen Reads liegen mindestens 15 ms, damit schnelle Korrektur-dann-Submit-Folgen noch erfasst werden. Details im Modul-Doc von `session.rs`.
+- **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event`, mit getrennten `suggested_ids` und `active_ids`, damit Accept / Never / Undo nur ihre jeweiligen Paare ändern.
+- **Vorschläge statt Dry-Run-Schalter**: Neue Auto-Paare werden zunächst vorgeschlagen; Annahme oder eine zweite Beobachtung aktiviert sie. Undo und Never entfernen und blockieren ihre Paare.
+- **i18n-Namespace**: sämtliche Strings liegen unter `settings.advanced.learnedCorrections.*` (inkl. `learnFromEdits`, `aggressiveness`, `window`), nicht unter einem Top-Level `learnedCorrection.*`.
+- **Eigener Store-Key**: `learned_corrections` enthält Liste und Blockliste; `AppSettings` enthält nur die Steuerungsfelder und eine einmalig migrierte Alt-Liste.
 
 ## Settings
 
-- `learn_corrections_enabled: bool` (Default **false**, Opt-in)
+- `learn_corrections_enabled: bool` (Default **false**, Opt-in; Master-Schalter für alle Nutzungen gelernter Paare)
+- `learn_from_edits_enabled: bool` (Default **true**; nur der Post-Paste-Watcher, das Wörterbuch bleibt bei ausgeschaltetem Lern-Watcher nutzbar)
 - `learn_corrections_window_secs: u32` (Default 45)
 - `learn_corrections_aggressiveness: Conservative|Balanced|Aggressive` (mappt auf Gate-Schwellen)
-- `learn_corrections_log_only: bool` (Dry-Run-Soak)
-- `learned_corrections: Vec<LearnedCorrection>`
+
+Liste und Blockliste liegen außerhalb von `AppSettings` unter dem eigenen Store-Key `learned_corrections`.
 
 Review-UI `LearnedCorrections.tsx` neben CustomWords/TextRules: Master-Switch, Fenster/Aggressivität, Tabelle (Paar, Count, auto/manual-Badge, Enable-Toggle, Delete, „+ manuell hinzufügen").
 
 ## Commit-Plan (je einzeln droppbar, `feat:`)
 
 - **A — `feat: learned-corrections store + deterministic apply stage`** — Store, Settings, Apply-Call im Funnel, Commands, Review-UI mit manuellem Add/Delete, en+de. **Ohne AX/Session/Toast** — sofort nützliches zweites Wörterbuch (exakt statt fuzzy). Dep: `similar`.
-- **B — `feat: macOS AX focused-field reader + post-paste learning session`** — ax_reader (+Stubs), session, `begin_session`-Call, Trigger-Wiring, Gates live, `log_only`-Dry-Run. Dep: `axuielement`.
+- **B — `feat: macOS AX focused-field reader + post-paste learning session`** — ax_reader (+Stubs), session, `begin_session`-Call, Trigger-Wiring, Gates live. Dep: `axuielement`.
 - **C — `feat: learned-correction toast with undo`** — Toast-Fenster, Event, Undo-Command, i18n.
 - **D — `feat: learning aggressiveness settings + docs`** — Gate-Feintuning, Phonetik (`rphonetic`), REQUIREMENTS.md-Update (🔭 → 🍴). Optional Commit E: restliche Locales (Muster 2af5ebd).
 
@@ -143,7 +148,7 @@ Review-UI `LearnedCorrections.tsx` neben CustomWords/TextRules: Master-Switch, F
 
 - **Unit (table-driven, differ.rs):** saubere Substitution → lernt; Insert/Delete pur → verworfen; Case/Punktuation-only → verworfen; Levenshtein zu groß → verworfen; Allerweltswort → verworfen, Eigenname → lernt; DE: `Muller`→`Müller`, Komposita, ß; Phonetik-Gate in Conservative.
 - **Apply-Tests:** längste-zuerst, nur Wortgrenzen, disabled übersprungen.
-- **Dry-Run-Soak:** `log_only=true` einige Tage — Pipeline läuft voll, loggt nur `would-learn: X → Y` (passt zum REQUIREMENTS-Schritt „Alltag ein paar Tage").
+- **Alltags-Soak:** Vorschläge vor Annahme prüfen; wiederkehrende Paare, abgelehnte Paare und manuelle Reverts beobachten.
 - **Manuelles E2E pro App der Spike-Matrix:** Phrase mit bekannt-verhörbarem Eigennamen diktieren → ein Wort fixen → Toast + Eintrag im Review-UI → erneut diktieren → Auto-Korrektur greift.
 - **Edge Cases:** mehrere Pastes im Fenster (Session pro Paste, keyed auf Timestamp+PID); Select-all-Delete (Gate verwirft); Fokuswechsel mid-window (finaler Re-Read des Original-Elements, dann Session zu); IME/Dead-Keys (Debounce, erst nach Settle lesen); Secure Field beim Re-Read → Abbruch.
 
@@ -152,7 +157,7 @@ Review-UI `LearnedCorrections.tsx` neben CustomWords/TextRules: Master-Switch, F
 1. **Electron/Web-Lücke** (Hauptrisiko) → akzeptieren, per-App stumm degradieren, dokumentieren; Phase A trägt allein. Entscheidet der Spike.
 2. **`axuielement` v0.9 Reife** auf Darwin 25.3 → Spike gated; Fallback objc2-FFI oder nur Phase A.
 3. **Snapshot vs. Paste-Methode** — clipboard.rs:597 hängt Trailing-Space an; `PasteMethod::Direct` tippt zeichenweise → exakt den an `utils::paste` übergebenen String snapshotten bzw. im Differ trimmen.
-4. **Wörterbuch-Vergiftung** → Default off, erst `log_only`, Conservative-Default, jedes Auto-Paar 1 Klick von Undo/Delete entfernt.
+4. **Wörterbuch-Vergiftung** → Default off, neue Paare erst als Vorschläge, Conservative-Default, jedes Auto-Paar 1 Klick von Never/Undo entfernt.
 5. **rdev-Listener vs. `handy_keys`-Hook** — rdev ist direkte Dep (Cargo.toml:50), aber im Code ungenutzt; ob ein zweiter globaler Listener neben dem Shortcut-Backend koexistiert, zu Beginn von Phase B verifizieren (bevorzugt an bestehende Key-Events von handy_keys anhängen statt zweiter Hook).
 6. **Deutsche Phonetik** — Double Metaphone ist englisch-zentriert → Kölner Phonetik (in `rphonetic` enthalten) bei `de`, Gate nie hart blockierend.
 

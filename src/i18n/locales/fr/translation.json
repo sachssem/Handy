@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Corrections apprises",
-        "description": "Un dictionnaire personnel de corrections exactes de mots appliquées à chaque transcription, avant le post-traitement facultatif par l'IA. Ajoutez des corrections pour ce que le système de reconnaissance se trompe régulièrement — noms, jargon, trémas — et elles sont remplacées de façon déterministe. Sur macOS, Handy peut aussi les apprendre seul : lorsque vous corrigez un mot peu après l'avoir collé, cette correction est capturée automatiquement.",
-        "trialMode": {
-          "title": "Mode d'essai (simulation)",
-          "description": "Exécute tout le processus d'apprentissage mais se contente de journaliser les corrections potentielles au lieu de les enregistrer. Utilisez-le pour observer pendant quelques jours ce que Handy apprendrait avant de le laisser modifier votre dictionnaire."
+        "title": "Dictionnaire personnel",
+        "description": "Remplace les mots sur lesquels la reconnaissance se trompe sans cesse — noms, jargon, accents — dans chaque transcription, avant le post-traitement IA facultatif. Sur macOS, Handy apprend aussi de vos modifications : corrigez un mot juste après le collage et il vous suggère cette correction. Désactiver met les deux en pause.",
+        "learnFromEdits": {
+          "title": "Apprendre de mes corrections",
+          "description": "Surveille le champ après le collage et suggère les corrections que vous faites à la main. Désactivé : rien de nouveau n'est appris, le dictionnaire reste appliqué."
+        },
+        "suggestions": {
+          "title": "Suggestions",
+          "description": "Corrections repérées par Handy dans vos modifications. Acceptez-en une pour l'appliquer désormais ; une correction que vous refaites est ajoutée automatiquement. Choisissez Jamais pour la bloquer définitivement.",
+          "accept": "Accepter",
+          "dismiss": "Jamais"
+        },
+        "dictionary": {
+          "title": "Dictionnaire",
+          "filterPlaceholder": "Filtrer…",
+          "noMatches": "Aucune entrée ne correspond."
+        },
+        "blocked": {
+          "title": "Bloquées",
+          "description": "Corrections que vous avez ignorées ou annulées. Handy ne les réapprendra pas, sauf si vous les débloquez.",
+          "unblock": "Débloquer"
+        },
+        "options": {
+          "title": "Options d'apprentissage"
         },
         "aggressiveness": {
           "title": "Agressivité de l'apprentissage",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agressif",
-            "description": "Apprend même les corrections vaguement liées, y compris des mots courants. Le risque le plus élevé de mauvaises entrées."
+            "description": "Accepte même les corrections vaguement liées, sans vérifier la ressemblance sonore. Les échanges entre mots courants ne sont jamais appris. Le risque le plus élevé de mauvaises entrées."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Activer {{misheard}}",
         "remove": "Supprimer {{misheard}}",
-        "empty": "Aucune correction pour l'instant. Ajoutez un mot que le système de reconnaissance entend mal — comme un nom ou un terme technique — et sa correction sera appliquée à toutes les transcriptions futures."
+        "empty": "Aucune correction pour l'instant. Ajoutez un mot que le système de reconnaissance entend mal — comme un nom ou un terme technique — et sa correction sera appliquée à toutes les transcriptions futures.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Raccourci : Accepter",
+            "description": "Accepte la suggestion affichée dans la notification de correction apprise. Actif uniquement pendant que la notification est visible."
+          },
+          "dismiss": {
+            "title": "Raccourci : Jamais / Annuler",
+            "description": "Refuse la suggestion (Jamais) ou annule une correction tout juste apprise (Annuler). Actif uniquement pendant que la notification est visible."
+          },
+          "errors": {
+            "needsModifier": "Utilisez au moins une touche de modification (Contrôle, Option, Maj ou Commande).",
+            "invalid": "Cette combinaison de touches ne peut pas servir de raccourci.",
+            "conflict": "Cette combinaison est déjà utilisée par un autre raccourci Handy.",
+            "conflictWith": "Cette combinaison est déjà utilisée par « {{name}} ».",
+            "save": "Impossible d'enregistrer le raccourci : {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Saisissez le mot mal reconnu et sa correction.",
+          "generic": "Impossible d'enregistrer la modification. Veuillez réessayer."
+        }
       },
       "voiceActivityDetection": {
         "title": "Détection d'activité vocale (VAD)",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Appris: « {{misheard}} » → « {{intended}} »",
-    "trialTitle": "Dry-Run: Appris: « {{misheard}} » → « {{intended}} »",
+    "suggestionTitle": "Suggestion: « {{misheard}} » → « {{intended}} »",
     "undo": "Annuler",
+    "accept": "Accepter",
+    "dismiss": "Jamais",
     "more": "+{{count}} de plus"
   },
   "whatsNew": {

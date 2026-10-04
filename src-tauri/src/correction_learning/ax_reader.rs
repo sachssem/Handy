@@ -1,8 +1,7 @@
 //! macOS Accessibility read of a target app's focused text field
 //! (fork feature: voice-control).
 //!
-//! Ported from the Phase 0 feasibility spike (`~/tmp/ax_probe`): resolve a
-//! *given pid's* app via `AXUIElementCreateApplication`, read its
+//! Resolve a *given pid's* app via `AXUIElementCreateApplication`, read its
 //! `AXFocusedUIElement`, and return that field's value. The session hands us the
 //! pid it snapshotted at paste time, so reads follow the pasted-into app rather
 //! than whatever happens to be frontmost later.
@@ -40,11 +39,50 @@ pub enum FocusRead {
     NoSignal,
 }
 
-/// The focused AXUIElement captured at paste time, replayed to [`read_focused`]
-/// so every read can confirm the *same* element still has focus. Opaque outside
-/// the macOS reader.
-#[cfg(target_os = "macos")]
-pub use imp::FocusedSnapshot;
+/// Whether either AX role identifies a secure (password) text field.
+pub(crate) fn is_secure_field(role: Option<&str>, subrole: Option<&str>) -> bool {
+    const SECURE_ROLE: &str = "AXSecureTextField";
+    role == Some(SECURE_ROLE) || subrole == Some(SECURE_ROLE)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_secure_field;
+
+    #[test]
+    fn either_secure_role_blocks_field_reads() {
+        assert!(is_secure_field(Some("AXSecureTextField"), None));
+        assert!(is_secure_field(
+            Some("AXTextField"),
+            Some("AXSecureTextField")
+        ));
+        assert!(!is_secure_field(Some("AXTextField"), None));
+        assert!(!is_secure_field(None, None));
+    }
+}
+
+/// Raw focus context of an app, read at dictation start by
+/// [`crate::dictation_context`] (fork feature: voice-control). Text is kept as
+/// UTF-16 units so slicing at AX offsets never splits (or panics on) a
+/// surrogate pair.
+#[derive(Debug, Default)]
+pub struct FocusContextRead {
+    pub window_title: Option<String>,
+    pub role: Option<String>,
+    pub subrole: Option<String>,
+    /// Secure (password) field — no text was read.
+    pub secure: bool,
+    /// Text ending at or after the caret, as UTF-16 units.
+    pub text_utf16: Option<Vec<u16>>,
+    /// The caret (selection start) as a UTF-16 offset into `text_utf16`.
+    pub caret_utf16: usize,
+    /// Selected length in UTF-16 units, when the element has a selection.
+    pub selection_len: Option<usize>,
+    /// `string_for_range` (only the slice before the caret) or `value`.
+    pub text_source: Option<&'static str>,
+    /// Why the read stopped early, if it did.
+    pub error: Option<&'static str>,
+}
 
 /// Stub identity snapshot for platforms without an Accessibility API.
 #[cfg(not(target_os = "macos"))]
@@ -52,17 +90,20 @@ pub struct FocusedSnapshot;
 
 #[cfg(target_os = "macos")]
 mod imp {
-    use super::FocusRead;
+    use super::{is_secure_field, FocusContextRead, FocusRead};
     use core_foundation::base::{CFType, CFTypeRef, TCFType};
     use core_foundation::boolean::CFBoolean;
+    use core_foundation::number::CFNumber;
     use core_foundation::runloop::{
-        kCFRunLoopDefaultMode, CFRunLoop, CFRunLoopSource, CFRunLoopSourceRef,
+        kCFRunLoopDefaultMode, CFRunLoop, CFRunLoopRunResult, CFRunLoopSource, CFRunLoopSourceRef,
     };
     use core_foundation::string::{CFString, CFStringRef};
     use log::debug;
     use objc2_app_kit::{NSRunningApplication, NSWorkspace};
     use std::os::raw::c_void;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
+
+    const ELECTRON_AX_READY_WAIT: Duration = Duration::from_millis(150);
 
     type AXUIElementRef = CFTypeRef;
     type AXObserverRef = CFTypeRef;
@@ -107,19 +148,37 @@ mod imp {
             notification: CFStringRef,
         ) -> AXError;
         fn AXObserverGetRunLoopSource(observer: AXObserverRef) -> CFRunLoopSourceRef;
+        fn AXValueGetValue(value: CFTypeRef, the_type: u32, value_ptr: *mut c_void) -> bool;
+        fn AXValueCreate(the_type: u32, value_ptr: *const c_void) -> CFTypeRef;
+        fn AXUIElementSetMessagingTimeout(element: AXUIElementRef, timeout_secs: f32) -> AXError;
+        fn AXUIElementCopyParameterizedAttributeValue(
+            element: AXUIElementRef,
+            parameterized_attribute: CFStringRef,
+            parameter: CFTypeRef,
+            result: *mut CFTypeRef,
+        ) -> AXError;
+    }
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFStringGetLength(string: CFStringRef) -> isize;
+        fn CFStringGetCharacters(string: CFStringRef, range: CFRange, buffer: *mut u16);
+    }
+
+    /// `kAXValueCFRangeType`.
+    const AX_VALUE_CF_RANGE_TYPE: u32 = 4;
+
+    #[repr(C)]
+    #[derive(Default, Clone, Copy)]
+    struct CFRange {
+        location: isize,
+        length: isize,
     }
 
     /// The focused element snapshotted at paste time. Holds the retained
     /// AXUIElement so a later read can `CFEqual`-compare against the currently
     /// focused element and confirm it is the very field that was pasted into.
-    ///
-    /// `Send` is asserted by hand: the value is created on the paste callsite
-    /// (main thread) and moved into the poll thread, where the AX element is
-    /// read/compared/released — the same cross-thread AX access the rest of the
-    /// reader already performs, and CFRetain/CFRelease/CFEqual are thread-safe.
     pub struct FocusedSnapshot(CFType);
-
-    unsafe impl Send for FocusedSnapshot {}
 
     // AX attribute names are plain CFString keys.
     const AX_FOCUSED_UI_ELEMENT: &str = "AXFocusedUIElement";
@@ -127,10 +186,9 @@ mod imp {
     /// client sets this attribute on the application element.
     const AX_MANUAL_ACCESSIBILITY: &str = "AXManualAccessibility";
     const AX_VALUE: &str = "AXValue";
+    const AX_SELECTED_TEXT_RANGE: &str = "AXSelectedTextRange";
     const AX_ROLE: &str = "AXRole";
     const AX_SUBROLE: &str = "AXSubrole";
-    /// Both the role and the subrole of a password field carry this value.
-    const SECURE_ROLE: &str = "AXSecureTextField";
     /// The pinned field's value changed — the session's primary wake signal, so
     /// a correction typed and submitted inside one poll interval is still seen.
     const AX_VALUE_CHANGED_NOTIFICATION: &str = "AXValueChanged";
@@ -183,8 +241,9 @@ mod imp {
     }
 
     /// Resolve and retain the app's currently focused AXUIElement, so a later
-    /// read can confirm the same element still has focus. Called on the paste
-    /// callsite (main thread), right after the text lands in the field. `None`
+    /// read can confirm the same element still has focus. Called on the
+    /// session thread right after the paste (never the main thread: the
+    /// Electron retry below sleeps). `None`
     /// when nothing is focused or the AX read fails — the caller then skips the
     /// session rather than watch an unattributable field.
     pub fn snapshot_focused_element(pid: i32) -> Option<FocusedSnapshot> {
@@ -205,9 +264,9 @@ mod imp {
                 // fresh process reads as "no focused element" even with the
                 // Accessibility grant in place. Ask once and retry; the tree
                 // builds asynchronously, hence the short wait. Native apps
-                // reject the attribute and fall through to the old diagnosis.
+                // reject the attribute and report no focused element.
                 if enable_manual_accessibility(app_cf.as_concrete_TypeRef()) {
-                    std::thread::sleep(Duration::from_millis(150));
+                    std::thread::sleep(ELECTRON_AX_READY_WAIT);
                     if let Some(focused) =
                         copy_attr(app_cf.as_concrete_TypeRef(), AX_FOCUSED_UI_ELEMENT)
                     {
@@ -277,9 +336,13 @@ mod imp {
         /// Block up to `timeout`, returning as soon as a subscribed notification
         /// wakes the run loop or the timeout elapses. The observer's source keeps
         /// the run loop from returning immediately, so this behaves like a
-        /// "sleep, but wake early on a value change".
-        pub fn wait(&self, timeout: Duration) {
-            CFRunLoop::run_in_mode(unsafe { kCFRunLoopDefaultMode }, timeout, true);
+        /// "sleep, but wake early on a value change". Returns whether a
+        /// notification (rather than the timeout) ended the wait.
+        pub fn wait(&self, timeout: Duration) -> bool {
+            matches!(
+                CFRunLoop::run_in_mode(unsafe { kCFRunLoopDefaultMode }, timeout, true),
+                CFRunLoopRunResult::HandledSource
+            )
         }
     }
 
@@ -390,8 +453,8 @@ mod imp {
 
     /// Read the focused text field of the app with `pid`.
     ///
-    /// The systemwide focus path fails outside a registered GUI process, so —
-    /// exactly as the spike proved — we go through the per-application element
+    /// The systemwide focus path fails outside a registered GUI process, so
+    /// reads go through the per-application element
     /// (`AXUIElementCreateApplication(pid)` → `AXFocusedUIElement`), which reads
     /// even when the app is briefly backgrounded.
     ///
@@ -455,7 +518,7 @@ mod imp {
         // Secure fields must never be read — check both role and subrole first.
         let role = attr_string(fref, AX_ROLE);
         let subrole = attr_string(fref, AX_SUBROLE);
-        if role.as_deref() == Some(SECURE_ROLE) || subrole.as_deref() == Some(SECURE_ROLE) {
+        if is_secure_field(role.as_deref(), subrole.as_deref()) {
             return FocusRead::Secure;
         }
 
@@ -464,12 +527,220 @@ mod imp {
             None => FocusRead::NoSignal,
         }
     }
+
+    /// The caret (end of the selection) of the snapshotted element as a UTF-16
+    /// offset into its value. `None` when the element exposes no selection
+    /// range. Callers only use it after [`read_focused`] confirmed the element
+    /// is focused and not secure.
+    pub fn read_caret(focus: &FocusedSnapshot) -> Option<usize> {
+        let range = selected_range(focus.0.as_concrete_TypeRef())?;
+        Some((range.location + range.length) as usize)
+    }
+
+    /// The element's selected text range (UTF-16 units). `None` when it has
+    /// none or reports a negative range.
+    fn selected_range(element: AXUIElementRef) -> Option<CFRange> {
+        let value = copy_attr(element, AX_SELECTED_TEXT_RANGE)?;
+        let mut range = CFRange::default();
+        let ok = unsafe {
+            AXValueGetValue(
+                value.as_concrete_TypeRef(),
+                AX_VALUE_CF_RANGE_TYPE,
+                &mut range as *mut CFRange as *mut c_void,
+            )
+        };
+        if !ok || range.location < 0 || range.length < 0 {
+            return None;
+        }
+        Some(range)
+    }
+
+    // --- dictation context (fork feature: voice-control) ---------------------
+
+    const AX_FOCUSED_WINDOW: &str = "AXFocusedWindow";
+    const AX_TITLE: &str = "AXTitle";
+    const AX_NUMBER_OF_CHARACTERS: &str = "AXNumberOfCharacters";
+    const AX_STRING_FOR_RANGE: &str = "AXStringForRange";
+    /// The whole-value fallback is skipped for fields larger than this.
+    const MAX_VALUE_UTF16: i64 = 200_000;
+
+    /// Bundle id and localized name of the app with `pid`.
+    pub fn app_identity(pid: i32) -> (Option<String>, Option<String>) {
+        match NSRunningApplication::runningApplicationWithProcessIdentifier(pid) {
+            Some(app) => (
+                app.bundleIdentifier().map(|s| s.to_string()),
+                app.localizedName().map(|s| s.to_string()),
+            ),
+            None => (None, None),
+        }
+    }
+
+    /// Copy a CFString as UTF-16 units (never panics on lone surrogates, unlike
+    /// the UTF-8 conversion).
+    fn cf_string_utf16(string: &CFString) -> Vec<u16> {
+        let string_ref = string.as_concrete_TypeRef();
+        let len = unsafe { CFStringGetLength(string_ref) };
+        if len <= 0 {
+            return Vec::new();
+        }
+        let mut units = vec![0u16; len as usize];
+        unsafe {
+            CFStringGetCharacters(
+                string_ref,
+                CFRange {
+                    location: 0,
+                    length: len,
+                },
+                units.as_mut_ptr(),
+            )
+        };
+        units
+    }
+
+    /// `AXStringForRange` — just the requested slice of the element's text.
+    fn string_for_range(
+        element: AXUIElementRef,
+        location: usize,
+        length: usize,
+    ) -> Option<Vec<u16>> {
+        let range = CFRange {
+            location: location as isize,
+            length: length as isize,
+        };
+        let param = unsafe {
+            AXValueCreate(
+                AX_VALUE_CF_RANGE_TYPE,
+                &range as *const CFRange as *const c_void,
+            )
+        };
+        if param.is_null() {
+            return None;
+        }
+        let param = unsafe { CFType::wrap_under_create_rule(param) };
+        let attr = CFString::new(AX_STRING_FOR_RANGE);
+        let mut value: CFTypeRef = std::ptr::null();
+        let err = unsafe {
+            AXUIElementCopyParameterizedAttributeValue(
+                element,
+                attr.as_concrete_TypeRef(),
+                param.as_concrete_TypeRef(),
+                &mut value,
+            )
+        };
+        if err != 0 || value.is_null() {
+            return None;
+        }
+        let value = unsafe { CFType::wrap_under_create_rule(value) };
+        value
+            .downcast_into::<CFString>()
+            .map(|s| cf_string_utf16(&s))
+    }
+
+    fn set_timeout(element: AXUIElementRef, timeout: Duration) {
+        unsafe { AXUIElementSetMessagingTimeout(element, timeout.as_secs_f32()) };
+    }
+
+    /// Read the focus context of the app with `pid`: focused window title,
+    /// focused element role, and the text before the caret (at most
+    /// `max_before_utf16` units via `AXStringForRange`, else the whole value
+    /// of a modest field). Every AX message is capped at `budget`, and later
+    /// steps are skipped once the budget is spent, so a hung app costs a
+    /// bounded wait on the caller's background thread. A secure field's text
+    /// is never read.
+    pub fn read_focus_context(
+        pid: i32,
+        max_before_utf16: usize,
+        budget: Duration,
+    ) -> FocusContextRead {
+        let deadline = Instant::now() + budget;
+        let mut out = FocusContextRead::default();
+        let app = unsafe { AXUIElementCreateApplication(pid) };
+        if app.is_null() {
+            out.error = Some("no_app_element");
+            return out;
+        }
+        let app_cf = unsafe { CFType::wrap_under_create_rule(app) };
+        let app_ref = app_cf.as_concrete_TypeRef();
+        set_timeout(app_ref, budget);
+
+        if let Some(window) = copy_attr(app_ref, AX_FOCUSED_WINDOW) {
+            set_timeout(window.as_concrete_TypeRef(), budget);
+            out.window_title = attr_string(window.as_concrete_TypeRef(), AX_TITLE);
+        }
+
+        let mut focused = copy_attr(app_ref, AX_FOCUSED_UI_ELEMENT);
+        if focused.is_none() && enable_manual_accessibility(app_ref) {
+            // Electron builds its tree asynchronously after the opt-in.
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            std::thread::sleep(remaining.min(ELECTRON_AX_READY_WAIT));
+            focused = copy_attr(app_ref, AX_FOCUSED_UI_ELEMENT);
+        }
+        let Some(focused) = focused else {
+            out.error = Some("no_focused_element");
+            return out;
+        };
+        let fref = focused.as_concrete_TypeRef();
+        set_timeout(fref, budget);
+
+        out.role = attr_string(fref, AX_ROLE);
+        out.subrole = attr_string(fref, AX_SUBROLE);
+        out.secure = is_secure_field(out.role.as_deref(), out.subrole.as_deref());
+        if out.secure {
+            return out;
+        }
+        if Instant::now() >= deadline {
+            out.error = Some("budget_exhausted");
+            return out;
+        }
+
+        let Some(range) = selected_range(fref) else {
+            return out;
+        };
+        out.selection_len = Some(range.length as usize);
+        let caret = range.location as usize;
+        if caret == 0 {
+            return out;
+        }
+
+        let start = caret.saturating_sub(max_before_utf16);
+        if let Some(units) = string_for_range(fref, start, caret - start).filter(|u| !u.is_empty())
+        {
+            out.caret_utf16 = units.len();
+            out.text_utf16 = Some(units);
+            out.text_source = Some("string_for_range");
+            return out;
+        }
+
+        if Instant::now() >= deadline {
+            out.error = Some("budget_exhausted");
+            return out;
+        }
+        let size = copy_attr(fref, AX_NUMBER_OF_CHARACTERS)
+            .and_then(|v| v.downcast_into::<CFNumber>())
+            .and_then(|n| n.to_i64());
+        // Without AXNumberOfCharacters the caret is a lower bound on the size,
+        // and the copied value's length is checked before it is decoded.
+        if size.unwrap_or(0).max(caret as i64) > MAX_VALUE_UTF16 {
+            out.error = Some("value_too_large");
+            return out;
+        }
+        if let Some(value) = copy_attr(fref, AX_VALUE).and_then(|v| v.downcast_into::<CFString>()) {
+            if unsafe { CFStringGetLength(value.as_concrete_TypeRef()) } as i64 > MAX_VALUE_UTF16 {
+                out.error = Some("value_too_large");
+                return out;
+            }
+            out.text_utf16 = Some(cf_string_utf16(&value));
+            out.caret_utf16 = caret;
+            out.text_source = Some("value");
+        }
+        out
+    }
 }
 
 #[cfg(target_os = "macos")]
 pub use imp::{
-    create_value_change_observer, frontmost_pid, process_name, read_focused,
-    snapshot_focused_element,
+    app_identity, create_value_change_observer, frontmost_pid, process_name, read_caret,
+    read_focus_context, read_focused, snapshot_focused_element,
 };
 
 /// Stub for platforms without an Accessibility API: no target can be resolved.
@@ -499,4 +770,20 @@ pub fn read_focused(
     _expected_focus: &FocusedSnapshot,
 ) -> FocusRead {
     FocusRead::NoSignal
+}
+
+/// Stub for platforms without an Accessibility API: no identity is available.
+#[cfg(not(target_os = "macos"))]
+pub fn app_identity(_pid: i32) -> (Option<String>, Option<String>) {
+    (None, None)
+}
+
+/// Stub for platforms without an Accessibility API: no context is readable.
+#[cfg(not(target_os = "macos"))]
+pub fn read_focus_context(
+    _pid: i32,
+    _max_before_utf16: usize,
+    _budget: std::time::Duration,
+) -> FocusContextRead {
+    FocusContextRead::default()
 }

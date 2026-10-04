@@ -1,31 +1,52 @@
 @import "../styles/theme.css";
 
-/* Learned-correction toast (fork feature: voice-control). Shares the recording
-   overlay's visual vocabulary (theme surface at 98%, logo-pink accent, hairline
-   border, no drop shadow) so the two windows read as one system — see
-   RecordingOverlay.css for the source of these tokens. */
+/* Learned-correction toast (fork feature: voice-control). Unlike the recording
+   overlay (which inverts the theme for contrast), the toast is a normal app
+   surface: the theme background at 98% with a hairline border, no drop shadow,
+   and the logo-pink accent. It follows the appearance setting like the other
+   windows — the base tokens flip via theme.css (media query + `data-theme`), and
+   the toast-only tones below carry their own light/dark pair. */
 :root {
   --lt-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --lt-surface: color-mix(in srgb, var(--color-background) 98%, transparent);
   --lt-accent: var(--color-logo-primary);
-  --lt-accent-soft: color-mix(
+
+  --light-lt-accent-soft: color-mix(
     in srgb,
     var(--color-background-ui) 16%,
     transparent
   );
-  --lt-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
-  --lt-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
+  --light-lt-border: color-mix(in srgb, var(--color-mid-gray) 22%, transparent);
+  --light-lt-hair: color-mix(in srgb, var(--color-mid-gray) 12%, transparent);
+  --dark-lt-accent-soft: color-mix(
+    in srgb,
+    var(--color-logo-primary) 20%,
+    transparent
+  );
+  --dark-lt-border: color-mix(in srgb, var(--color-text) 12%, transparent);
+  --dark-lt-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
+
+  --lt-accent-soft: var(--light-lt-accent-soft);
+  --lt-border: var(--light-lt-border);
+  --lt-hair: var(--light-lt-hair);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --lt-accent-soft: color-mix(
-      in srgb,
-      var(--color-logo-primary) 20%,
-      transparent
-    );
-    --lt-border: color-mix(in srgb, var(--color-text) 12%, transparent);
-    --lt-hair: color-mix(in srgb, var(--color-text) 8%, transparent);
+    --lt-accent-soft: var(--dark-lt-accent-soft);
+    --lt-border: var(--dark-lt-border);
+    --lt-hair: var(--dark-lt-hair);
   }
+}
+/* Explicit theme override, matching the `data-theme` blocks in theme.css. */
+:root[data-theme="light"] {
+  --lt-accent-soft: var(--light-lt-accent-soft);
+  --lt-border: var(--light-lt-border);
+  --lt-hair: var(--light-lt-hair);
+}
+:root[data-theme="dark"] {
+  --lt-accent-soft: var(--dark-lt-accent-soft);
+  --lt-border: var(--dark-lt-border);
+  --lt-hair: var(--dark-lt-hair);
 }
 
 /* Transparent stage filling the toast window; the pill is centered inside it
@@ -39,8 +60,9 @@
   font-family: var(--lt-font);
 }
 
-/* The pill: badge | title | Undo. Flat like the overlay card — theme surface +
-   hairline border, no shadow or blur. */
+/* The pill: badge | title | optional "+N more" | actions (Accept / Never for
+   suggestions, Undo for learned pairs). Flat — theme surface + hairline border,
+   no shadow or blur. */
 .lt-card {
   display: flex;
   align-items: center;
@@ -63,6 +85,8 @@
   transform: none;
 }
 .lt-card.leaving {
+  /* Already acted on: a second click during the exit must not fire again. */
+  pointer-events: none;
   opacity: 0;
   transform: translateY(6px) scale(0.98);
   /* Exit duration is driven by the component's EXIT_MS via `--lt-exit-ms`, so
@@ -72,8 +96,9 @@
     transform var(--lt-exit-ms) ease;
 }
 
-/* "Learned" badge — a checkmark in a soft accent disc, echoing the overlay's
-   self-drawn inline SVGs (rather than the 24px settings icons). */
+/* Status badge — a checkmark (learned) or sparkle (suggestion) in a soft accent
+   disc, echoing the overlay's self-drawn inline SVGs (rather than the 24px
+   settings icons). */
 .lt-badge {
   flex: none;
   width: 22px;
@@ -111,8 +136,10 @@
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
-/* Undo — the one interactive affordance; accent-tinted pill button. */
-.lt-undo {
+/* Action buttons — Undo for a learned pair, Accept / Dismiss for a suggestion.
+   `.lt-primary` carries the accent; a secondary action stays muted so the
+   suggestion pill still has one obvious choice. */
+.lt-action {
   flex: none;
   padding: 0 12px;
   height: 28px;
@@ -123,20 +150,36 @@
   font-family: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: var(--lt-accent);
-  background: var(--lt-hair);
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  background: transparent;
   cursor: pointer;
   transition:
     background-color 150ms ease,
     transform 100ms ease;
 }
-.lt-undo:hover {
-  background: var(--lt-accent-soft);
+.lt-action:hover {
+  background: var(--lt-hair);
 }
-.lt-undo:active {
+.lt-action:active {
   transform: scale(0.96);
 }
+.lt-action.lt-primary {
+  color: var(--lt-accent);
+  background: var(--lt-hair);
+}
+.lt-action.lt-primary:hover {
+  background: var(--lt-accent-soft);
+}
+.lt-action + .lt-action {
+  margin-inline-start: -6px;
+}
 
-/* Trial note — the dry-run counterpart of Undo. Non-interactive; a muted pill
-   that reads "not saved" so a log-only soak is visibly a trial, not a real
-   learn. */
+/* Keyboard-shortcut hint inside a button ("⌃↩"): same color as the label,
+   quieter, so the label still reads first. */
+.lt-kbd {
+  margin-inline-start: 5px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.6;
+}

@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Learned Corrections",
-        "description": "A personal dictionary of exact word fixes applied to every transcription, before optional AI post-processing. Add corrections for what the recognizer keeps getting wrong — names, jargon, umlauts — and they are replaced deterministically. On macOS, Handy can also learn them on its own: when you fix a word shortly after pasting, that correction is captured automatically.",
-        "trialMode": {
-          "title": "Trial mode (dry run)",
-          "description": "Run the full learning pipeline but only log would-be corrections instead of storing them. Use it to watch what Handy would learn for a few days before letting it change your dictionary."
+        "title": "Personal dictionary",
+        "description": "Replaces words the recognizer keeps getting wrong — names, jargon, umlauts — in every transcription, before optional AI post-processing. On macOS, Handy also learns from your edits: fix a word right after pasting and it suggests that fix. Turning this off pauses both.",
+        "learnFromEdits": {
+          "title": "Learn from my corrections",
+          "description": "Watch the field after pasting and suggest the fixes you make by hand. When off, nothing new is learned; the dictionary still applies."
+        },
+        "suggestions": {
+          "title": "Suggestions",
+          "description": "Fixes Handy noticed in your edits. Accept one to apply it from now on; a fix you keep making is added automatically. Choose Never to block it for good.",
+          "accept": "Accept",
+          "dismiss": "Never"
+        },
+        "dictionary": {
+          "title": "Dictionary",
+          "filterPlaceholder": "Filter…",
+          "noMatches": "No entries match."
+        },
+        "blocked": {
+          "title": "Blocked",
+          "description": "Fixes you dismissed or undid. Handy won't learn them again unless you unblock them.",
+          "unblock": "Unblock"
+        },
+        "options": {
+          "title": "Learning options"
         },
         "aggressiveness": {
           "title": "Learning aggressiveness",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Aggressive",
-            "description": "Learns even loosely related fixes, including everyday words. Highest risk of bad entries."
+            "description": "Accepts even loosely related fixes and skips the sound-alike check. Swaps between everyday words are still never learned. Highest risk of bad entries."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "Enable {{misheard}}",
         "remove": "Remove {{misheard}}",
-        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription."
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Accept shortcut",
+            "description": "Accepts the suggestion in the learned-correction toast. Only active while the toast is visible."
+          },
+          "dismiss": {
+            "title": "Never / Undo shortcut",
+            "description": "Rejects the suggestion (Never) or undoes a just-learned correction (Undo). Only active while the toast is visible."
+          },
+          "errors": {
+            "needsModifier": "Use at least one modifier key (Control, Option, Shift or Command).",
+            "invalid": "This key combination can't be used as a shortcut.",
+            "conflict": "This combination is already used by another Handy shortcut.",
+            "conflictWith": "This combination is already used by “{{name}}”.",
+            "save": "Couldn't save the shortcut: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Enter both the misheard word and its correction.",
+          "generic": "The change couldn't be saved. Please try again."
+        }
       },
       "voiceActivityDetection": {
         "title": "Voice Activity Detection",
@@ -832,8 +872,10 @@
   },
   "learnedToast": {
     "title": "Learned: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Dry-Run: Learned: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Suggestion: “{{misheard}}” → “{{intended}}”",
     "undo": "Undo",
+    "accept": "Accept",
+    "dismiss": "Never",
     "more": "+{{count}} more"
   }
 }

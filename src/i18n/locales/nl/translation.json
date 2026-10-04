@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Geleerde correcties",
-        "description": "Een persoonlijk woordenboek met exacte woordcorrecties die op elke transcriptie worden toegepast, vóór de optionele AI-naverwerking. Voeg correcties toe voor wat de herkenner steeds verkeerd verstaat — namen, jargon, umlauten — en ze worden deterministisch vervangen. Op macOS kan Handy ze ook zelf leren: wanneer je een woord kort na het plakken corrigeert, wordt die correctie automatisch vastgelegd.",
-        "trialMode": {
-          "title": "Testmodus (proefrun)",
-          "description": "Voert de volledige leerpijplijn uit, maar registreert alleen mogelijke correcties in plaats van ze op te slaan. Gebruik dit om een paar dagen te bekijken wat Handy zou leren voordat je het je woordenboek laat aanpassen."
+        "title": "Persoonlijk woordenboek",
+        "description": "Vervangt woorden die de herkenning steeds verkeerd verstaat — namen, jargon, accenten — in elke transcriptie, vóór de optionele AI-nabewerking. Op macOS leert Handy ook van je bewerkingen: verbeter een woord direct na het plakken en Handy stelt die correctie voor. Uitschakelen pauzeert beide.",
+        "learnFromEdits": {
+          "title": "Leren van mijn correcties",
+          "description": "Houdt het veld na het plakken in de gaten en stelt correcties voor die je met de hand maakt. Uit: er wordt niets nieuws geleerd, het woordenboek blijft gelden."
+        },
+        "suggestions": {
+          "title": "Suggesties",
+          "description": "Correcties die Handy in je bewerkingen heeft opgemerkt. Accepteer er een om hem voortaan toe te passen; een correctie die je herhaaldelijk maakt, wordt automatisch toegevoegd. Kies Nooit om hem definitief te blokkeren.",
+          "accept": "Accepteren",
+          "dismiss": "Nooit"
+        },
+        "dictionary": {
+          "title": "Woordenboek",
+          "filterPlaceholder": "Filteren…",
+          "noMatches": "Geen overeenkomende items."
+        },
+        "blocked": {
+          "title": "Geblokkeerd",
+          "description": "Correcties die je hebt genegeerd of ongedaan gemaakt. Handy leert ze niet opnieuw, tenzij je ze deblokkeert.",
+          "unblock": "Deblokkeren"
+        },
+        "options": {
+          "title": "Leeropties"
         },
         "aggressiveness": {
           "title": "Leeragressiviteit",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agressief",
-            "description": "Leert zelfs losjes verwante correcties, inclusief alledaagse woorden. Hoogste risico op foute vermeldingen."
+            "description": "Accepteert zelfs losjes verwante correcties en controleert niet of ze gelijk klinken. Verwisselde alledaagse woorden worden nog steeds nooit geleerd. Hoogste risico op foute vermeldingen."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "{{misheard}} inschakelen",
         "remove": "{{misheard}} verwijderen",
-        "empty": "Nog geen correcties. Voeg een woord toe dat de herkenner steeds verkeerd verstaat — zoals een naam of technische term — en de correctie wordt toegepast op elke toekomstige transcriptie."
+        "empty": "Nog geen correcties. Voeg een woord toe dat de herkenner steeds verkeerd verstaat — zoals een naam of technische term — en de correctie wordt toegepast op elke toekomstige transcriptie.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Sneltoets: Accepteren",
+            "description": "Accepteert de suggestie in de melding over geleerde correcties. Alleen actief zolang de melding zichtbaar is."
+          },
+          "dismiss": {
+            "title": "Sneltoets: Nooit / Ongedaan maken",
+            "description": "Wijst de suggestie af (Nooit) of maakt een zojuist geleerde correctie ongedaan. Alleen actief zolang de melding zichtbaar is."
+          },
+          "errors": {
+            "needsModifier": "Gebruik minstens één modificatietoets (Control, Option, Shift of Command).",
+            "invalid": "Deze toetscombinatie kan niet als sneltoets worden gebruikt.",
+            "conflict": "Deze combinatie wordt al gebruikt door een andere Handy-sneltoets.",
+            "conflictWith": "Deze combinatie wordt al gebruikt door ‘{{name}}’.",
+            "save": "Sneltoets kon niet worden opgeslagen: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Vul zowel het verkeerd verstane woord als de correctie in.",
+          "generic": "De wijziging kon niet worden opgeslagen. Probeer het opnieuw."
+        }
       },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
@@ -832,8 +872,10 @@
   },
   "learnedToast": {
     "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Dry-Run: Geleerd: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Suggestie: “{{misheard}}” → “{{intended}}”",
     "undo": "Ongedaan maken",
+    "accept": "Accepteren",
+    "dismiss": "Nooit",
     "more": "+{{count}} meer"
   }
 }

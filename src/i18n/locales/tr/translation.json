@@ -442,11 +442,30 @@
         }
       },
       "learnedCorrections": {
-        "title": "Öğrenilen Düzeltmeler",
-        "description": "Her transkripsiyona, isteğe bağlı AI son işlemesinden önce uygulanan tam kelime düzeltmelerinden oluşan kişisel bir sözlük. Tanıyıcının sürekli yanlış anladığı şeyler için düzeltmeler ekleyin — isimler, jargon, özel harfler — bunlar kesin biçimde değiştirilir. macOS'ta Handy bunları kendi başına da öğrenebilir: yapıştırdıktan kısa süre sonra bir kelimeyi düzeltirseniz, o düzeltme otomatik olarak yakalanır.",
-        "trialMode": {
-          "title": "Deneme modu (kuru çalıştırma)",
-          "description": "Tüm öğrenme hattını çalıştırır ancak olası düzeltmeleri saklamak yerine yalnızca kaydeder. Sözlüğünüzü değiştirmesine izin vermeden önce Handy'nin birkaç gün boyunca ne öğreneceğini izlemek için kullanın."
+        "title": "Kişisel sözlük",
+        "description": "Tanıyıcının sürekli yanlış anladığı kelimeleri — isimler, terimler, özel karakterler — isteğe bağlı yapay zekâ son işlemesinden önce her transkripsiyonda değiştirir. macOS'ta Handy düzenlemelerinizden de öğrenir: yapıştırdıktan hemen sonra bir kelimeyi düzeltin, Handy bu düzeltmeyi önersin. Kapatmak ikisini de duraklatır.",
+        "learnFromEdits": {
+          "title": "Düzeltmelerimden öğren",
+          "description": "Yapıştırmadan sonra alanı izler ve elle yaptığınız düzeltmeleri önerir. Kapalıyken yeni bir şey öğrenilmez, sözlük uygulanmaya devam eder."
+        },
+        "suggestions": {
+          "title": "Öneriler",
+          "description": "Handy'nin düzenlemelerinizde fark ettiği düzeltmeler. Bundan sonra uygulanması için birini kabul edin; tekrar tekrar yaptığınız bir düzeltme otomatik olarak eklenir. Kalıcı olarak engellemek için Asla'yı seçin.",
+          "accept": "Kabul et",
+          "dismiss": "Asla"
+        },
+        "dictionary": {
+          "title": "Sözlük",
+          "filterPlaceholder": "Filtrele…",
+          "noMatches": "Eşleşen giriş yok."
+        },
+        "blocked": {
+          "title": "Engellenenler",
+          "description": "Reddettiğiniz veya geri aldığınız düzeltmeler. Engeli kaldırmadığınız sürece Handy bunları yeniden öğrenmez.",
+          "unblock": "Engeli kaldır"
+        },
+        "options": {
+          "title": "Öğrenme seçenekleri"
         },
         "aggressiveness": {
           "title": "Öğrenme agresifliği",
@@ -461,7 +480,7 @@
           },
           "aggressive": {
             "label": "Agresif",
-            "description": "Gündelik kelimeler dahil, gevşek ilişkili düzeltmeleri bile öğrenir. Hatalı girişler için en yüksek risk."
+            "description": "Gevşek ilişkili düzeltmeleri bile kabul eder ve ses benzerliğini kontrol etmez. Gündelik kelimeler arasındaki değişiklikler yine de asla öğrenilmez. Hatalı girişler için en yüksek risk."
           }
         },
         "window": {
@@ -484,7 +503,28 @@
         },
         "enable": "{{misheard}} etkinleştir",
         "remove": "{{misheard}} kaldır",
-        "empty": "Henüz düzeltme yok. Tanıyıcının sürekli yanlış duyduğu bir kelime ekleyin — bir isim veya teknik terim gibi — düzeltmesi gelecekteki her transkripsiyona uygulanacaktır."
+        "empty": "Henüz düzeltme yok. Tanıyıcının sürekli yanlış duyduğu bir kelime ekleyin — bir isim veya teknik terim gibi — düzeltmesi gelecekteki her transkripsiyona uygulanacaktır.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Kısayol: Kabul et",
+            "description": "Öğrenilen düzeltme bildirimindeki öneriyi kabul eder. Yalnızca bildirim görünürken etkindir."
+          },
+          "dismiss": {
+            "title": "Kısayol: Asla / Geri Al",
+            "description": "Öneriyi reddeder (Asla) ya da yeni öğrenilmiş bir düzeltmeyi geri alır (Geri Al). Yalnızca bildirim görünürken etkindir."
+          },
+          "errors": {
+            "needsModifier": "En az bir değiştirici tuş kullanın (Control, Option, Shift veya Command).",
+            "invalid": "Bu tuş kombinasyonu kısayol olarak kullanılamaz.",
+            "conflict": "Bu kombinasyon zaten başka bir Handy kısayolu tarafından kullanılıyor.",
+            "conflictWith": "Bu kombinasyon zaten “{{name}}” tarafından kullanılıyor.",
+            "save": "Kısayol kaydedilemedi: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Hem yanlış duyulan kelimeyi hem de düzeltmesini girin.",
+          "generic": "Değişiklik kaydedilemedi. Lütfen tekrar deneyin."
+        }
       },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
@@ -818,8 +858,10 @@
   },
   "learnedToast": {
     "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
-    "trialTitle": "Dry-Run: Öğrenildi: “{{misheard}}” → “{{intended}}”",
+    "suggestionTitle": "Öneri: “{{misheard}}” → “{{intended}}”",
     "undo": "Geri Al",
+    "accept": "Kabul et",
+    "dismiss": "Asla",
     "more": "+{{count}} daha"
   },
   "whatsNew": {
