@@ -127,6 +127,10 @@ PROBES=(
   "app-styles: settings fields|src-tauri/src/settings.rs|pub app_styles_categories"
   "app-styles: commands registered|src-tauri/src/lib.rs|app_styles::commands::"
 
+  # -- fork never self-updates from upstream --
+  "updater: fork forces updater off|src-tauri/src/settings.rs|if FORK_NEVER_SELF_UPDATES"
+  "updater: switch stays on|src-tauri/src/settings.rs|const FORK_NEVER_SELF_UPDATES: bool = true;"
+
   # -- paste last transcript hotkey --
   "paste-last: default binding|src-tauri/src/settings.rs|crate::paste_last::BINDING_ID\.to_string\(\),"
   "paste-last: action registered|src-tauri/src/actions.rs|Arc::new\(crate::paste_last::PasteLastTranscriptAction\)"
@@ -156,6 +160,7 @@ MARKER_FILES=(
   "src/components/settings/advanced/AdvancedSettings.tsx"
   "src/components/settings/general/ModelSettingsCard.tsx"
   "src-tauri/src/overlay.rs"
+  "src-tauri/src/managers/model.rs"
   "src-tauri/src/cli.rs"
   "src-tauri/build.rs"
   "src-tauri/src/shortcut/handler.rs"

@@ -31,7 +31,7 @@ pub struct Case {
     pub spoken: String,
     /// The ideal formatted output after ASR + text rules. Used as the
     /// format-accuracy reference. May be empty for stub cases pending review.
-    #[serde(default)]
+    #[serde(default, alias = "target")]
     pub expected: String,
     /// Free-form tags for per-tag metric breakdowns (e.g. `de`, `punctuation`,
     /// `itn`, `tech`).
@@ -44,6 +44,32 @@ pub struct Case {
     /// Optional human note (known gaps, why `expected` is shaped a certain way).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+    /// Pending truth is retained for recording/provenance but never scored.
+    #[serde(default)]
+    pub status: CaseStatus,
+    /// Context/provider-dependent self-correction; diagnostic only.
+    #[serde(default)]
+    pub needs_llm: bool,
+    /// An explicit, narrowly scoped tolerance for path capitalization.
+    #[serde(default)]
+    pub case_insensitive_path: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<Provenance>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CaseStatus {
+    #[default]
+    Ready,
+    PendingTruth,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Provenance {
+    pub source_wav: String,
+    pub date: String,
+    pub history_id: i64,
 }
 
 /// The parsed `manifest.toml`.

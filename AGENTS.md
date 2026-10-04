@@ -311,10 +311,22 @@ Rules:
 ## Fork Debug Helpers
 
 - `handy --debug-toast` (hidden CLI flag, forwarded to the running instance via
-  single-instance): shows a sample learned-correction trial toast through the
-  exact production display path — the repeatable test for toast regressions
-  without a dictation + manual-correction round trip. Display-chain breadcrumbs
-  (`toast-show`, `toast-webview: …`, `toast-hide`) log at debug level.
+  single-instance): shows a sample learned-correction suggestion toast through
+  the exact production display path — the repeatable test for toast
+  regressions without a dictation + manual-correction round trip. It also
+  arms the toast shortcuts (default ⌃↩ / ⌃⌫) like a real toast; its ids match
+  no stored pair, so Accept / Never are harmless no-ops. It must not take
+  keyboard focus: typing in another app while it shows has to keep working.
+  Display-chain breadcrumbs (`toast-show`, `toast-webview: …`, `toast-hide`,
+  `learned-toast shortcut …`) log at debug level.
+- Overlay latency breadcrumbs (debug level): the press line
+  `TranscribeAction::start … epoch_ms=`, the backend show line
+  `overlay '<state>': … epoch_ms=` and the webview lines
+  `toast-webview: overlay: show '<state>' handler|first-frame epoch_ms=…` line
+  up the press with the overlay's first frame; the same data lands in the
+  dictation journal as `overlay` events. Journal schema and queries:
+  [docs/journal.md](docs/journal.md) — analyse the journal before asking the
+  user for samples.
 
 ## Fork Build (local signed DMG)
 
@@ -351,3 +363,5 @@ Notes:
 
 - The build is **not notarized** (no paid Apple Developer ID). First launch of each new build needs one right-click → Open (Gatekeeper). This is separate from the permission persistence above and cannot be removed without notarization.
 - If permissions get stuck after switching signing identity once (the old grants were tied to the previous identity), reset them once: `tccutil reset Microphone com.pais.handy` and `tccutil reset Accessibility com.pais.handy`, then re-grant. Subsequent same-cert rebuilds keep the grants.
+- The fork **never self-updates**: `update_checks_forced_disabled()` is hard-wired to `true` (see [docs/fork-patches.md](docs/fork-patches.md#fork-never-self-updates)), so the in-app updater can never replace the fork with an official upstream release. Updates come only from rebuilding this branch.
+- **Homebrew:** if the official `handy` cask is installed, `brew upgrade --greedy` / `brew reinstall` will overwrite the fork app with the upstream release. Run `brew uninstall --cask handy` before installing the fork DMG (without `--zap` this keeps the app data: settings, history, models).

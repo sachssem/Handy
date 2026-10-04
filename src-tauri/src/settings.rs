@@ -1356,10 +1356,20 @@ fn apply_settings_migrations(
     updated
 }
 
+// fork(voice-control): see `update_checks_forced_disabled`.
+const FORK_NEVER_SELF_UPDATES: bool = true;
+
 /// Update checks are forced off (without touching the persisted setting) when
 /// `HANDY_DISABLE_UPDATER` is set — e.g. by the Nix package, since self-update
 /// can't work against an immutable /nix/store install.
 pub fn update_checks_forced_disabled() -> bool {
+    // fork(voice-control): the fork build never self-updates — upstream's
+    // updater would replace this app with an official (non-fork) release.
+    // Forcing this flag routes through every existing gate (tray, settings
+    // toggle, `is_update_checks_locked` → frontend UpdateChecker).
+    if FORK_NEVER_SELF_UPDATES {
+        return true;
+    }
     use std::sync::OnceLock;
     static IS_UPDATER_DISABLED: OnceLock<bool> = OnceLock::new();
     *IS_UPDATER_DISABLED.get_or_init(|| utils::env_flag_enabled("HANDY_DISABLE_UPDATER"))

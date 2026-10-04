@@ -33,6 +33,80 @@ cargo run --bin handy-bench -- run \
 The report is printed to the terminal and written to
 `bench/results/bench-<timestamp>.{json,md}`.
 
+## Real-dictation regression gate
+
+Run from the repository root (the manifest/audio paths are relative to it):
+
+```bash
+CMAKE_POLICY_VERSION_MINIMUM=3.5 cargo run --manifest-path src-tauri/Cargo.toml \
+  --bin handy-bench -- regression
+
+# Override the model; --no-fail retains the report but allows known failures.
+CMAKE_POLICY_VERSION_MINIMUM=3.5 cargo run --manifest-path src-tauri/Cargo.toml \
+  --bin handy-bench -- regression --model 'cpp:/absolute/path/model.gguf' --no-fail
+```
+
+The default corpus is `bench/corpus/regression/manifest.toml`: 13 real recordings
+imported from local Handy history on 2026-10-04, including five from 2026-10-03.
+Each has one `normal.wav` take, supplied spoken/target truth, tags, and provenance.
+`--corpus` selects a different corpus. `--settings default` strictly reads the
+user's settings and learned dictionary; `--settings none` uses built-in defaults,
+and a file path loads an isolated settings snapshot. Missing/unreadable settings
+are errors, rather than silently changing the pipeline.
+
+Without `--model`, the selected catalog GGUF is resolved through **hf-hub's own
+cache API**, including pinned-revision → `main` fallback. The user's selected
+model at import was Qwen3-ASR 1.7B Q8_0. The resolver never downloads models.
+
+Every ready case runs fresh ASR, then the application's
+`post_process_transcription_text`: custom words, fillers, normalization,
+snippets (with verbatim protection), text rules/ITN, and active learned
+corrections, respecting the chosen settings. A windowless Tauri runtime loads
+the dictionary into a memory-only store: autosave is disabled and serialization
+rejects all disk writes, including legacy migration. No recording, observer,
+provider, or app event loop is started. Runtime/model resources are dropped on exit.
+`--language auto` (default) uses each case's `de`/`en` tag for pipeline language
+evidence; other values pin it. Qwen ignores engine language hints as in `run`.
+
+Self-correction LLM, app styles, and the optional post-process provider need
+provider/target-app context and are excluded. `needs_llm = true` cases still run
+ASR + the deterministic stages and appear as **LLM-dependent** with their output
+and scores; they do not affect the failure count. `status = "pending_truth"`,
+an empty target, or `target = "TODO"` skips transcription/scoring. The existing
+matrix `run` also skips pending targets.
+
+The compact table and `bench/results/regression-<timestamp>.{json,md}` include
+final text, exact match (outer whitespace trimmed), normalized match
+(case/punctuation ignored), and spoken WER **on raw ASR**, plus model/settings
+metadata in JSON. A normalized match is diagnostic: it cannot hide missing
+punctuation or formatting. Only an explicitly flagged
+`case_insensitive_path = true` permits **SOFT-PASS** for different path casing;
+separators/spelling still must match. Missing recordings/transcription errors
+count as failures. Any deterministic failure exits nonzero; `--no-fail` disables
+that gate. A run with no deterministic cases scored always fails.
+
+Imported manifest fields extend the existing format:
+
+```toml
+[[case]]
+id = "real-1791034470-path"
+spoken = "Tilde Slash Code Slash Handy"
+target = "~/Code/Handy"             # alias of the existing `expected` field
+tags = ["de", "path"]
+variants = ["normal"]
+status = "ready"                   # or "pending_truth"
+needs_llm = false
+case_insensitive_path = true
+[case.provenance]
+source_wav = "handy-1791034470.wav"
+date = "2026-10-03T15:34:34+02:00"  # history timestamp, with local timezone
+history_id = 328
+```
+
+History prefixes for email/quotes had already been post-processed at import;
+their notes record this, while the supplied spoken truth stays independent of
+history/ASR. The truncation case remains `TODO` until the user supplies truth.
+
 ## Where the models live (the "empty models dir")
 
 `<app_data>/models/` looks empty even though the app transcribes fine, because
@@ -156,7 +230,8 @@ This reads `<app_data>/history.db` + `<app_data>/recordings/`, copies each
 recording into `bench/corpus/hist-<id>/normal.wav`, and writes a reviewable
 `bench/corpus/history-stubs.toml` (git-ignored) with `spoken` pre-filled from the
 transcription (marked TODO verify) and `expected` empty. Correct each stub, fill
-`expected`, and paste the cases into `manifest.toml`.
+`expected`, change `status` from `pending_truth` to `ready`, and paste the cases
+into `manifest.toml`.
 
 ## Reading the report
 

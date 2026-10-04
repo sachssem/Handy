@@ -23,6 +23,8 @@ mod download;
 
 use download::{HttpDownloadOutcome, DOWNLOAD_STALL_TIMEOUT};
 
+// fork(voice-control): recording-limit auto-stop — per-model recording ceiling
+// (consumed by `transcription_coordinator`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecordingLimit {
     pub max_recording_ms: u64,
@@ -153,6 +155,7 @@ fn canonicalize_supported_languages(languages: Vec<String>) -> Vec<String> {
     canonical
 }
 
+// fork(voice-control): recording-limit auto-stop.
 #[cfg(test)]
 mod recording_limit_tests {
     use super::recording_limit_for_model_id;

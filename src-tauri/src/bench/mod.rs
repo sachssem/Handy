@@ -13,6 +13,7 @@ mod engine;
 mod history_export;
 mod probe;
 mod record;
+mod regression;
 mod report;
 mod score;
 
@@ -57,6 +58,8 @@ struct BenchCli {
 enum Command {
     /// Transcribe the corpus with each model×config, score, and write reports.
     Run(RunArgs),
+    /// Check real dictations through ASR + the app's deterministic pipeline.
+    Regression(regression::RegressionArgs),
     /// Turn real transcription history + recordings into corpus case stubs.
     ExportHistory(ExportArgs),
     /// Interactively record the corpus audio from the default microphone.
@@ -137,6 +140,7 @@ pub fn run() -> Result<()> {
     let cli = BenchCli::parse();
     match cli.command {
         Command::Run(args) => run_bench(args),
+        Command::Regression(args) => regression::run(args),
         Command::ExportHistory(args) => {
             history_export::export(&resolve_app_data(args.app_data)?, &args.out, args.limit)
         }
@@ -199,6 +203,12 @@ fn run_bench(args: RunArgs) -> Result<()> {
             .with_context(|| format!("failed to load model `{}`", spec.name))?;
 
         for case in &corpus.manifest.cases {
+            if case.status == corpus::CaseStatus::PendingTruth
+                || case.expected.trim().is_empty()
+                || case.expected.trim() == "TODO"
+            {
+                continue;
+            }
             for variant in &case.variants {
                 let audio_path = corpus.audio_path(&case.id, variant);
                 if !audio_path.exists() {

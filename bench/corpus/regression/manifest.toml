@@ -1,0 +1,175 @@
+# Real local dictations. WAVs remain gitignored. Do not infer truth from ASR.
+
+[[case]]
+id = "real-1791034451-false-point"
+spoken = "Der Punkt ist, dass wir noch warten müssen"
+target = "Der Punkt ist, dass wir noch warten müssen."
+tags = ["de", "false-positive"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791034451.wav"
+date = "2026-10-03T15:34:11+02:00"
+history_id = 326
+
+[[case]]
+id = "real-1791034460-false-comma"
+spoken = "Da ist ein Komma zu viel im Satz"
+target = "Da ist ein Komma zu viel im Satz."
+tags = ["de", "false-positive"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791034460.wav"
+date = "2026-10-03T15:34:20+02:00"
+history_id = 327
+
+[[case]]
+id = "real-1791034470-path"
+spoken = "Tilde Slash Code Slash Handy"
+target = "~/Code/Handy"
+tags = ["de", "path"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+case_insensitive_path = true
+notes = "Case-insensitive path match is a soft pass; path spelling and separators must match."
+[case.provenance]
+source_wav = "handy-1791034470.wav"
+date = "2026-10-03T15:34:34+02:00"
+history_id = 328
+
+[[case]]
+id = "real-1791034507-email"
+spoken = "Schreib an marc at example Punkt com"
+target = "Schreib an marc@example.com"
+tags = ["de", "email"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791034507.wav"
+date = "2026-10-03T15:35:07+02:00"
+history_id = 329
+
+[[case]]
+id = "real-1791034515-file"
+spoken = "Öffne die Datei readme Punkt md im Ordner docs"
+target = "Öffne die Datei readme.md im Ordner docs."
+tags = ["de", "path"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791034515.wav"
+date = "2026-10-03T15:35:15+02:00"
+history_id = 330
+
+[[case]]
+id = "real-1791116944-list"
+spoken = "Einkaufsliste Doppelpunkt Punkt eins Milch Punkt zwei Eier Punkt drei Brot"
+target = "Einkaufsliste:\n1. Milch\n2. Eier\n3. Brot"
+tags = ["de", "list"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791116944.wav"
+date = "2026-10-04T14:29:06+02:00"
+history_id = 332
+
+[[case]]
+id = "real-1791117015-false-point"
+spoken = "Der Punkt ist, dass wir noch warten müssen"
+target = "Der Punkt ist, dass wir noch warten müssen."
+tags = ["de", "false-positive"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791117015.wav"
+date = "2026-10-04T14:30:22+02:00"
+history_id = 333
+
+[[case]]
+id = "real-1791117030-false-point"
+spoken = "Der Punkt ist, dass wir noch warten müssen"
+target = "Der Punkt ist, dass wir noch warten müssen."
+tags = ["de", "false-positive"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791117030.wav"
+date = "2026-10-04T14:30:32+02:00"
+history_id = 334
+
+[[case]]
+id = "real-1791117045-email"
+spoken = "Schreib an marc at example Punkt com"
+target = "Schreib an marc@example.com."
+tags = ["de", "email"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+notes = "Matched by prefix: history now contains post-processed text; spoken reference supplied by the user."
+[case.provenance]
+source_wav = "handy-1791117045.wav"
+date = "2026-10-04T14:30:47+02:00"
+history_id = 335
+
+[[case]]
+id = "real-1791117074-quotes"
+spoken = "He said quote this is fine end quote"
+target = "He said, \"This is fine.\""
+tags = ["en", "quotes"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+notes = "Matched by prefix: history now contains post-processed text; spoken reference supplied by the user."
+[case.provenance]
+source_wav = "handy-1791117074.wav"
+date = "2026-10-04T14:31:16+02:00"
+history_id = 336
+
+[[case]]
+id = "real-1791117087-self-correction"
+spoken = "Wir treffen uns um drei, nein warte, um vier"
+target = "Wir treffen uns um vier."
+tags = ["de", "self-correction"]
+variants = ["normal"]
+status = "ready"
+needs_llm = true
+[case.provenance]
+source_wav = "handy-1791117087.wav"
+date = "2026-10-04T14:31:28+02:00"
+history_id = 337
+
+[[case]]
+id = "real-1791117116-truncation"
+spoken = "Okay, dann machen wir das Ganze mal weiter bis zum"
+target = "TODO"
+tags = ["de", "truncation"]
+variants = ["normal"]
+status = "pending_truth"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791117116.wav"
+date = "2026-10-04T14:31:57+02:00"
+history_id = 338
+
+[[case]]
+id = "real-1791117171-long-pause"
+spoken = "So, dann wollen wir doch mal die längere Sprachpause ausführlich testen und dabei prüfen, ob wir die längere Pause sauber verarbeitet bekommen am Ende."
+target = "So, dann wollen wir doch mal die längere Sprachpause ausführlich testen und dabei prüfen, ob wir die längere Pause sauber verarbeitet bekommen am Ende."
+tags = ["de", "long-pause"]
+variants = ["normal"]
+status = "ready"
+needs_llm = false
+[case.provenance]
+source_wav = "handy-1791117171.wav"
+date = "2026-10-04T14:32:53+02:00"
+history_id = 339
+

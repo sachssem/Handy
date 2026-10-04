@@ -43,6 +43,7 @@ Conventions used throughout:
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
 | [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
 | [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
+| [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                      |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -740,13 +741,55 @@ Headless voice-dictation benchmark (`handy-bench` binary): corpus recorder,
 transcription engine driver, scoring, denoise experiments, per-model limit probing.
 Development tooling, not shipped in the app.
 
-- **New files:** `src-tauri/src/bench/` (8 files), `src-tauri/src/bin/handy-bench.rs`,
+The real-dictation regression corpus is `bench/corpus/regression/manifest.toml`
+(13 imported local WAVs, gitignored; stable IDs/tags + source WAV, date, history ID).
+From the repo root:
+
+```bash
+CMAKE_POLICY_VERSION_MINIMUM=3.5 cargo run --manifest-path src-tauri/Cargo.toml \
+  --bin handy-bench -- regression
+```
+
+Defaults to the user's selected cached model (Qwen3-ASR 1.7B Q8_0 at import),
+real settings, and the **app's deterministic output function**, including
+snippets, text rules/ITN, and active learned corrections. The headless driver
+preloads a memory-only Tauri settings store for the learned snapshot; its
+serializer rejects writes. Model lookup uses hf-hub's own cache API, without
+downloads. `--model [engine:]path` overrides the model; `--no-fail` reports known
+failures without failing the gate. Exact/normalized output matches and raw-ASR
+spoken WER appear in the compact table and ignored JSON/MD reports. Normalized
+matches are diagnostic, with an explicit path-case soft tolerance only.
+Self-correction LLM cases (`needs_llm = true`) are reported separately; app
+styles and the optional post-process provider are excluded because they need
+app/provider context. `status = "pending_truth"` / `target = "TODO"` cases are
+not scored. See `bench/README.md` for the manifest and all flags.
+
+- **New files:** `src-tauri/src/bench/` (including `regression.rs`), `src-tauri/src/bin/handy-bench.rs`,
   `bench/` (README + corpus manifest).
 - **Upstream files touched:** `lib.rs` (one `pub mod bench;`), `Cargo.toml`
   (bench-only deps + `[[bin]]`).
 - **Probe:** `bench: *` in `scripts/fork-check.sh`.
 - **Upstream check:** none needed — purely additive dev tooling; drop only if you
   stop benchmarking.
+
+## fork never self-updates
+
+Upstream's in-app updater (`tauri_plugin_updater`, official `cjpais/Handy`
+release feed) would replace the fork build with an official release. The fork
+forces upstream's existing `update_checks_forced_disabled()` switch (the one
+`HANDY_DISABLE_UPDATER` drives for Nix) to `true`, so every existing gate goes
+inert without touching the persisted `update_checks_enabled` setting: the tray
+hides "Check for updates", `trigger_update_check` and the tray action no-op,
+`change_update_checks_setting` refuses, and the frontend `UpdateChecker` /
+`UpdateChecksToggle` read `is_update_checks_locked` and never call `check()`.
+The toggle shows upstream's "Disabled by system configuration" copy.
+
+- **New files:** none.
+- **Upstream files touched:** `settings.rs` (`FORK_NEVER_SELF_UPDATES` const +
+  early return in `update_checks_forced_disabled`).
+- **Probe:** `updater: *` in `scripts/fork-check.sh`.
+- **Upstream check:** none — the fork must never accept upstream release
+  binaries. Drop only if the fork ever ships its own update feed.
 
 ## fork build & maintenance tooling
 

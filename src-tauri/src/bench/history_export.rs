@@ -68,6 +68,10 @@ pub fn export(app_data: &Path, out: &Path, limit: Option<usize>) -> Result<()> {
                  `expected` with the intended formatted output."
                     .to_string(),
             ),
+            status: super::corpus::CaseStatus::PendingTruth,
+            needs_llm: false,
+            case_insensitive_path: false,
+            provenance: None,
         });
     }
 
