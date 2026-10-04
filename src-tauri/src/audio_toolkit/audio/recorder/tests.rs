@@ -70,6 +70,292 @@ fn resampler_frame_size_follows_the_vad_backend() {
     assert_eq!(*frame_lengths.lock().unwrap(), vec![frame_samples; 4]);
 }
 
+// fork(voice-control): synthetic recorder regressions exercise the real smoothing
+// wrapper, including resumed pre-roll overlap and the final padded frame.
+struct ScriptedRecordingVad {
+    script: Vec<bool>,
+    next_frame: usize,
+}
+
+impl VoiceActivityDetector for ScriptedRecordingVad {
+    fn push_frame<'a>(&'a mut self, frame: &'a [f32]) -> anyhow::Result<VadFrame<'a>> {
+        let voiced = self.script.get(self.next_frame).copied().unwrap_or(false);
+        self.next_frame += 1;
+        Ok(if voiced {
+            VadFrame::Speech(frame)
+        } else {
+            VadFrame::Noise
+        })
+    }
+
+    fn frame_samples(&self) -> usize {
+        480
+    }
+
+    fn reset(&mut self) {
+        self.next_frame = 0;
+    }
+}
+
+fn gap_test_processor(script: &[bool]) -> CaptureProcessor {
+    let detector = crate::audio_toolkit::vad::SmoothedVad::new(
+        Box::new(ScriptedRecordingVad {
+            script: script.to_vec(),
+            next_frame: 0,
+        }),
+        3,
+        2,
+        2,
+    );
+    CaptureProcessor::new(
+        16_000,
+        Some(VadConfig {
+            detector: Arc::new(Mutex::new(Box::new(detector))),
+            frame_samples: 480,
+            offline_hangover_frames: 2,
+            streaming_hangover_frames: 2,
+        }),
+        None,
+        None,
+        Instant::now(),
+    )
+}
+
+fn numbered_frames(count: usize) -> Vec<f32> {
+    (0..count)
+        .flat_map(|index| std::iter::repeat_n((index + 1) as f32, 480))
+        .collect()
+}
+
+fn capture_script(script: &[bool], policy: VadPolicy) -> Vec<f32> {
+    let mut processor = gap_test_processor(script);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(policy, ready_tx);
+    processor.process_raw_chunk(&numbered_frames(script.len()), ChunkDisposition::Capture);
+    processor.finish_recording()
+}
+
+#[test]
+fn offline_dictation_keeps_long_internal_gap_without_duplicate_preroll() {
+    let mut script = vec![false; 5];
+    script.extend([true; 2]);
+    script.extend([false; 20]); // 600 ms: exceeds both pre-roll and hangover.
+    script.extend([true; 2]);
+    script.extend([false; 5]);
+
+    let samples = capture_script(&script, VadPolicy::Offline);
+    let input = numbered_frames(script.len());
+    // Initial pre-roll begins at frame 3; the short trailing gap stays whole.
+    assert_eq!(samples, input[3 * 480..]);
+}
+
+// fork(voice-control): sample-exact pause regressions exercise the real frame
+// router without rounding 2 s / 10 s to the detector's 30 ms frames.
+fn capture_internal_gap(gap: &[f32]) -> Vec<f32> {
+    let vad = Some(VadConfig {
+        detector: Arc::new(Mutex::new(Box::new(ScriptedRecordingVad {
+            script: vec![true, false, true],
+            next_frame: 0,
+        }))),
+        frame_samples: 480,
+        offline_hangover_frames: 0,
+        streaming_hangover_frames: 0,
+    });
+    let mut samples = Vec::new();
+    let mut pending_gap = Vec::new();
+    for frame in [&[1.0; 480][..], gap, &[2.0; 480][..]] {
+        super::handle_frame(
+            frame,
+            VadPolicy::Offline,
+            &vad,
+            &None,
+            &mut samples,
+            &mut pending_gap,
+        );
+    }
+    assert!(pending_gap.is_empty());
+    samples
+}
+
+#[test]
+fn offline_dictation_keeps_two_second_internal_gap_whole() {
+    let gap: Vec<f32> = (0..32_000).map(|sample| sample as f32).collect();
+    let expected = [&[1.0; 480][..], &gap, &[2.0; 480][..]].concat();
+    assert_eq!(capture_internal_gap(&gap), expected);
+}
+
+#[test]
+fn offline_dictation_keeps_three_second_internal_gap_whole() {
+    let gap = vec![0.0; 48_000];
+    let expected = [&[1.0; 480][..], &gap, &[2.0; 480][..]].concat();
+    assert_eq!(capture_internal_gap(&gap), expected);
+}
+
+#[test]
+fn offline_dictation_caps_ten_second_internal_gap_at_one_point_five_seconds() {
+    let gap: Vec<f32> = (0..160_000).map(|sample| sample as f32).collect();
+    let expected = [
+        &[1.0; 480][..],
+        &gap[..12_000],
+        &gap[148_000..],
+        &[2.0; 480][..],
+    ]
+    .concat();
+    assert_eq!(capture_internal_gap(&gap), expected);
+}
+
+#[test]
+fn offline_dictation_trims_leading_silence_and_keeps_short_tail() {
+    let script = [
+        false, false, false, false, false, true, true, false, false, false, false,
+    ];
+    let input = numbered_frames(script.len());
+    assert_eq!(
+        capture_script(&script, VadPolicy::Offline),
+        input[3 * 480..]
+    );
+}
+
+#[test]
+fn offline_dictation_without_confirmed_speech_stays_empty() {
+    assert!(capture_script(&[false; 20], VadPolicy::Offline).is_empty());
+    assert!(capture_script(&[false, false, true], VadPolicy::Offline).is_empty());
+}
+
+#[test]
+fn offline_dictation_short_gap_does_not_repeat_previous_hangover() {
+    let script = [
+        true, true, false, false, false, true, true, false, false, false,
+    ];
+    let input = numbered_frames(script.len());
+    assert_eq!(capture_script(&script, VadPolicy::Offline), input);
+}
+
+#[test]
+fn offline_dictation_flush_can_confirm_resumed_speech() {
+    let mut script = vec![true; 2];
+    script.extend([false; 12]);
+    script.extend([true; 2]);
+    let mut input = numbered_frames(script.len());
+    input.truncate(input.len() - 240);
+    let mut processor = gap_test_processor(&script);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&input, ChunkDisposition::Capture);
+    assert_eq!(processor.processed_samples.len(), 4 * 480);
+    input.resize(script.len() * 480, 0.0);
+    assert_eq!(processor.finish_recording(), input);
+    assert!(processor.pending_gap.is_empty());
+}
+
+// fork(voice-control): stop-time tail retention protects quiet final words
+// without keeping arbitrarily long trailing silence or losing flush frames.
+#[test]
+fn offline_dictation_keeps_quiet_final_word_after_hangover() {
+    let script = [true, true, false, false, false, false, false];
+    let mut input = numbered_frames(script.len());
+    // The final word has energy, but the detector labels it noise after hangover.
+    input[4 * 480..].fill(0.005);
+    let mut processor = gap_test_processor(&script);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&input, ChunkDisposition::Capture);
+    assert_eq!(processor.processed_samples.len(), 4 * 480);
+    assert_eq!(processor.pending_gap, input[4 * 480..]);
+    assert_eq!(processor.finish_recording(), input);
+    assert_eq!(processor.pending_gap.capacity(), 0);
+}
+
+#[test]
+fn offline_dictation_keeps_trailing_gap_at_one_point_five_seconds() {
+    let mut script = vec![true; 2];
+    script.extend([false; 52]); // Two hangover frames, then exactly 1500 ms.
+    assert_eq!(
+        capture_script(&script, VadPolicy::Offline),
+        numbered_frames(script.len())
+    );
+}
+
+#[test]
+fn offline_dictation_caps_long_trailing_silence_at_seven_hundred_ms() {
+    let mut script = vec![true; 2];
+    script.extend([false; 100]);
+    let input = numbered_frames(script.len());
+    // Keep speech + hangover, then precisely 700 ms of the pending gap.
+    assert_eq!(
+        capture_script(&script, VadPolicy::Offline),
+        input[..4 * 480 + 11_200]
+    );
+}
+
+#[test]
+fn offline_dictation_keeps_noise_tail_from_final_resampler_flush() {
+    let script = [true, true, false, false, false, false];
+    let mut input = numbered_frames(script.len());
+    input.truncate(input.len() - 240);
+    let mut processor = gap_test_processor(&script);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&input, ChunkDisposition::Capture);
+    assert_eq!(processor.pending_gap.len(), 480);
+    input.resize(script.len() * 480, 0.0);
+    assert_eq!(processor.finish_recording(), input);
+    assert_eq!(processor.pending_gap.capacity(), 0);
+}
+
+#[test]
+fn offline_dictation_flush_applies_tail_cap_after_classifying_last_frame() {
+    let mut script = vec![true; 2];
+    script.extend([false; 53]);
+    let mut input = numbered_frames(script.len());
+    input.truncate(input.len() - 240);
+    let mut processor = gap_test_processor(&script);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&input, ChunkDisposition::Capture);
+    assert_eq!(processor.pending_gap.len(), 24_000); // Exactly 1500 ms before flush.
+    assert_eq!(processor.finish_recording(), input[..4 * 480 + 11_200]);
+}
+
+#[test]
+fn offline_dictation_pending_tail_does_not_leak_into_next_recording() {
+    let mut processor = gap_test_processor(&[true, true, false, false, false]);
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&numbered_frames(5), ChunkDisposition::Capture);
+    assert_eq!(processor.pending_gap.len(), 480);
+    assert_eq!(processor.finish_recording(), numbered_frames(5));
+    assert_eq!(processor.pending_gap.capacity(), 0);
+
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Offline, ready_tx);
+    processor.process_raw_chunk(&numbered_frames(2), ChunkDisposition::Capture);
+    assert_eq!(processor.finish_recording(), numbered_frames(2));
+}
+
+#[test]
+fn streaming_dictation_keeps_existing_gap_filtering_and_callbacks() {
+    let mut script = vec![false; 5];
+    script.extend([true; 2]);
+    script.extend([false; 20]);
+    script.extend([true; 2]);
+    script.extend([false; 5]);
+    let mut processor = gap_test_processor(&script);
+    let streamed = Arc::new(Mutex::new(Vec::new()));
+    let observed = Arc::clone(&streamed);
+    processor.audio_cb = Some(Arc::new(move |frame: &[f32]| {
+        observed.lock().unwrap().extend_from_slice(frame);
+    }));
+    let (ready_tx, _ready_rx) = mpsc::channel();
+    processor.begin_recording(VadPolicy::Streaming, ready_tx);
+    let input = numbered_frames(script.len());
+    processor.process_raw_chunk(&input, ChunkDisposition::Capture);
+    let expected = [&input[3 * 480..9 * 480], &input[25 * 480..31 * 480]].concat();
+    assert_eq!(processor.finish_recording(), expected);
+    assert_eq!(*streamed.lock().unwrap(), expected);
+    assert!(processor.pending_gap.is_empty());
+}
+
 #[test]
 fn idle_chunks_are_discarded_without_reaching_the_recording() {
     let mut processor = CaptureProcessor::new(16_000, None, None, None, Instant::now());

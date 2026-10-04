@@ -59,6 +59,12 @@ PROBES=(
   "overlay: compact capsule|src/overlay/RecordingOverlay.css|--ov-capsule-w"
   "overlay: window sized for capsule|src-tauri/src/overlay.rs|OVERLAY_WIDTH: f64 = 164"
 
+  # -- dictation keeps internal pauses (VAD trims only the edges) --
+  "vad-edges: pending gap flushed on resumed speech|src-tauri/src/audio_toolkit/audio/recorder.rs|out_buf\.append\(pending_gap\)"
+  "vad-edges: short stop tail kept|src-tauri/src/audio_toolkit/audio/recorder.rs|self\.processed_samples\.append\(&mut self\.pending_gap\)"
+  "vad-edges: long stop tail capped|src-tauri/src/audio_toolkit/audio/recorder.rs|self\.pending_gap\.truncate\(OFFLINE_LONG_TAIL_KEEP_SAMPLES\)"
+  "vad-edges: long internal pause capped|src-tauri/src/audio_toolkit/audio/recorder.rs|pending_gap\.len\(\) > OFFLINE_FULL_INTERNAL_GAP_MAX_SAMPLES"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"
@@ -77,6 +83,7 @@ MARKER_FILES=(
   "src/overlay/RecordingOverlay.tsx"
   "src-tauri/src/actions.rs"
   "src-tauri/src/overlay.rs"
+  "src-tauri/src/audio_toolkit/audio/recorder.rs"
   "src/overlay/RecordingOverlay.css"
 )
 

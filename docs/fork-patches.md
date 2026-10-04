@@ -35,6 +35,7 @@ Conventions used throughout:
 | [language-allowlist guard](#language-allowlist-guard)                | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `LanguageSelector.tsx` |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
+| [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -164,6 +165,32 @@ the only state with text), shown with no awaits before the first paint.
   ```bash
   git diff main upstream/main -- src/overlay src-tauri/src/overlay.rs
   ```
+
+## vad-edges: dictation keeps internal pauses
+
+Offline VAD (the batch dictation path) trims leading silence and preserves
+internal pauses up to 3 seconds. Quiet frames after the first speech are held in
+a `pending_gap` buffer and appended when speech resumes; gaps longer than
+3 seconds retain only their first and last 750 ms, dropping the middle. At stop,
+a trailing gap beyond VAD hangover is kept whole
+when it is at most 1.5 seconds; longer gaps keep only their first 700 ms. This
+protects quiet final words classified as noise. Tail retention runs after all
+resampler flush frames have been classified, preserving upstream's end-of-sentence
+tail drain. Recordings without confirmed speech stay empty. Live VAD callbacks
+(streaming) keep their filtered frames unchanged.
+
+- **New files:** none (tests in the existing `recorder/tests.rs`).
+- **Upstream files touched:** `audio_toolkit/audio/recorder.rs`
+  (`handle_frame` gap logic, `CaptureProcessor::pending_gap` reset per
+  recording, bounded tail retention after the final drain/flush, and buffer
+  release), `recorder/tests.rs`.
+- **Probe:** `vad-edges: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream's offline VAD still drop internal noise
+  frames?
+  ```bash
+  git show upstream/main:src-tauri/src/audio_toolkit/audio/recorder.rs | grep -n -A6 "VadFrame::Noise"
+  ```
+  If upstream keeps internal pauses itself, drop this patch.
 
 ## benchmark harness
 

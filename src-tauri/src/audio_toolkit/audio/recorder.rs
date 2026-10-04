@@ -628,6 +628,15 @@ pub fn is_no_input_device_error(error_message: &str) -> bool {
             && normalized.contains("coreaudio"))
 }
 
+// fork(voice-control): protect quiet final words after VAD hangover. Short
+// trailing gaps (<= 1.5 s) stay whole; longer gaps keep their first 700 ms.
+const OFFLINE_FULL_TAIL_MAX_SAMPLES: usize = constants::WHISPER_SAMPLE_RATE as usize * 1500 / 1000;
+const OFFLINE_LONG_TAIL_KEEP_SAMPLES: usize = constants::WHISPER_SAMPLE_RATE as usize * 700 / 1000;
+// fork(voice-control): long internal pauses keep both speech-adjacent edges.
+const OFFLINE_FULL_INTERNAL_GAP_MAX_SAMPLES: usize = constants::WHISPER_SAMPLE_RATE as usize * 3;
+const OFFLINE_INTERNAL_GAP_EDGE_SAMPLES: usize =
+    constants::WHISPER_SAMPLE_RATE as usize * 750 / 1000;
+
 /// Route one 16 kHz frame through VAD to recording and live outputs.
 /// Kept free-standing to permit disjoint borrows around resampler callbacks.
 fn handle_frame(
@@ -636,9 +645,27 @@ fn handle_frame(
     vad: &Option<VadConfig>,
     audio_cb: &Option<AudioFrameCallback>,
     out_buf: &mut Vec<f32>,
+    // fork(voice-control): withhold offline gaps until speech resumes.
+    pending_gap: &mut Vec<f32>,
 ) {
+    // fork(voice-control): offline VAD trims edges and caps long pauses; live callbacks keep
+    // their original VAD-filtered frames. Resumed pre-roll overlaps the gap
+    // (and can overlap already emitted hangover), so append only this raw frame.
+    let speech_seen = !out_buf.is_empty();
     let mut emit = |buf: &[f32]| {
-        out_buf.extend_from_slice(buf);
+        if vad_policy == VadPolicy::Offline && speech_seen {
+            if pending_gap.len() > OFFLINE_FULL_INTERNAL_GAP_MAX_SAMPLES {
+                out_buf.extend_from_slice(&pending_gap[..OFFLINE_INTERNAL_GAP_EDGE_SAMPLES]);
+                out_buf.extend_from_slice(
+                    &pending_gap[pending_gap.len() - OFFLINE_INTERNAL_GAP_EDGE_SAMPLES..],
+                );
+                pending_gap.clear();
+            }
+            out_buf.append(pending_gap);
+            out_buf.extend_from_slice(samples);
+        } else {
+            out_buf.extend_from_slice(buf);
+        }
         if let Some(cb) = audio_cb {
             cb(buf);
         }
@@ -656,7 +683,12 @@ fn handle_frame(
             .unwrap_or(VadFrame::Speech(samples))
         {
             VadFrame::Speech(buf) => emit(buf),
-            VadFrame::Noise => {}
+            // fork(voice-control): preserve internal quiet frames, but not leading silence.
+            VadFrame::Noise => {
+                if vad_policy == VadPolicy::Offline && speech_seen {
+                    pending_gap.extend_from_slice(samples);
+                }
+            }
         }
     } else {
         emit(samples);
@@ -713,6 +745,8 @@ struct CaptureProcessor {
     // ---- recording-scoped: reset by `begin_recording` ------------------- //
     vad_policy: VadPolicy,
     processed_samples: Vec<f32>,
+    // fork(voice-control): pending offline silence is bounded by recording length.
+    pending_gap: Vec<f32>,
     awaiting_first_captured_chunk: Option<Instant>,
     capture_ready_tx: Option<mpsc::Sender<()>>,
     total_dropped_samples: u64,
@@ -764,6 +798,8 @@ impl CaptureProcessor {
             first_chunk_logged: false,
             vad_policy: VadPolicy::Offline,
             processed_samples: Vec::new(),
+            // fork(voice-control): recording-local gap buffer for edge-only trimming.
+            pending_gap: Vec::new(),
             awaiting_first_captured_chunk: None,
             capture_ready_tx: None,
             total_dropped_samples: 0,
@@ -779,6 +815,8 @@ impl CaptureProcessor {
         self.overrun_warning_logged = false;
         self.vad_policy = policy;
         self.processed_samples.clear();
+        // fork(voice-control): never carry a quiet gap across recording sessions.
+        self.pending_gap.clear();
         self.visualizer.reset();
         self.frame_resampler.reset();
         if policy != VadPolicy::Disabled {
@@ -835,6 +873,8 @@ impl CaptureProcessor {
                 &self.vad,
                 &self.audio_cb,
                 &mut self.processed_samples,
+                // fork(voice-control): retain internal gaps during normal capture.
+                &mut self.pending_gap,
             )
         });
 
@@ -878,8 +918,21 @@ impl CaptureProcessor {
                 &self.vad,
                 &self.audio_cb,
                 &mut self.processed_samples,
+                // fork(voice-control): apply the same gap logic to resampler tail frames.
+                &mut self.pending_gap,
             )
         });
+
+        // fork(voice-control): classify every resampler flush frame before keeping
+        // the trailing gap, so quiet final words survive the upstream tail drain.
+        if vad_policy == VadPolicy::Offline && !self.processed_samples.is_empty() {
+            if self.pending_gap.len() > OFFLINE_FULL_TAIL_MAX_SAMPLES {
+                self.pending_gap.truncate(OFFLINE_LONG_TAIL_KEEP_SAMPLES);
+            }
+            self.processed_samples.append(&mut self.pending_gap);
+        }
+        // fork(voice-control): release the potentially long gap allocation.
+        self.pending_gap = Vec::new();
 
         // Diagnostic for VAD audio still withheld when capture stopped; it is
         // not conclusive in either direction.
