@@ -293,6 +293,15 @@
         "title": "Atura automàticament els enregistraments llargs",
         "description": "Atura l'enregistrament abans que el model seleccionat arribi al límit segur de dictat. Durant els darrers segons apareix un anell de compte enrere."
       },
+      "dictationJournal": {
+        "title": "Diari de dictats",
+        "description": "Desa un registre local i diari de cada dictat (temps, model, text després de cada pas de processament, aplicació de destinació) per poder-ne analitzar la qualitat més endavant. Es queda en aquest dispositiu; els fitxers de més de {{days}} dies se suprimeixen.",
+        "folderTitle": "Carpeta del diari",
+        "folderDescription": "On es desen els fitxers diaris del diari",
+        "retentionTitle": "Conservació del registre",
+        "retentionDescription": "Els fitxers diaris més antics se suprimeixen",
+        "retentionOption": "{{days}} dies"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Acceleració del transcribe.cpp",

@@ -293,6 +293,15 @@
         "title": "Arrêter automatiquement les longs enregistrements",
         "description": "Arrête l’enregistrement avant que le modèle sélectionné atteigne sa limite de dictée sûre. Un anneau de compte à rebours apparaît pendant les dernières secondes."
       },
+      "dictationJournal": {
+        "title": "Journal de dictée",
+        "description": "Conserve un journal local quotidien de chaque dictée (durées, modèle, texte après chaque étape de traitement, app cible) pour analyser la qualité plus tard. Reste sur cet appareil ; les fichiers de plus de {{days}} jours sont supprimés.",
+        "folderTitle": "Dossier du journal",
+        "folderDescription": "Emplacement des fichiers quotidiens du journal",
+        "retentionTitle": "Durée de conservation",
+        "retentionDescription": "Les fichiers quotidiens plus anciens sont supprimés",
+        "retentionOption": "{{days}} jours"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Accélération Whisper",

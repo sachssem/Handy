@@ -293,6 +293,15 @@
         "title": "Tự động dừng bản ghi dài",
         "description": "Dừng ghi âm trước khi mô hình đã chọn đạt đến giới hạn đọc chính tả an toàn. Vòng đếm ngược xuất hiện trong những giây cuối cùng."
       },
+      "dictationJournal": {
+        "title": "Nhật ký đọc chính tả",
+        "description": "Lưu nhật ký cục bộ theo ngày cho mỗi lần đọc chính tả (thời gian, mô hình, văn bản sau mỗi bước xử lý, ứng dụng đích) để có thể phân tích chất lượng sau này. Chỉ lưu trên thiết bị này; các tệp cũ hơn {{days}} ngày sẽ bị xóa.",
+        "folderTitle": "Thư mục nhật ký",
+        "folderDescription": "Nơi lưu các tệp nhật ký hằng ngày",
+        "retentionTitle": "Thời gian lưu nhật ký",
+        "retentionDescription": "Các tệp theo ngày cũ hơn sẽ bị xóa",
+        "retentionOption": "{{days}} ngày"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Tăng tốc Whisper",

@@ -293,6 +293,15 @@
         "title": "Uzun kayıtları otomatik olarak durdur",
         "description": "Seçilen model güvenli dikte sınırına ulaşmadan önce kaydı durdurur. Son saniyelerde geri sayım halkası görünür."
       },
+      "dictationJournal": {
+        "title": "Dikte günlüğü",
+        "description": "Kaliteyi daha sonra analiz edebilmek için her diktenin (süreler, model, her işleme adımından sonraki metin, hedef uygulama) yerel, günlük bir kaydını tutar. Bu cihazda kalır; {{days}} günden eski dosyalar silinir.",
+        "folderTitle": "Günlük klasörü",
+        "folderDescription": "Günlük dosyalarının saklandığı yer",
+        "retentionTitle": "Saklama süresi",
+        "retentionDescription": "Bundan eski günlük dosyalar silinir",
+        "retentionOption": "{{days}} gün"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp Hızlandırması",

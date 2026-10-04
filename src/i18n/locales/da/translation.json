@@ -293,6 +293,15 @@
         "title": "Stop lange optagelser automatisk",
         "description": "Stopper optagelsen, før den valgte model når sin sikre dikteringsgrænse. En nedtællingsring vises i de sidste sekunder."
       },
+      "dictationJournal": {
+        "title": "Dikteringsjournal",
+        "description": "Fører en lokal log pr. dag over hver diktering (tidsforløb, model, tekst efter hvert behandlingstrin, målprogram), så kvaliteten kan analyseres senere. Forbliver på denne enhed; filer ældre end {{days}} dage slettes.",
+        "folderTitle": "Journalmappe",
+        "folderDescription": "Hvor de daglige journalfiler gemmes",
+        "retentionTitle": "Opbevaringstid",
+        "retentionDescription": "Dagsfiler ældre end dette slettes",
+        "retentionOption": "{{days}} dage"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp-acceleration",

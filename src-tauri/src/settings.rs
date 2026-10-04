@@ -584,6 +584,12 @@ pub struct AppSettings {
     /// correction-learning store (which owns them since) and then emptied.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub learned_corrections: Vec<LearnedCorrection>,
+    // fork(voice-control): local dictation journal (see `journal`).
+    #[serde(default = "default_true")]
+    pub dictation_journal_enabled: bool,
+    /// Days a journal day file is kept (clamped to 1–365).
+    #[serde(default = "default_dictation_journal_retention_days")]
+    pub dictation_journal_retention_days: u32,
 }
 
 fn default_learn_corrections_window_secs() -> u32 {
@@ -597,6 +603,11 @@ fn default_learned_toast_accept_shortcut() -> String {
 
 fn default_learned_toast_dismiss_shortcut() -> String {
     crate::correction_learning::toast_shortcuts::DEFAULT_DISMISS.to_string()
+}
+
+// fork(voice-control): dictation journal retention.
+fn default_dictation_journal_retention_days() -> u32 {
+    90
 }
 
 // fork(voice-control): serde default for the fork's default-on switches.
@@ -1083,6 +1094,8 @@ pub fn get_default_settings() -> AppSettings {
         learned_toast_accept_shortcut: default_learned_toast_accept_shortcut(),
         learned_toast_dismiss_shortcut: default_learned_toast_dismiss_shortcut(),
         learned_corrections: Vec::new(),
+        dictation_journal_enabled: default_true(),
+        dictation_journal_retention_days: default_dictation_journal_retention_days(),
     }
 }
 

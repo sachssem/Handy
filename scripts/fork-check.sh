@@ -72,6 +72,24 @@ PROBES=(
   "vad-edges: long stop tail capped|src-tauri/src/audio_toolkit/audio/recorder.rs|self\.pending_gap\.truncate\(OFFLINE_LONG_TAIL_KEEP_SAMPLES\)"
   "vad-edges: long internal pause capped|src-tauri/src/audio_toolkit/audio/recorder.rs|pending_gap\.len\(\) > OFFLINE_FULL_INTERNAL_GAP_MAX_SAMPLES"
 
+  # -- dictation journal + app context capture --
+  "journal: module wired in|src-tauri/src/lib.rs|^(pub )?mod journal;"
+  "journal: writer init|src-tauri/src/lib.rs|journal::init\\(app_handle\\)"
+  "journal: commands registered|src-tauri/src/lib.rs|journal::commands::change_dictation_journal_enabled_setting"
+  "journal: settings fields|src-tauri/src/settings.rs|dictation_journal_enabled"
+  "journal: dictation begin hook|src-tauri/src/actions.rs|crate::journal::begin_dictation"
+  "journal: stop guard hook|src-tauri/src/actions.rs|crate::journal::DictationGuard::stop"
+  "journal: engine facts hook|src-tauri/src/managers/transcription.rs|crate::journal::record_asr"
+  "journal: text stages hook|src-tauri/src/managers/transcription.rs|record_text_stage\\(Stage::Learned"
+  "journal: allowlist guard hook|src-tauri/src/managers/transcription.rs|crate::journal::record_allowlist_guard"
+  "journal: retention UI|src/components/settings/DictationJournal.tsx|dictation_journal_retention_days"
+  "journal: overlay breadcrumb command|src-tauri/src/lib.rs|journal::commands::journal_overlay_stage"
+  "journal: overlay breadcrumbs reported|src/overlay/RecordingOverlay.tsx|commands\.journalOverlayStage"
+  "journal: auto-stop trigger|src-tauri/src/transcription_coordinator.rs|journal::AUTO_STOP_TRIGGER"
+  "journal: settings UI mounted|src/components/settings/advanced/AdvancedSettings.tsx|<DictationJournal"
+  "dictation-context: module wired in|src-tauri/src/lib.rs|^(pub )?mod dictation_context;"
+  "dictation-context: capture hook|src-tauri/src/actions.rs|crate::dictation_context::capture_async"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"

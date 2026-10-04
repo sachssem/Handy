@@ -293,6 +293,15 @@
         "title": "Hentikan Rekaman Panjang Secara Otomatis",
         "description": "Menghentikan perekaman sebelum model yang dipilih mencapai batas dikte amannya. Cincin hitung mundur muncul pada detik-detik terakhir."
       },
+      "dictationJournal": {
+        "title": "Jurnal Dikte",
+        "description": "Menyimpan log lokal harian untuk setiap dikte (waktu, model, teks setelah setiap langkah pemrosesan, aplikasi tujuan) agar kualitasnya dapat dianalisis nanti. Tetap berada di perangkat ini; file yang lebih lama dari {{days}} hari akan dihapus.",
+        "folderTitle": "Folder Jurnal",
+        "folderDescription": "Lokasi penyimpanan file jurnal harian",
+        "retentionTitle": "Masa simpan jurnal",
+        "retentionDescription": "File harian yang lebih lama akan dihapus",
+        "retentionOption": "{{days}} hari"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Akselerasi transcribe.cpp",

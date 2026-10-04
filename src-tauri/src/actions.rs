@@ -427,6 +427,8 @@ impl ShortcutAction for TranscribeAction {
         }
 
         let binding_id = binding_id.to_string();
+        // fork(voice-control): open this dictation's journal record.
+        let dictation_id = crate::journal::begin_dictation(&binding_id, self.post_process);
 
         // Get the microphone mode to determine audio feedback timing
         let plan_started = Instant::now();
@@ -480,6 +482,19 @@ impl ShortcutAction for TranscribeAction {
             plan_elapsed,
             overlay_elapsed
         );
+        // fork(voice-control): journal the same start-path spans.
+        crate::journal::record_start_path(
+            dictation_id,
+            crate::journal::StartPath {
+                model_kickoff_ms: kickoff_elapsed.as_secs_f64() * 1000.0,
+                stream_plan_ms: plan_elapsed.as_secs_f64() * 1000.0,
+                overlay_ms: overlay_elapsed.as_secs_f64() * 1000.0,
+                tray_ms: tray_elapsed.as_secs_f64() * 1000.0,
+                selected_model: settings.selected_model.clone(),
+                streaming: model_supports_streaming,
+                vad: format!("{:?}", vad_policy),
+            },
+        );
         debug!("Microphone mode - always_on: {}", is_always_on);
 
         let mut recording_error: Option<String> = None;
@@ -521,6 +536,7 @@ impl ShortcutAction for TranscribeAction {
 
                     debug!("Microphone is receiving samples; recording is ready");
                     utils::emit_recording_ready(&app_clone);
+                    crate::journal::mark_mic_ready(dictation_id); // fork(voice-control)
 
                     // The start chime is a readiness cue, so it must follow the
                     // first real input callback rather than Stream::play() or a
@@ -543,7 +559,12 @@ impl ShortcutAction for TranscribeAction {
         if recording_error.is_none() {
             // Dynamically register the cancel shortcut in a separate task to avoid deadlock
             shortcut::register_cancel_shortcut(app);
+            // fork(voice-control): capture the target app's context off-thread,
+            // after the overlay and mic start so neither waits for it.
+            crate::dictation_context::capture_async(app, dictation_id);
         } else {
+            // fork(voice-control): the journal record ends here.
+            crate::journal::start_failed(dictation_id, recording_error.as_deref());
             // Starting failed (for example due to blocked microphone permissions).
             // Revert UI state so we don't stay stuck in the recording overlay.
             tm.cancel_stream();
@@ -573,7 +594,7 @@ impl ShortcutAction for TranscribeAction {
         );
     }
 
-    fn stop(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
+    fn stop(&self, app: &AppHandle, binding_id: &str, shortcut_str: &str) {
         // Prevent a slow microphone from emitting a ready event or start chime
         // after the user has already requested stop.
         app.state::<Arc<AudioRecordingManager>>()
@@ -614,6 +635,15 @@ impl ShortcutAction for TranscribeAction {
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
         let cancel_generation = rm.cancel_generation();
+        // fork(voice-control): follows this dictation to its end; dropping it
+        // (on any exit path, or after the paste) writes the journal record.
+        let journal = {
+            let rm = Arc::clone(&rm);
+            let paste_method = get_settings(app).paste_method;
+            crate::journal::DictationGuard::stop(shortcut_str, &paste_method, move || {
+                rm.was_cancelled_since(cancel_generation)
+            })
+        };
 
         tauri::async_runtime::spawn(async move {
             let _guard = FinishGuard(ah.clone(), Arc::clone(&tm));
@@ -649,6 +679,7 @@ impl ShortcutAction for TranscribeAction {
                     // Save WAV concurrently with transcription
                     let sample_count = samples.len();
                     let file_name = format!("handy-{}.wav", chrono::Utc::now().timestamp());
+                    journal.recorded(sample_count, &file_name); // fork(voice-control)
                     let wav_path = hm.recordings_dir().join(&file_name);
                     let wav_path_for_verify = wav_path.clone();
                     let samples_for_wav = samples.clone();
@@ -696,6 +727,9 @@ impl ShortcutAction for TranscribeAction {
                         }
                     };
 
+                    // fork(voice-control): journal the transcription call.
+                    journal.transcribed(transcription_time.elapsed(), wav_saved);
+
                     if rm.was_cancelled_since(cancel_generation) {
                         debug!("Transcription operation cancelled before output handling");
                         utils::hide_recording_overlay(&ah);
@@ -718,6 +752,7 @@ impl ShortcutAction for TranscribeAction {
                                     show_processing_overlay(&ah);
                                 }
                             }
+                            let output_started = Instant::now(); // fork(voice-control)
                             let Some(processed) = complete_unless_cancelled(
                                 process_transcription_output(&ah, &transcription, post_process),
                                 || rm.was_cancelled_since(cancel_generation),
@@ -729,6 +764,14 @@ impl ShortcutAction for TranscribeAction {
                                 set_tray_state(&ah, TrayIconState::Idle);
                                 return;
                             };
+
+                            // fork(voice-control): journal the output stage.
+                            journal.processed(
+                                post_process,
+                                processed.post_processed_text.as_deref(),
+                                output_started.elapsed(),
+                                &processed.final_text,
+                            );
 
                             if rm.was_cancelled_since(cancel_generation) {
                                 debug!("Transcription operation cancelled before paste");
@@ -758,6 +801,9 @@ impl ShortcutAction for TranscribeAction {
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
                                 let rm_for_paste = Arc::clone(&rm);
+                                // fork(voice-control): bind learning to this paste's owner,
+                                // even if a newer dictation starts before the closure runs.
+                                let dictation_id = journal.id();
                                 ah.run_on_main_thread(move || {
                                     if rm_for_paste.was_cancelled_since(cancel_generation) {
                                         debug!("Transcription operation cancelled before paste");
@@ -776,16 +822,22 @@ impl ShortcutAction for TranscribeAction {
                                                 "Text pasted successfully in {:?}",
                                                 paste_time.elapsed()
                                             );
+                                            // fork(voice-control): journal the paste.
+                                            journal.pasted(None, paste_time.elapsed());
                                             // fork(voice-control): open the
                                             // post-paste correction-learning
                                             // window on the target app.
                                             crate::correction_learning::begin_session(
                                                 &ah_clone,
                                                 learn_snapshot,
+                                                dictation_id,
                                             );
                                         }
                                         Err(e) => {
                                             error!("Failed to paste transcription: {}", e);
+                                            // fork(voice-control): journal the failure.
+                                            journal
+                                                .pasted(Some(&e.to_string()), paste_time.elapsed());
                                             let _ = ah_clone.emit("paste-error", ());
                                         }
                                     }
@@ -810,6 +862,8 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             error!("Transcription failed: {}", err);
+                            // fork(voice-control): journal the failure.
+                            journal.failed(&err.to_string());
                             // Surface the failure to the UI (toast). The full
                             // message is also in handy.log via the line above.
                             let _ = ah.emit("transcription-error", err.to_string());

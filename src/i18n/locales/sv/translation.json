@@ -293,6 +293,15 @@
         "title": "Stoppa långa inspelningar automatiskt",
         "description": "Stoppar inspelningen innan den valda modellen når sin säkra dikteringsgräns. En nedräkningsring visas under de sista sekunderna."
       },
+      "dictationJournal": {
+        "title": "Dikteringslogg",
+        "description": "För en lokal daglig logg över varje diktering (tider, modell, text efter varje bearbetningssteg, målapp) så att kvaliteten kan analyseras senare. Stannar på den här enheten; filer äldre än {{days}} dagar raderas.",
+        "folderTitle": "Loggmapp",
+        "folderDescription": "Var de dagliga loggfilerna sparas",
+        "retentionTitle": "Lagringstid",
+        "retentionDescription": "Äldre dagsfiler raderas",
+        "retentionOption": "{{days}} dagar"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper-acceleration",

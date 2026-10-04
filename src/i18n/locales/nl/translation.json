@@ -293,6 +293,15 @@
         "title": "Lange opnames automatisch stoppen",
         "description": "Stopt de opname voordat het geselecteerde model zijn veilige dicteerlimiet bereikt. Tijdens de laatste seconden verschijnt een aftelring."
       },
+      "dictationJournal": {
+        "title": "Dicteerlogboek",
+        "description": "Houdt per dag een lokaal logboek bij van elk dictaat (tijden, model, tekst na elke verwerkingsstap, doel-app) zodat de kwaliteit later kan worden geanalyseerd. Blijft op dit apparaat; bestanden ouder dan {{days}} dagen worden verwijderd.",
+        "folderTitle": "Logboekmap",
+        "folderDescription": "Waar de dagelijkse logboekbestanden worden opgeslagen",
+        "retentionTitle": "Bewaartermijn",
+        "retentionDescription": "Oudere dagbestanden worden verwijderd",
+        "retentionOption": "{{days}} dagen"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp-versnelling",

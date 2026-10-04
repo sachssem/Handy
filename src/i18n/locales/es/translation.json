@@ -293,6 +293,15 @@
         "title": "Detener grabaciones largas automáticamente",
         "description": "Detiene la grabación antes de que el modelo seleccionado alcance su límite seguro de dictado. Durante los últimos segundos aparece un anillo de cuenta atrás."
       },
+      "dictationJournal": {
+        "title": "Diario de dictado",
+        "description": "Guarda un registro local diario de cada dictado (tiempos, modelo, texto tras cada paso de procesamiento, app de destino) para poder analizar la calidad más adelante. Se queda en este dispositivo; los archivos de más de {{days}} días se eliminan.",
+        "folderTitle": "Carpeta del diario",
+        "folderDescription": "Dónde se guardan los archivos diarios del diario",
+        "retentionTitle": "Conservación del registro",
+        "retentionDescription": "Los archivos diarios más antiguos se eliminan",
+        "retentionOption": "{{days}} días"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Aceleración de transcribe.cpp",

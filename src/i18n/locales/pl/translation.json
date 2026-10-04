@@ -293,6 +293,15 @@
         "title": "Automatycznie zatrzymuj długie nagrania",
         "description": "Zatrzymuje nagrywanie, zanim wybrany model osiągnie bezpieczny limit dyktowania. W ostatnich sekundach pojawia się pierścień odliczania."
       },
+      "dictationJournal": {
+        "title": "Dziennik dyktowania",
+        "description": "Prowadzi lokalny, dzienny zapis każdego dyktowania (czasy, model, tekst po każdym etapie przetwarzania, aplikacja docelowa), aby można było później analizować jakość. Pozostaje na tym urządzeniu; pliki starsze niż {{days}} dni są usuwane.",
+        "folderTitle": "Folder dziennika",
+        "folderDescription": "Miejsce zapisu dziennych plików dziennika",
+        "retentionTitle": "Okres przechowywania",
+        "retentionDescription": "Starsze pliki dzienne są usuwane",
+        "retentionOption": "{{days}} dni"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Akceleracja Whisper",

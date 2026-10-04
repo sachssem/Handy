@@ -22,6 +22,7 @@ import { ExperimentalToggle } from "../ExperimentalToggle";
 import { useSettings } from "../../../hooks/useSettings";
 import { KeyboardImplementationSelector } from "../debug/KeyboardImplementationSelector";
 import { VoiceActivityDetection } from "../VoiceActivityDetection";
+import { DictationJournal } from "../DictationJournal"; // fork(voice-control)
 import { RecordingLimitAutoStop } from "../RecordingLimitAutoStop";
 import { AccelerationSelector } from "../AccelerationSelector";
 import { LazyStreamClose } from "../LazyStreamClose";
@@ -76,6 +77,8 @@ export const AdvancedSettings: React.FC = () => {
           descriptionMode="tooltip"
           grouped={true}
         />
+        {/* fork(voice-control): local dictation journal */}
+        <DictationJournal descriptionMode="tooltip" grouped />
       </SettingsGroup>
 
       {experimentalEnabled && (

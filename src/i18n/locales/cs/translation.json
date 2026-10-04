@@ -293,6 +293,15 @@
         "title": "Automaticky zastavit dlouhé nahrávky",
         "description": "Zastaví nahrávání dříve, než vybraný model dosáhne bezpečného limitu pro diktování. V posledních sekundách se zobrazí kruh s odpočtem."
       },
+      "dictationJournal": {
+        "title": "Deník diktování",
+        "description": "Vede místní denní záznam každého diktování (časy, model, text po každém kroku zpracování, cílová aplikace), aby bylo možné kvalitu později analyzovat. Zůstává v tomto zařízení; soubory starší {{days}} dnů se mažou.",
+        "folderTitle": "Složka deníku",
+        "folderDescription": "Kde jsou uloženy denní soubory deníku",
+        "retentionTitle": "Doba uchování",
+        "retentionDescription": "Denní soubory starší než tato doba se mažou",
+        "retentionOption": "{{days}} dnů"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Akcelerace Whisper",

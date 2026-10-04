@@ -293,6 +293,15 @@
         "title": "Stop Long Recordings Automatically",
         "description": "Stops recording before the selected model reaches its safe dictation limit. A countdown ring appears during the final seconds."
       },
+      "dictationJournal": {
+        "title": "Dictation Journal",
+        "description": "Keeps a local, per-day log of every dictation (timings, model, text after each processing step, target app) so quality can be analysed later. Stays on this device; files older than {{days}} days are deleted.",
+        "folderTitle": "Journal Folder",
+        "folderDescription": "Where the daily journal files are stored",
+        "retentionTitle": "Journal Retention",
+        "retentionDescription": "Day files older than this are deleted",
+        "retentionOption": "{{days}} days"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp Acceleration",

@@ -1512,6 +1512,13 @@ impl TranscriptionManager {
                                                     .get_model_info(id)
                                                     .is_some_and(|m| m.is_downloaded)
                                             });
+                                        // fork(voice-control): journal the guard decision.
+                                        crate::journal::record_allowlist_guard(
+                                            &reason,
+                                            &settings.language_allowlist,
+                                            fallback_model,
+                                            &first.text,
+                                        );
                                         if let Some(fallback_model) = fallback_model {
                                             info!(
                                                 "Language allowlist guard: {} outside {:?}, escalating to fallback model '{}'",
@@ -1532,8 +1539,18 @@ impl TranscriptionManager {
                                                 applied_language_hint = None;
                                                 output_was_translated = false;
                                                 model_detected_language = None;
+                                                // fork(voice-control): journal
+                                                crate::journal::record_allowlist_result(
+                                                    crate::journal::AllowlistResult::FallbackAccepted,
+                                                    Some(&text),
+                                                );
                                                 return Ok(text);
                                             }
+                                            // fork(voice-control): journal
+                                            crate::journal::record_allowlist_result(
+                                                crate::journal::AllowlistResult::FallbackRejected,
+                                                None,
+                                            );
                                             return Ok(first.text);
                                         }
 
@@ -1590,6 +1607,11 @@ impl TranscriptionManager {
                                                     applied_language_hint = retry_hint;
                                                     output_was_translated = retry_translated;
                                                     model_detected_language = retried.language;
+                                                    // fork(voice-control): journal
+                                                    crate::journal::record_allowlist_result(
+                                                        crate::journal::AllowlistResult::PinRetryOk,
+                                                        Some(&retried.text),
+                                                    );
                                                     return Ok(retried.text);
                                                 }
                                                 Err(e) => {
@@ -1597,6 +1619,11 @@ impl TranscriptionManager {
                                                             "Language allowlist guard: retry pinned to '{}' failed ({}); keeping original detection",
                                                             retry_lang, e
                                                         );
+                                                    // fork(voice-control): journal
+                                                    crate::journal::record_allowlist_result(
+                                                        crate::journal::AllowlistResult::PinRetryFailed,
+                                                        None,
+                                                    );
                                                 }
                                             }
                                         } else {
@@ -1604,6 +1631,11 @@ impl TranscriptionManager {
                                                     "Language allowlist guard: '{}' not advertised by the model or hints unsupported; keeping original detection",
                                                     retry_lang
                                                 );
+                                            // fork(voice-control): journal
+                                            crate::journal::record_allowlist_result(
+                                                crate::journal::AllowlistResult::PinUnsupported,
+                                                None,
+                                            );
                                         }
                                     }
                                 }
@@ -1757,6 +1789,8 @@ impl TranscriptionManager {
                 }
             };
 
+            // fork(voice-control): kept for the journal (moved just below).
+            let journal_detected_language = model_detected_language.clone();
             let output_language = with_model_detected_language(
                 resolve_output_language_evidence(
                     &settings,
@@ -1767,6 +1801,26 @@ impl TranscriptionManager {
                 model_detected_language,
             );
             debug!("Output language evidence: {:?}", output_language);
+            // fork(voice-control): journal the engine run.
+            if crate::journal::is_enabled() {
+                crate::journal::record_asr(crate::journal::AsrFacts {
+                    model_id: active_model.clone(),
+                    engine: self
+                        .model_manager
+                        .get_model_info(&active_model)
+                        .map(|info| format!("{:?}", info.engine_type)),
+                    backend: self.current_backend(),
+                    accelerator_setting: format!("{:?}", settings.transcribe_accelerator),
+                    language_setting: settings.selected_language.clone(),
+                    language_effective: validated_language.clone(),
+                    language_hint: applied_language_hint.clone(),
+                    detected_language: journal_detected_language,
+                    language_evidence: format!("{:?}", output_language),
+                    translated: output_was_translated,
+                    engine_ms: st.elapsed().as_millis() as u64,
+                    audio_secs: audio_len as f64 / 16_000.0,
+                });
+            }
 
             (text, output_language, model_languages)
         };
@@ -2206,6 +2260,9 @@ pub(crate) fn post_process_transcription_text(
 ) -> String {
     let converts_script = settings.chinese_script != ChineseScript::AsTranscribed;
     fail_open_text_transform(raw, |raw| {
+        // fork(voice-control): journal the raw engine text.
+        crate::journal::record_text_stage(crate::journal::Stage::Asr, &raw);
+
         // Last-resort language evidence: confidence-gated detection from the
         // transcribed text itself, constrained to the model's languages. Only
         // consulted when it can change the outcome (built-in gated fillers or
@@ -2241,11 +2298,14 @@ pub(crate) fn post_process_transcription_text(
         };
 
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
-            apply_custom_words(
+            let corrected = apply_custom_words(
                 &raw,
                 &settings.custom_words,
                 settings.word_correction_threshold,
-            )
+            );
+            // fork(voice-control): journal
+            crate::journal::record_text_stage(crate::journal::Stage::CustomWords, &corrected);
+            corrected
         } else {
             raw
         };
@@ -2269,6 +2329,14 @@ pub(crate) fn post_process_transcription_text(
             &output_language,
             supported_languages,
         );
+
+        // fork(voice-control): journal every stage's text.
+        if crate::journal::is_enabled() {
+            use crate::journal::{record_text_stage, Stage};
+            record_text_stage(Stage::Fillers, &without_fillers);
+            record_text_stage(Stage::Normalized, &normalized);
+            record_text_stage(Stage::Learned, &learned);
+        }
         learned
     })
 }

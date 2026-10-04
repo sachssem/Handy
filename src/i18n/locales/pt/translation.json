@@ -293,6 +293,15 @@
         "title": "Parar gravações longas automaticamente",
         "description": "Para a gravação antes que o modelo selecionado atinja o limite seguro de ditado. Um anel de contagem regressiva aparece nos últimos segundos."
       },
+      "dictationJournal": {
+        "title": "Diário de ditado",
+        "description": "Mantém um registo local diário de cada ditado (tempos, modelo, texto após cada etapa de processamento, app de destino) para que a qualidade possa ser analisada depois. Fica neste dispositivo; ficheiros com mais de {{days}} dias são eliminados.",
+        "folderTitle": "Pasta do diário",
+        "folderDescription": "Onde os ficheiros diários do diário são guardados",
+        "retentionTitle": "Período de retenção",
+        "retentionDescription": "Os ficheiros diários mais antigos são eliminados",
+        "retentionOption": "{{days}} dias"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Aceleração Whisper",

@@ -34,6 +34,7 @@ Conventions used throughout:
 | [correction learning](#correction-learning)                                              | feature | medium         | `actions.rs`, `managers/transcription.rs`, `settings.rs`, `lib.rs`, `cli.rs`, settings UI                                                             |
 | [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                                                                |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
+| [dictation journal + context](#dictation-journal--app-context)                           | feature | medium         | `actions.rs`, `managers/transcription.rs`, `transcription_coordinator.rs`, `overlay.rs`, `RecordingOverlay.tsx`, `settings.rs`, `lib.rs`, settings UI |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
@@ -235,14 +236,91 @@ degrade or hang past a length), for models with a measured limit.
 - **Upstream files touched:** `settings.rs` (`auto_stop_recording_on_limit`),
   `shortcut/mod.rs` (settings command), `transcription_coordinator.rs`
   (`schedule_recording_limit` — the actual auto-stop enforcement, scheduled per
-  recording session), `managers/model.rs` (per-model limit metadata),
-  `AdvancedSettings.tsx`.
+  recording session; stops with `journal::AUTO_STOP_TRIGGER`),
+  `managers/model.rs` (per-model limit metadata), `AdvancedSettings.tsx`,
+  `RecordingOverlay.tsx` (countdown ring).
 - **Probe:** `recording-limit: *` in `scripts/fork-check.sh` (incl. the
   `schedule_recording_limit` enforcement hook in `transcription_coordinator.rs`).
 - **Upstream check:** did upstream add a max-recording-length / auto-stop?
   ```bash
   git grep -iE "max.?record|recording.?limit|auto.?stop|duration.?limit" upstream/main -- src-tauri/src
   ```
+
+## dictation journal + app context
+
+Local, structured record of every dictation so an analysis agent can study and
+improve quality later without asking the user. One JSON object per line, one
+file per local day under `<app log dir>/journal/YYYY-MM-DD.jsonl` (macOS:
+`~/Library/Logs/com.pais.handy/journal/`). Schema (versioned, `v` on every
+line), join rules and example queries: [`docs/journal.md`](journal.md).
+
+- **Events:** `dictation` (timings, model/engine/backend, language hint +
+  detection + evidence, allowlist guard decision/fallback/result, the text after
+  every pipeline stage, LLM, paste method/ms, WAV name, auto-stop, outcome),
+  `context` (app context captured at recording start), `learning` (post-paste
+  session outcome: reads, edits, gate rejections by gate, committed pairs),
+  `overlay` (webview show latencies reported via the journal's
+  `journal_overlay_stage` command). All keyed by the dictation id (epoch ms of
+  the press).
+- **Never on the hot path:** hooks only update an in-memory record; finished
+  records go over a bounded channel to one writer thread (`try_send`, a full
+  channel drops the line). Disk errors are logged rate-limited and never reach
+  the pipeline. Per-day size cap (32 MB) writes one `cap` marker, then drops.
+- **Disabled = near-zero cost:** dictation ids are still issued (ASR biasing
+  and the output stages key the app context by them), but every hook returns
+  before copying a fact or text.
+- **Retention:** `dictation_journal_retention_days` (default 90, clamped
+  1–365; the settings UI offers 30 / 90 / 180 / 365), pruned at startup, on
+  day rollover and on a retention change; only `YYYY-MM-DD.jsonl` files are
+  ever deleted.
+- **App context** (`dictation_context`): at recording start (after overlay and
+  mic start) the frontmost pid is resolved on the main thread and a background
+  thread reads bundle id, app name, focused window title, focused element role
+  and ≤ 500 chars before the caret (`AXStringForRange`, else the whole
+  `AXValue` of fields ≤ 200k UTF-16 units). Each AX message is capped at
+  150 ms. Kept in memory per dictation id (`dictation_context::get(id)`) for
+  ASR biasing and the per-app style. macOS only. While secure event input is
+  on, only the app identity is captured; a secure (password) field's text is
+  never read and its window title is dropped — so neither reaches the ASR
+  prompt or the journal.
+- **Privacy:** local only, no network. Text (dictation stages, and the
+  context line's window title / text before the caret) is journaled only for a
+  verified non-secure field; otherwise it fails closed with `text_redacted`:
+  `secure_field`, `secure_input`, `unknown_field` (no context or no focused
+  element) or `unverified_platform` (no Accessibility API — every platform but
+  macOS).
+- **New files:** `src-tauri/src/journal/` (`mod.rs`, `dictation.rs` hooks,
+  `record.rs` schema, `writer.rs`, `commands.rs`),
+  `src-tauri/src/dictation_context/mod.rs`,
+  `src/components/settings/DictationJournal.tsx`, `docs/journal.md`. AX
+  helpers added to the fork-owned `correction_learning/ax_reader.rs`
+  (`read_focus_context`, `app_identity`); the learning session (fork-owned)
+  feeds the journal.
+- **Upstream files touched:** `actions.rs` (`begin_dictation`,
+  `record_start_path`, `mark_mic_ready`, `capture_async`, `start_failed`, the
+  `DictationGuard` through stop → paste), `managers/transcription.rs`
+  (`record_asr`, `record_allowlist_guard` / `record_allowlist_result`,
+  `record_text_stage` in `post_process_transcription_text`, each gated on
+  `journal::is_enabled()`), `transcription_coordinator.rs`
+  (`journal::AUTO_STOP_TRIGGER`), `overlay.rs` (`epoch_ms` on the show log
+  line), `RecordingOverlay.tsx` (show breadcrumbs →
+  `commands.journalOverlayStage`), `settings.rs` (`dictation_journal_*`),
+  `lib.rs` (`mod journal;`, `mod dictation_context;`, `journal::init`,
+  `journal::commands::*`), `stores/settingsStore.ts`, `AdvancedSettings.tsx`,
+  `bindings.ts`.
+- **Debug:** `get_journal_dir_path` / `open_journal_dir` commands (the
+  Advanced → History group shows the retention choice and the folder with an
+  Open button).
+- **Probe:** `journal: *` and `dictation-context: *` in
+  `scripts/fork-check.sh`.
+- **Upstream check:** does upstream now keep structured per-dictation telemetry
+  or capture app context?
+  ```bash
+  git grep -iE "journal|telemetry|jsonl|frontmost|AXFocused|app.?context" upstream/main -- src-tauri/src
+  ```
+  Upstream's `history` (WAV + text) is not an equivalent. On a conflict in
+  `transcription.rs`, re-apply the hooks; they are one-liners next to the
+  allowlist / text-rules grafts.
 
 ## overlay: compact capsule + latency
 

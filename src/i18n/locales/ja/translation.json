@@ -293,6 +293,15 @@
         "title": "長時間の録音を自動停止",
         "description": "選択したモデルが安全なディクテーション上限に達する前に録音を停止します。最後の数秒間はカウントダウンリングが表示されます。"
       },
+      "dictationJournal": {
+        "title": "ディクテーション記録",
+        "description": "各ディクテーション（所要時間、モデル、各処理段階後のテキスト、入力先アプリ）を日ごとにローカルへ記録し、後から品質を分析できるようにします。データはこのデバイスにのみ保存され、{{days}}日より古いファイルは削除されます。",
+        "folderTitle": "記録フォルダー",
+        "folderDescription": "日ごとの記録ファイルの保存場所",
+        "retentionTitle": "ジャーナルの保存期間",
+        "retentionDescription": "これより古い日別ファイルは削除されます",
+        "retentionOption": "{{days}}日"
+      },
       "acceleration": {
         "transcribe": {
           "title": "transcribe.cpp アクセラレーション",

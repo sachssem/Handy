@@ -293,6 +293,15 @@
         "title": "Interrompi automaticamente le registrazioni lunghe",
         "description": "Interrompe la registrazione prima che il modello selezionato raggiunga il limite sicuro per la dettatura. Negli ultimi secondi viene visualizzato un anello di conto alla rovescia."
       },
+      "dictationJournal": {
+        "title": "Diario di dettatura",
+        "description": "Tiene un registro locale giornaliero di ogni dettatura (tempi, modello, testo dopo ogni fase di elaborazione, app di destinazione) per poterne analizzare la qualità in seguito. Resta su questo dispositivo; i file più vecchi di {{days}} giorni vengono eliminati.",
+        "folderTitle": "Cartella del diario",
+        "folderDescription": "Dove vengono salvati i file giornalieri del diario",
+        "retentionTitle": "Conservazione del registro",
+        "retentionDescription": "I file giornalieri più vecchi vengono eliminati",
+        "retentionOption": "{{days}} giorni"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Accelerazione Whisper",

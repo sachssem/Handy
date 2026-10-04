@@ -293,6 +293,15 @@
         "title": "Lange Aufnahmen automatisch stoppen",
         "description": "Stoppt die Aufnahme, bevor das ausgewählte Modell sein sicheres Diktierlimit erreicht. In den letzten Sekunden erscheint ein Countdown-Kreis."
       },
+      "dictationJournal": {
+        "title": "Diktat-Journal",
+        "description": "Führt ein lokales Tagesprotokoll jedes Diktats (Zeiten, Modell, Text nach jedem Verarbeitungsschritt, Ziel-App), damit sich die Qualität später auswerten lässt. Bleibt auf diesem Gerät; Dateien älter als {{days}} Tage werden gelöscht.",
+        "folderTitle": "Journal-Ordner",
+        "folderDescription": "Speicherort der täglichen Journal-Dateien",
+        "retentionTitle": "Aufbewahrungsdauer",
+        "retentionDescription": "Ältere Tagesdateien werden gelöscht",
+        "retentionOption": "{{days}} Tage"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper-Beschleunigung",

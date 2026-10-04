@@ -507,7 +507,7 @@ impl CoordinatorState {
         let binding_id = binding_id.clone();
         self.pending_release = None;
         debug!("Auto-stopping recording session {session_id} before model limit");
-        Some(self.begin_processing(binding_id, "auto-stop".to_string()))
+        Some(self.begin_processing(binding_id, crate::journal::AUTO_STOP_TRIGGER.to_string()))
     }
 
     fn on_processing_finished(&mut self) -> Option<Effect> {

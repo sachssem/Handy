@@ -293,6 +293,15 @@
         "title": "긴 녹음 자동 중지",
         "description": "선택한 모델이 안전한 받아쓰기 한도에 도달하기 전에 녹음을 중지합니다. 마지막 몇 초 동안 카운트다운 링이 표시됩니다."
       },
+      "dictationJournal": {
+        "title": "받아쓰기 기록",
+        "description": "모든 받아쓰기(소요 시간, 모델, 각 처리 단계 후 텍스트, 대상 앱)를 날짜별로 로컬에 기록해 나중에 품질을 분석할 수 있게 합니다. 이 기기에만 저장되며 {{days}}일이 지난 파일은 삭제됩니다.",
+        "folderTitle": "기록 폴더",
+        "folderDescription": "일별 기록 파일이 저장되는 위치",
+        "retentionTitle": "기록 보관 기간",
+        "retentionDescription": "이보다 오래된 날짜별 파일은 삭제됩니다",
+        "retentionOption": "{{days}}일"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper 가속",

@@ -15,8 +15,12 @@ mod clipboard;
 mod commands;
 // fork(voice-control): auto-learned corrections (exact misheard→intended dict).
 mod correction_learning;
+// fork(voice-control): app context at dictation start + local dictation journal.
+mod dictation_context;
 mod helpers;
 mod input;
+// fork(voice-control): local dictation journal (see `journal`).
+mod journal;
 mod llm_client;
 mod managers;
 mod memory;
@@ -381,6 +385,8 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // eagerly like the overlay (a lazily created panel is suspended by WebKit).
     correction_learning::init(app_handle);
     correction_learning::toast::init_learned_toast(app_handle);
+    // fork(voice-control): start the dictation journal writer (prunes old days).
+    journal::init(app_handle);
 }
 
 #[tauri::command]
@@ -726,6 +732,12 @@ pub fn run(cli_args: CliArgs) {
             correction_learning::toast::take_pending_learned_toast,
             correction_learning::toast::toast_stage,
             correction_learning::toast_shortcuts::change_learned_toast_shortcut_setting,
+            // fork(voice-control): dictation journal commands.
+            journal::commands::change_dictation_journal_enabled_setting,
+            journal::commands::change_dictation_journal_retention_days_setting,
+            journal::commands::get_journal_dir_path,
+            journal::commands::open_journal_dir,
+            journal::commands::journal_overlay_stage,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,

@@ -163,6 +163,11 @@ const settingUpdaters: {
     commands.changeLearnCorrectionsAggressivenessSetting(value as string),
   learn_corrections_window_secs: (value) =>
     commands.changeLearnCorrectionsWindowSecsSetting(value as number),
+  // fork(voice-control): local dictation journal.
+  dictation_journal_enabled: (value) =>
+    commands.changeDictationJournalEnabledSetting(value as boolean),
+  dictation_journal_retention_days: (value) =>
+    commands.changeDictationJournalRetentionDaysSetting(value as number),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>

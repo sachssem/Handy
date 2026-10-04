@@ -293,6 +293,15 @@
         "title": "自動停止長時間錄音",
         "description": "在所選模型達到安全聽寫限制前停止錄音。最後幾秒會顯示倒數圓環。"
       },
+      "dictationJournal": {
+        "title": "聽寫日誌",
+        "description": "在本機按日記錄每次聽寫（耗時、模型、各處理步驟後的文字、目標應用程式），以便日後分析品質。僅儲存在此裝置上；超過 {{days}} 天的檔案會被刪除。",
+        "folderTitle": "日誌資料夾",
+        "folderDescription": "每日日誌檔案的儲存位置",
+        "retentionTitle": "日誌保留時間",
+        "retentionDescription": "早於此時間的每日檔案會被刪除",
+        "retentionOption": "{{days}} 天"
+      },
       "acceleration": {
         "transcribe": {
           "title": "Whisper 加速",
