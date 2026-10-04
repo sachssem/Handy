@@ -192,7 +192,17 @@
         "description": "Vælg sproget til talegenkendelse. Auto tyder automatisk sproget, mens valg af et specifikt sprog kan forbedre nøjagtigheden for det pågældende sprog.",
         "searchPlaceholder": "Søg efter sprog...",
         "noResults": "Ingen sprog fundet",
-        "auto": "Automatisk"
+        "auto": "Automatisk",
+        "allowlist": {
+          "title": "Begræns automatisk registrering til…",
+          "description": "Når Auto er valgt, beholdes kun disse sprog. Et registreret sprog uden for listen transskriberes igen på det primære sprog.",
+          "primary": "Primært",
+          "fallbackModel": {
+            "label": "Reservemodel",
+            "none": "Ingen",
+            "description": "Registreringer uden for listen transskriberes igen med denne model i stedet for et nyt forsøg på det primære sprog."
+          }
+        }
       },
       "shortcutActivation": {
         "title": "Genvejens adfærd",
@@ -264,7 +274,9 @@
         "output": "Output",
         "transcription": "Transskription",
         "history": "Historik",
-        "experimental": "Eksperimentel"
+        "experimental": "Eksperimentel",
+        "textRules": "Tekstregler",
+        "learnedCorrections": "Lærte rettelser"
       },
       "experimentalToggle": {
         "label": "Eksperimentelle funktioner",
@@ -273,6 +285,10 @@
       "lazyStreamClose": {
         "label": "Hold mikrofon åben mellem transskriptioner",
         "description": "Holder mikrofonstrømmen åben i 30 sekunder, efter at optagelsen stopper, hvilket reducerer ventetid ved transskriptioner lige efter hinanden. Kan forringe Bluetooth-lydkvaliteten, mens den er aktiv."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Stop lange optagelser automatisk",
+        "description": "Stopper optagelsen, før den valgte model når sin sikre dikteringsgrænse. En nedtællingsring vises i de sidste sekunder."
       },
       "acceleration": {
         "transcribe": {
@@ -382,6 +398,76 @@
         "add": "Tilføj",
         "remove": "Fjern {{word}}",
         "duplicate": "\"{{word}}\" findes allerede"
+      },
+      "textRules": {
+        "title": "Konvertér talte kommandoer",
+        "description": "Konvertér talte tegnsætnings- og formateringskommandoer (tysk og engelsk) til symboler med det samme uden en tur forbi AI. Kører før valgfri AI-efterbehandling.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Tal som cifre",
+          "description": "Konvertér talte tal til cifre, f.eks. \"five hundred thirty nine\" → \"539\". Små enkeltstående tal bevares som ord."
+        },
+        "builtins": {
+          "title": "Indbyggede kommandoer",
+          "description": "Aktivér eller deaktiver individuelle indbyggede kommandoer. Deaktiver en, hvis den udløses ved en fejl i almindelig tale (f.eks. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Brugerdefinerede regler",
+          "description": "Tilføj dine egne regler for udløser og erstatning. Brugerdefinerede regler tilsidesætter indbyggede regler med samme udløser.",
+          "triggerPlaceholder": "Udløser",
+          "replacementPlaceholder": "Erstatning",
+          "add": "Tilføj",
+          "remove": "Fjern {{trigger}}",
+          "duplicate": "\"{{trigger}}\" findes allerede",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Som et komma",
+          "attach_right": "Som en startparentes",
+          "glue": "Forbinder ord",
+          "standalone": "Selvstændig"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Personlig ordbog",
+        "description": "Erstatter ord, som genkendelsen bliver ved med at tage fejl af – navne, fagudtryk, omlyde – i hver transskription, før valgfri AI-efterbehandling. På macOS lærer Handy også af dine redigeringer: Ret et ord lige efter indsætning, så foreslår Handy den rettelse. Slås dette fra, sættes begge dele på pause.",
+        "aggressiveness": {
+          "title": "Indlæringsgrad",
+          "description": "Hvor let en redigering accepteres som en reel fejlgenkendelse. Løsere niveauer lærer mere, men risikerer at forurene ordbogen.",
+          "conservative": {
+            "label": "Forsigtig",
+            "description": "Kun meget tætte rettelser, der lyder ens, læres. Sikrest mod forkerte poster."
+          },
+          "balanced": {
+            "label": "Afbalanceret",
+            "description": "Accepterer moderat forskellige rettelser; fonetik er kun vejledende."
+          },
+          "aggressive": {
+            "label": "Aggressiv",
+            "description": "Accepterer selv løst relaterede rettelser og tjekker ikke, om de lyder ens. Ombytning af hverdagsord læres stadig aldrig. Højeste risiko for dårlige poster."
+          }
+        },
+        "window": {
+          "title": "Indlæringsvindue",
+          "description": "Hvor længe efter indsætning Handy holder øje med feltet for en manuel rettelse.",
+          "seconds": "sekunder"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Automatisk",
+          "manual": "Manuel"
+        },
+        "count": "set {{count}}×",
+        "langBadge": "Lært for sprog: {{lang}}",
+        "platformHint": "Automatisk indlæring kører kun på macOS. Du kan stadig tilføje rettelser manuelt nedenfor, og de anvendes på alle platforme.",
+        "add": {
+          "misheardPlaceholder": "Fejlgenkendt",
+          "intendedPlaceholder": "Rettet",
+          "button": "Tilføj"
+        },
+        "enable": "Aktivér {{misheard}}",
+        "remove": "Fjern {{misheard}}",
+        "empty": "Ingen rettelser endnu. Tilføj et ord, som genkendelsen bliver ved med at høre forkert – f.eks. et navn eller et fagudtryk – så anvendes rettelsen på alle fremtidige transskriptioner."
       },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
@@ -711,7 +797,9 @@
   },
   "overlay": {
     "transcribing": "Transskriberer...",
-    "processing": "Behandler..."
+    "processing": "Behandler...",
+    "fallbackModel": "Reservemodel…",
+    "recordingLimitWarning": "Optagelsen stopper automatisk om {{seconds}} sekunder"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",
@@ -723,5 +811,10 @@
     "learnMore": "Sådan løser du det",
     "recorderBlocked": "Genveje kan ikke optages lige nu — macOS Secure Input blokerer tastehændelser. Løs advarslen om Secure Input først.",
     "dismiss": "Afvis"
+  },
+  "learnedToast": {
+    "title": "Lært: “{{misheard}}” → “{{intended}}”",
+    "undo": "Fortryd",
+    "more": "+{{count}} mere"
   }
 }

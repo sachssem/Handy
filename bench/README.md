@@ -39,8 +39,9 @@ The report is printed to the terminal and written to
 the current HuggingFace GGUF/ONNX catalog is resolved out of the **shared HF hub
 cache**, not copied into the app data dir:
 
-- macOS: `~/Library/Caches/huggingface/hub/models--<org>--<repo>/snapshots/<hash>/...`
-- Linux: `~/.cache/huggingface/hub/...`
+- macOS/Linux: `~/.cache/huggingface/hub/models--<org>--<repo>/snapshots/<hash>/...`
+
+`HF_HOME` overrides this according to hf-hub's cache resolver.
 
 Only legacy `Url`/`Local` catalog models land in `<app_data>/models`.
 

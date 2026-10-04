@@ -370,13 +370,7 @@ fn cache_dir() -> PathBuf {
 /// Default `--models-dir`: the HuggingFace hub cache, where the running app
 /// keeps its GGUF/ONNX models (see `engine.rs` module docs).
 fn default_hf_hub_dir() -> PathBuf {
-    if let Some(dir) = std::env::var_os("HF_HUB_CACHE") {
-        return PathBuf::from(dir);
-    }
-    if let Some(home) = std::env::var_os("HF_HOME") {
-        return PathBuf::from(home).join("hub");
-    }
-    cache_dir().join("huggingface").join("hub")
+    hf_hub::Cache::from_env().path().clone()
 }
 
 /// Default Handy app data dir (portable-aware paths are irrelevant headlessly).

@@ -28,14 +28,14 @@ Conventions used throughout:
 
 ## Feature summary
 
-| Feature                                                              | Kind    | Risk on rebase | Upstream files touched                                                                |
-| -------------------------------------------------------------------- | ------- | -------------- | ------------------------------------------------------------------------------------- |
-| [text-rules engine](#text-rules-engine)                              | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                     |
+| Feature                                                                                  | Kind    | Risk on rebase | Upstream files touched                                                                                                                                |
+| ---------------------------------------------------------------------------------------- | ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [text-rules engine](#text-rules-engine)                                                  | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
 | [correction learning](#correction-learning)                          | feature | medium         | `shortcut/mod.rs`, `settings.rs`, `lib.rs`, `clipboard.rs`, overlay, settings UI      |
 | [language-allowlist guard](#language-allowlist-guard)                | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `LanguageSelector.tsx` |
-| [recording-limit auto-stop](#recording-limit-auto-stop)              | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI |
-| [benchmark harness](#benchmark-harness)                              | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                    |
-| [fork build & maintenance tooling](#fork-build--maintenance-tooling) | tooling | none           | none (fork-owned scripts)                                                             |
+| [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
+| [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
+| [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
 "Risk on rebase" = likelihood upstream edits the same lines. New-module features are
 low; features that graft into `transcription.rs` are the ones to watch.

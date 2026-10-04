@@ -192,7 +192,17 @@
         "description": "Pilih bahasa untuk pengenalan ucapan. Opsi Otomatis akan mendeteksi bahasa, sedangkan memilih bahasa tertentu dapat meningkatkan akurasi untuk bahasa tersebut.",
         "searchPlaceholder": "Cari bahasa...",
         "noResults": "Bahasa tidak ditemukan",
-        "auto": "Otomatis"
+        "auto": "Otomatis",
+        "allowlist": {
+          "title": "Batasi deteksi otomatis ke…",
+          "description": "Saat Otomatis dipilih, hanya pertahankan bahasa-bahasa ini. Bahasa terdeteksi yang tidak ada dalam daftar ini akan ditranskripsikan ulang dalam bahasa utama.",
+          "primary": "Utama",
+          "fallbackModel": {
+            "label": "Model cadangan",
+            "none": "Tidak ada",
+            "description": "Deteksi di luar daftar akan ditranskripsikan ulang dengan model ini, bukan dengan percobaan ulang dalam bahasa utama."
+          }
+        }
       },
       "shortcutActivation": {
         "title": "Perilaku Pintasan",
@@ -264,7 +274,9 @@
         "output": "Keluaran",
         "transcription": "Transkripsi",
         "history": "Riwayat",
-        "experimental": "Eksperimental"
+        "experimental": "Eksperimental",
+        "textRules": "Aturan Teks",
+        "learnedCorrections": "Koreksi yang Dipelajari"
       },
       "experimentalToggle": {
         "label": "Fitur Eksperimental",
@@ -273,6 +285,10 @@
       "lazyStreamClose": {
         "label": "Biarkan Mikrofon Tetap Aktif di Antara Transkripsi",
         "description": "Membiarkan aliran mikrofon tetap terbuka selama 30 detik setelah perekaman berhenti untuk mengurangi latensi pada transkripsi beruntun. Dapat menurunkan kualitas audio Bluetooth saat aktif."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Hentikan Rekaman Panjang Secara Otomatis",
+        "description": "Menghentikan perekaman sebelum model yang dipilih mencapai batas dikte amannya. Cincin hitung mundur muncul pada detik-detik terakhir."
       },
       "acceleration": {
         "transcribe": {
@@ -382,6 +398,76 @@
         "add": "Tambah",
         "remove": "Hapus {{word}}",
         "duplicate": "\"{{word}}\" sudah ada"
+      },
+      "textRules": {
+        "title": "Ubah perintah lisan",
+        "description": "Ubah perintah tanda baca dan pemformatan lisan (bahasa Jerman dan Inggris) menjadi simbol secara instan, tanpa perlu memanggil AI. Dijalankan sebelum pascaproses AI opsional.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Angka ke Digit",
+          "description": "Ubah angka yang diucapkan menjadi digit, misalnya \"five hundred thirty nine\" → \"539\". Angka kecil yang berdiri sendiri tetap ditulis sebagai kata."
+        },
+        "builtins": {
+          "title": "Perintah Bawaan",
+          "description": "Aktifkan atau nonaktifkan perintah bawaan satu per satu. Nonaktifkan perintah yang salah terpicu dalam ucapan biasa (misalnya \"Punkt\")."
+        },
+        "custom": {
+          "title": "Aturan Kustom",
+          "description": "Tambahkan aturan pemicu-ke-pengganti Anda sendiri. Aturan kustom menggantikan aturan bawaan dengan pemicu yang sama.",
+          "triggerPlaceholder": "Pemicu",
+          "replacementPlaceholder": "Pengganti",
+          "add": "Tambah",
+          "remove": "Hapus {{trigger}}",
+          "duplicate": "\"{{trigger}}\" sudah ada",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Seperti koma",
+          "attach_right": "Seperti kurung buka",
+          "glue": "Menggabungkan kata",
+          "standalone": "Berdiri sendiri"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Kamus pribadi",
+        "description": "Mengganti kata-kata yang terus salah dikenali — nama, istilah khusus, umlaut — di setiap transkripsi, sebelum pascaproses AI opsional. Di macOS, Handy juga belajar dari suntingan Anda: perbaiki sebuah kata tepat setelah menempel, dan Handy akan menyarankan perbaikan itu. Menonaktifkan ini akan menjeda keduanya.",
+        "aggressiveness": {
+          "title": "Tingkat agresivitas pembelajaran",
+          "description": "Seberapa mudah suatu suntingan diterima sebagai salah dengar yang sebenarnya. Tingkat yang lebih longgar mempelajari lebih banyak, tetapi berisiko merusak kamus.",
+          "conservative": {
+            "label": "Konservatif",
+            "description": "Hanya perbaikan yang sangat mirip dan terdengar serupa yang dipelajari. Paling aman terhadap entri yang salah."
+          },
+          "balanced": {
+            "label": "Seimbang",
+            "description": "Menerima perbaikan yang cukup berbeda; kemiripan bunyi hanya bersifat pertimbangan."
+          },
+          "aggressive": {
+            "label": "Agresif",
+            "description": "Menerima bahkan perbaikan yang hanya sedikit berkaitan dan tidak memeriksa kemiripan bunyi. Pertukaran kata sehari-hari tetap tidak pernah dipelajari. Risiko entri buruk paling tinggi."
+          }
+        },
+        "window": {
+          "title": "Jendela pembelajaran",
+          "description": "Berapa lama setelah menempel Handy memantau kolom untuk koreksi manual.",
+          "seconds": "detik"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Otomatis",
+          "manual": "Manual"
+        },
+        "count": "terlihat {{count}}×",
+        "langBadge": "Dipelajari untuk bahasa: {{lang}}",
+        "platformHint": "Pembelajaran otomatis hanya berjalan di macOS. Anda tetap dapat menambahkan koreksi secara manual di bawah, dan koreksi tersebut diterapkan di semua platform.",
+        "add": {
+          "misheardPlaceholder": "Salah dengar",
+          "intendedPlaceholder": "Dikoreksi",
+          "button": "Tambah"
+        },
+        "enable": "Aktifkan {{misheard}}",
+        "remove": "Hapus {{misheard}}",
+        "empty": "Belum ada koreksi. Tambahkan kata yang terus salah didengar oleh pengenal ucapan — seperti nama atau istilah teknis — dan perbaikannya akan diterapkan pada setiap transkripsi berikutnya."
       },
       "voiceActivityDetection": {
         "title": "Deteksi Aktivitas Suara",
@@ -711,7 +797,9 @@
   },
   "overlay": {
     "transcribing": "Mentranskripsikan...",
-    "processing": "Memproses..."
+    "processing": "Memproses...",
+    "fallbackModel": "Model cadangan…",
+    "recordingLimitWarning": "Perekaman berhenti otomatis dalam {{seconds}} detik"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} mungkin memblokir 1 pintasan",
@@ -723,5 +811,10 @@
     "learnMore": "Cara memperbaiki",
     "recorderBlocked": "Pintasan tidak dapat direkam saat ini — macOS Secure Input memblokir peristiwa tombol. Selesaikan peringatan Secure Input terlebih dahulu.",
     "dismiss": "Tutup"
+  },
+  "learnedToast": {
+    "title": "Dipelajari: “{{misheard}}” → “{{intended}}”",
+    "undo": "Urungkan",
+    "more": "+{{count}} lainnya"
   }
 }

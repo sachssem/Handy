@@ -192,7 +192,17 @@
         "description": "Seleccioneu la llengua per al reconeixement de la parla. L'opció automàtica detecta la llengua, mentre que seleccionar-ne una d'específica pot millorar-ne la precisió.",
         "searchPlaceholder": "Cerca llengües...",
         "noResults": "No s'ha trobat cap llengua",
-        "auto": "Automàtica"
+        "auto": "Automàtica",
+        "allowlist": {
+          "title": "Limita la detecció automàtica a…",
+          "description": "Quan se selecciona l'opció automàtica, només es conserven aquestes llengües. Si es detecta una llengua que no és a la llista, es torna a transcriure en la llengua principal.",
+          "primary": "Principal",
+          "fallbackModel": {
+            "label": "Model alternatiu",
+            "none": "Cap",
+            "description": "Les deteccions fora de la llista es tornen a transcriure amb aquest model en lloc de reintentar-ho en la llengua principal."
+          }
+        }
       },
       "shortcutActivation": {
         "title": "Comportament de la drecera",
@@ -264,7 +274,9 @@
         "output": "Sortida",
         "transcription": "Transcripció",
         "history": "Historial",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "textRules": "Regles de text",
+        "learnedCorrections": "Correccions apreses"
       },
       "experimentalToggle": {
         "label": "Funcions experimentals",
@@ -273,6 +285,10 @@
       "lazyStreamClose": {
         "label": "Mantén el micròfon obert entre transcripcions",
         "description": "Manté el flux d'àudio del micròfon obert durant 30 segons després d'aturar l'enregistrament per reduir la latència entre transcripcions consecutives. Mentre és actiu, pot reduir la qualitat de l'àudio Bluetooth."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Atura automàticament els enregistraments llargs",
+        "description": "Atura l'enregistrament abans que el model seleccionat arribi al límit segur de dictat. Durant els darrers segons apareix un anell de compte enrere."
       },
       "acceleration": {
         "transcribe": {
@@ -382,6 +398,76 @@
         "add": "Afegiu",
         "remove": "Suprimiu {{word}}",
         "duplicate": "«{{word}}» ja existeix"
+      },
+      "textRules": {
+        "title": "Converteix les ordres parlades",
+        "description": "Converteix a l'instant les ordres parlades de puntuació i format (en alemany i en anglès) en símbols, sense passar per la IA. S'executa abans del postprocessament opcional amb IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Nombres en xifres",
+          "description": "Converteix els nombres dictats en xifres, p. ex. \"five hundred thirty nine\" → \"539\". Els nombres petits aïllats es mantenen en lletres."
+        },
+        "builtins": {
+          "title": "Ordres integrades",
+          "description": "Activa o desactiva ordres integrades individuals. Desactiveu-ne una si s'activa per error en la parla normal (p. ex. \"Punkt\")."
+        },
+        "custom": {
+          "title": "Regles personalitzades",
+          "description": "Afegiu les vostres pròpies regles d'activador i substitució. Les regles personalitzades tenen prioritat sobre les integrades amb el mateix activador.",
+          "triggerPlaceholder": "Activador",
+          "replacementPlaceholder": "Substitució",
+          "add": "Afegiu",
+          "remove": "Suprimiu {{trigger}}",
+          "duplicate": "«{{trigger}}» ja existeix",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Com una coma",
+          "attach_right": "Com un parèntesi d'obertura",
+          "glue": "Uneix paraules",
+          "standalone": "Independent"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Diccionari personal",
+        "description": "Substitueix les paraules que el reconeixedor transcriu malament de manera repetida (noms, argot tècnic, dièresis) a cada transcripció, abans del postprocessament opcional amb IA. Al macOS, el Handy també aprèn de les vostres edicions: si corregiu una paraula just després d'enganxar-la, us suggereix aquesta correcció. Si ho desactiveu, s'aturen totes dues funcions.",
+        "aggressiveness": {
+          "title": "Intensitat de l'aprenentatge",
+          "description": "Amb quina facilitat s'accepta una edició com un error de reconeixement real. Els nivells més permissius aprenen més, però poden contaminar el diccionari.",
+          "conservative": {
+            "label": "Conservador",
+            "description": "Només s'aprenen correccions molt properes i de so similar. És l'opció més segura contra entrades errònies."
+          },
+          "balanced": {
+            "label": "Equilibrat",
+            "description": "Accepta correccions moderadament diferents; la fonètica només és orientativa."
+          },
+          "aggressive": {
+            "label": "Agressiu",
+            "description": "Accepta fins i tot correccions poc relacionades i no comprova si sonen igual. Els intercanvis de paraules quotidianes no s'aprenen mai. És l'opció amb més risc d'entrades errònies."
+          }
+        },
+        "window": {
+          "title": "Finestra d'aprenentatge",
+          "description": "Quant de temps després d'enganxar el text el Handy vigila el camp per detectar-hi una correcció manual.",
+          "seconds": "segons"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Automàtica",
+          "manual": "Manual"
+        },
+        "count": "vista {{count}}×",
+        "langBadge": "Apresa per a la llengua: {{lang}}",
+        "platformHint": "L'aprenentatge automàtic només funciona al macOS. Igualment podeu afegir correccions manualment a continuació, i s'apliquen a totes les plataformes.",
+        "add": {
+          "misheardPlaceholder": "Mal reconegut",
+          "intendedPlaceholder": "Corregit",
+          "button": "Afegiu"
+        },
+        "enable": "Activa {{misheard}}",
+        "remove": "Suprimiu {{misheard}}",
+        "empty": "Encara no hi ha correccions. Afegiu una paraula que el reconeixedor entén malament de manera repetida (com ara un nom o un terme tècnic) i la correcció s'aplicarà a totes les transcripcions futures."
       },
       "voiceActivityDetection": {
         "title": "Detecció d'activitat de veu",
@@ -711,7 +797,9 @@
   },
   "overlay": {
     "transcribing": "S'està transcrivint...",
-    "processing": "S'està processant..."
+    "processing": "S'està processant...",
+    "fallbackModel": "Model alternatiu…",
+    "recordingLimitWarning": "L'enregistrament s'aturarà automàticament d'aquí a {{seconds}} segons"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} pot estar blocant 1 drecera",
@@ -723,5 +811,10 @@
     "learnMore": "Com es resol",
     "recorderBlocked": "Ara no se'n poden enregistrar dreceres: l'entrada segura del macOS bloca els esdeveniments de tecla. Resol primer l'avís d'entrada segura.",
     "dismiss": "Descarta"
+  },
+  "learnedToast": {
+    "title": "Après: «{{misheard}}» → «{{intended}}»",
+    "undo": "Desfés",
+    "more": "+{{count}} més"
   }
 }
