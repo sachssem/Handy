@@ -504,6 +504,17 @@ async openJournalDir() : Promise<Result<null, string>> {
 async journalOverlayStage(stage: string) : Promise<void> {
     await TAURI_INVOKE("journal_overlay_stage", { stage });
 },
+async changeAsrContextBiasingSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_asr_context_biasing_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAsrBiasSupport(modelId: string) : Promise<boolean | null> {
+    return await TAURI_INVOKE("get_asr_bias_support", { modelId });
+},
 /**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.

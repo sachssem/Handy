@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Woordenlijst & app-context gebruiken",
+        "description": "Geeft eigen woorden, geleerde correcties en de context van de doel-app door aan de herkenning om namen en termen te verbeteren.",
+        "unsupported": "Het gekozen model negeert woordenlijst en app-context; eigen woorden worden nog steeds achteraf als correctie toegepast."
+      },
       "shortcutActivation": {
         "title": "Gedrag van sneltoets",
         "description": "Kies hoe de sneltoets voor dicteren de opname start en stopt.",

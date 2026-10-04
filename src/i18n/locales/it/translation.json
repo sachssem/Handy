@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Usa vocabolario e contesto dell'app",
+        "description": "Passa le parole personalizzate, le correzioni apprese e il contesto dell'app di destinazione al riconoscimento per migliorare nomi e termini.",
+        "unsupported": "Il modello selezionato ignora vocabolario e contesto dell'app; le parole personalizzate vengono comunque applicate come correzioni successive."
+      },
       "shortcutActivation": {
         "title": "Comportamento della scorciatoia",
         "description": "Scegli come la scorciatoia di trascrizione avvia e interrompe la registrazione.",

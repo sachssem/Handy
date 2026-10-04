@@ -590,6 +590,10 @@ pub struct AppSettings {
     /// Days a journal day file is kept (clamped to 1–365).
     #[serde(default = "default_dictation_journal_retention_days")]
     pub dictation_journal_retention_days: u32,
+    // fork(voice-control): capability-gated ASR vocabulary + app context
+    // (see `asr_bias`); existing stores opt in.
+    #[serde(default = "default_true")]
+    pub asr_context_biasing_enabled: bool,
 }
 
 fn default_learn_corrections_window_secs() -> u32 {
@@ -1096,6 +1100,7 @@ pub fn get_default_settings() -> AppSettings {
         learned_corrections: Vec::new(),
         dictation_journal_enabled: default_true(),
         dictation_journal_retention_days: default_dictation_journal_retention_days(),
+        asr_context_biasing_enabled: default_true(),
     }
 }
 

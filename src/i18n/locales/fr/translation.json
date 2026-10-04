@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Utiliser le vocabulaire et le contexte de l'app",
+        "description": "Transmet les mots personnalisés, les corrections apprises et le contexte de l'app cible à la reconnaissance pour améliorer les noms et les termes.",
+        "unsupported": "Le modèle sélectionné ignore le vocabulaire et le contexte de l'app ; les mots personnalisés restent appliqués comme corrections ensuite."
+      },
       "shortcutActivation": {
         "title": "Comportement du raccourci",
         "description": "Choisissez comment le raccourci de transcription démarre et arrête l’enregistrement.",

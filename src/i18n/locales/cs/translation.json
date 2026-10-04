@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Použít slovník a kontext aplikace",
+        "description": "Předává vlastní slova, naučené opravy a kontext cílové aplikace rozpoznávání, aby zlepšilo jména a termíny.",
+        "unsupported": "Vybraný model slovník a kontext aplikace ignoruje; vlastní slova se stále použijí jako dodatečné opravy."
+      },
       "shortcutActivation": {
         "title": "Chování zkratky",
         "description": "Zvolte, jak má zkratka přepisu spouštět a zastavovat nahrávání.",

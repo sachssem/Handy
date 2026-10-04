@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Utilitza el vocabulari i el context de l'app",
+        "description": "Passa les paraules personalitzades, les correccions apreses i el context de l'app de destinació al reconeixement per millorar noms i termes.",
+        "unsupported": "El model seleccionat ignora el vocabulari i el context de l'app; les paraules personalitzades encara s'apliquen com a correccions posteriors."
+      },
       "shortcutActivation": {
         "title": "Comportament de la drecera",
         "description": "Trieu com la drecera de transcripció inicia i atura l'enregistrament.",

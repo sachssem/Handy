@@ -163,6 +163,9 @@ const settingUpdaters: {
     commands.changeLearnCorrectionsAggressivenessSetting(value as string),
   learn_corrections_window_secs: (value) =>
     commands.changeLearnCorrectionsWindowSecsSetting(value as number),
+  // fork(voice-control): ASR vocabulary & app-context biasing.
+  asr_context_biasing_enabled: (value) =>
+    commands.changeAsrContextBiasingSetting(value as boolean),
   // fork(voice-control): local dictation journal.
   dictation_journal_enabled: (value) =>
     commands.changeDictationJournalEnabledSetting(value as boolean),

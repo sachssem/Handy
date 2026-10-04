@@ -1,6 +1,8 @@
 mod actions;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
+// fork(voice-control): vocabulary + context bias for capable ASR models.
+mod asr_bias;
 mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
@@ -738,6 +740,9 @@ pub fn run(cli_args: CliArgs) {
             journal::commands::get_journal_dir_path,
             journal::commands::open_journal_dir,
             journal::commands::journal_overlay_stage,
+            // fork(voice-control): ASR biasing (vocabulary + app context).
+            asr_bias::change_asr_context_biasing_setting,
+            asr_bias::get_asr_bias_support,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,

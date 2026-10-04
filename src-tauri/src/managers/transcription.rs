@@ -808,7 +808,14 @@ impl TranscriptionManager {
             ..Default::default()
         };
 
-        let run_result = session.run(audio, &run_options);
+        // fork(voice-control): bias the allowlist fallback only on capable models.
+        let run_result = crate::asr_bias::run_biased(
+            settings,
+            fallback_model,
+            &session.model(),
+            run_options,
+            |o| session.run(audio, o),
+        );
         // Dropping the fallback engine frees multi-GB Metal buffers and can
         // stall the machine for a moment — right when the paste keystroke is
         // about to be delivered (a stall there loses the clipboard-restore
@@ -1050,12 +1057,26 @@ impl TranscriptionManager {
             &languages,
             run_plan.target_language.as_deref() == Some("en"),
         );
-        let run_options = RunOptions {
+        let mut run_options = RunOptions {
             task: run_plan.task,
             language: run_plan.language,
             target_language: run_plan.target_language,
             ..Default::default()
         };
+
+        // fork(voice-control): bias the streaming run too. The stream starts
+        // before the app-context capture finishes, so in practice only the
+        // vocabulary applies (build never waits for the context). A rejected
+        // stream start falls back to the batch path, which retries unbiased.
+        if let LoadedEngine::TranscribeCpp(session) = &engine {
+            crate::asr_bias::apply(
+                &settings,
+                crate::journal::current_id(),
+                &model_id,
+                &session.model(),
+                &mut run_options,
+            );
+        }
 
         // Run the stream on the held session. The Stream borrows the session
         // (and thus the engine) for its lifetime, so the feed/finalize loop
@@ -1457,7 +1478,15 @@ impl TranscriptionManager {
                             run_options.family.is_some()
                         );
 
-                        match session.run(&audio, &run_options) {
+                        // fork(voice-control): vocabulary + context for the primary
+                        // ASR run, retried unbiased if the engine rejects the bias.
+                        match crate::asr_bias::run_biased(
+                            &settings,
+                            &active_model,
+                            &session.model(),
+                            run_options,
+                            |o| session.run(&audio, o),
+                        ) {
                             Ok(first) => {
                                 // Whisper's audio-based LID (auto mode only;
                                 // `None` when a language hint was passed).
@@ -1581,7 +1610,14 @@ impl TranscriptionManager {
                                                 family,
                                                 ..Default::default()
                                             };
-                                            match session.run(&audio, &retry_options) {
+                                            // fork(voice-control): gate biasing on the retry model too.
+                                            match crate::asr_bias::run_biased(
+                                                &settings,
+                                                &active_model,
+                                                &session.model(),
+                                                retry_options,
+                                                |o| session.run(&audio, o),
+                                            ) {
                                                 Ok(retried) => {
                                                     // The pin is only a soft conditioning on some
                                                     // archs (parakeet); say so when the model
@@ -2062,19 +2098,36 @@ fn char_script(c: char) -> Option<Script> {
     }
 }
 
-/// If the text's dominant script cannot be produced by any allowlisted
-/// language, return its name — the stand-in for a detected language on archs
-/// that do not report one. Demands a clear majority (>60%) over at least four
-/// script-carrying characters, so short or genuinely mixed outputs never
-/// trigger a retry.
+/// fork(voice-control): reject an unsupported dominant script (>60%, >=4
+/// letters), or a token containing >=3 letters of an unsupported non-Latin
+/// script. This intentionally catches Cyrillic names inside otherwise German
+/// text; isolated Greek math letters remain below the token threshold. Latin
+/// tokens never count for the token rule: brand names and code ("Открой Zoom")
+/// are Latin in every language, so only the dominant rule judges Latin.
 fn script_outside_allowlist(text: &str, allowlist: &[String]) -> Option<&'static str> {
     const MIN_CHARS: usize = 4;
+    const MIN_TOKEN_LETTERS: usize = 3;
+    let allowed = |script| {
+        allowlist
+            .iter()
+            .any(|lang| script_for_language(lang) == script)
+    };
     let mut counts = [0usize; SCRIPTS.len()];
     let mut total = 0usize;
-    for c in text.chars() {
-        if let Some(script) = char_script(c) {
-            counts[SCRIPTS.iter().position(|&s| s == script)?] += 1;
-            total += 1;
+    for token in text.split_whitespace() {
+        let mut token_counts = [0usize; SCRIPTS.len()];
+        for c in token.chars().filter(|c| c.is_alphabetic()) {
+            if let Some(script) = char_script(c) {
+                let idx = SCRIPTS.iter().position(|&s| s == script)?;
+                counts[idx] += 1;
+                token_counts[idx] += 1;
+                total += 1;
+            }
+        }
+        for (idx, &n) in token_counts.iter().enumerate() {
+            if n >= MIN_TOKEN_LETTERS && SCRIPTS[idx] != Script::Latin && !allowed(SCRIPTS[idx]) {
+                return Some(SCRIPTS[idx].name());
+            }
         }
     }
     if total < MIN_CHARS {
@@ -2086,28 +2139,22 @@ fn script_outside_allowlist(text: &str, allowlist: &[String]) -> Option<&'static
         .max_by_key(|(_, &n)| n)
         .expect("SCRIPTS is non-empty");
     // Majority check: n / total > 0.6.
-    if n * 5 <= total * 3 {
+    if n * 5 <= total * 3 || allowed(SCRIPTS[idx]) {
         return None;
     }
-    let dominant = SCRIPTS[idx];
-    if allowlist
-        .iter()
-        .any(|lang| script_for_language(lang) == dominant)
-    {
-        return None;
-    }
-    Some(dominant.name())
+    Some(SCRIPTS[idx].name())
 }
 
-/// fork(voice-control): Whether the allowlist fallback model's output should be
-/// accepted. In bounds when the fallback reports a detected language inside the
-/// allowlist, or — for archs that report none — when the output's dominant script
-/// is one an allowlisted language uses (`script_outside_allowlist` returns None).
+/// fork(voice-control): fallback output must pass the same script predicate,
+/// even when the model reports an allowlisted language.
 fn fallback_output_in_bounds(
     text: &str,
     detected_language: Option<&str>,
     allowlist: &[String],
 ) -> bool {
+    if script_outside_allowlist(text, allowlist).is_some() {
+        return false;
+    }
     match detected_language {
         Some(detected) => {
             let detected_norm = normalize_lang_subtag(detected);
@@ -2115,7 +2162,7 @@ fn fallback_output_in_bounds(
                 .iter()
                 .any(|a| normalize_lang_subtag(a) == detected_norm)
         }
-        None => script_outside_allowlist(text, allowlist).is_none(),
+        None => true,
     }
 }
 
@@ -2780,14 +2827,101 @@ mod tests {
     }
 
     #[test]
-    fn short_or_mixed_output_never_triggers_the_script_guard() {
-        // Below the minimum letter count.
+    fn short_tokens_and_mixed_output_without_three_unsupported_letters_are_in_bounds() {
+        // fork(voice-control): below both the dominant and token thresholds.
         assert_eq!(script_outside_allowlist("Да!", &languages(&["de"])), None);
         // No clear (>60%) majority.
         assert_eq!(
-            script_outside_allowlist("Hello Привет hi да", &languages(&["de"])),
+            script_outside_allowlist("Hello Пр hi ве да", &languages(&["de"])),
             None
         );
+    }
+
+    // fork(voice-control): token-level script guard regressions.
+    #[test]
+    fn unsupported_letters_inside_a_token_trigger_without_a_dominant_script() {
+        for text in [
+            "Schreib an mark этеxampelpunkt com.",
+            "Schreib bitte an Иван heute.",
+            "Привет",
+            "abэ1т!е🙂cd",
+        ] {
+            assert_eq!(
+                script_outside_allowlist(text, &languages(&["de"])),
+                Some("Cyrillic")
+            );
+        }
+        assert_eq!(
+            script_outside_allowlist("Schreib an Иван", &languages(&["de", "ru"])),
+            None
+        );
+    }
+
+    // fork(voice-control): symbols inside Unicode script ranges are not letters.
+    #[test]
+    fn math_letters_symbols_digits_and_emoji_do_not_false_positive() {
+        for text in [
+            "Winkel α beträgt",
+            "αβ",
+            "🙂🚀✨",
+            "1234 ×÷×÷",
+            "١٢٣٤",
+            "α1!β🙂",
+        ] {
+            assert_eq!(script_outside_allowlist(text, &languages(&["de"])), None);
+        }
+        // Dominant rule still catches four unsupported letters across short tokens.
+        assert_eq!(
+            script_outside_allowlist("α β γ δ", &languages(&["de"])),
+            Some("Greek")
+        );
+        // An exact 60% majority with short tokens still stays below the dominant rule.
+        assert_eq!(
+            script_outside_allowlist("αβ γ ab", &languages(&["de"])),
+            None
+        );
+    }
+
+    // fork(voice-control): Latin names inside non-Latin text never trigger the
+    // token rule; only a Latin majority does.
+    #[test]
+    fn latin_tokens_are_exempt_from_the_token_rule() {
+        let ru = languages(&["ru"]);
+        assert_eq!(script_outside_allowlist("Открой Zoom", &ru), None);
+        assert_eq!(
+            script_outside_allowlist("Открой Zoom и Telegram сейчас", &ru),
+            None
+        );
+        assert!(fallback_output_in_bounds("Открой Zoom", Some("ru"), &ru));
+        assert!(fallback_output_in_bounds("Открой Zoom", None, &ru));
+        // The dominant rule still rejects mostly-Latin output.
+        assert_eq!(
+            script_outside_allowlist("Open the Zoom app now", &ru),
+            Some("Latin")
+        );
+        assert!(!fallback_output_in_bounds(
+            "Open the Zoom app now",
+            None,
+            &ru
+        ));
+    }
+
+    // fork(voice-control): a claimed allowed LID cannot hide an unsupported token.
+    #[test]
+    fn fallback_rejects_unsupported_tokens_with_or_without_allowed_lid() {
+        let text = "Schreib an mark этеxampelpunkt com.";
+        for detected in [Some("de"), None] {
+            assert!(!fallback_output_in_bounds(
+                text,
+                detected,
+                &languages(&["de", "en"])
+            ));
+        }
+        assert!(fallback_output_in_bounds(
+            "Winkel α beträgt",
+            Some("de"),
+            &languages(&["de"])
+        ));
     }
 
     #[test]

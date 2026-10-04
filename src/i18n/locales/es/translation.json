@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Usar vocabulario y contexto de la app",
+        "description": "Pasa las palabras personalizadas, las correcciones aprendidas y el contexto de la app de destino al reconocimiento para mejorar nombres y términos.",
+        "unsupported": "El modelo seleccionado ignora el vocabulario y el contexto de la app; las palabras personalizadas se siguen aplicando como correcciones posteriores."
+      },
       "shortcutActivation": {
         "title": "Comportamiento del atajo",
         "description": "Elige cómo inicia y detiene la grabación el atajo de transcripción.",

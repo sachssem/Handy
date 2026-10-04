@@ -90,6 +90,21 @@ PROBES=(
   "dictation-context: module wired in|src-tauri/src/lib.rs|^(pub )?mod dictation_context;"
   "dictation-context: capture hook|src-tauri/src/actions.rs|crate::dictation_context::capture_async"
 
+  # -- ASR biasing (vocabulary + app context for capable models) --
+  "asr-bias: module wired in|src-tauri/src/lib.rs|^mod asr_bias;"
+  "asr-bias: command registered|src-tauri/src/lib.rs|asr_bias::change_asr_context_biasing_setting"
+  "asr-bias: setting field|src-tauri/src/settings.rs|pub asr_context_biasing_enabled: bool"
+  "asr-bias: frontend command|src/bindings.ts|changeAsrContextBiasingSetting"
+  "asr-bias: apply hooks|src-tauri/src/managers/transcription.rs|crate::asr_bias::apply\("
+  "asr-bias: biased runs (fallback, batch, pin retry)|src-tauri/src/managers/transcription.rs|crate::asr_bias::run_biased\("
+  "asr-bias: pin-retry hook|src-tauri/src/managers/transcription.rs|^ +retry_options,$"
+  "asr-bias: support command|src-tauri/src/lib.rs|asr_bias::get_asr_bias_support"
+  "asr-bias: settings UI mounted|src/components/settings/general/ModelSettingsCard.tsx|<AsrContextBiasing"
+  "asr-bias: store updater|src/stores/settingsStore.ts|asr_context_biasing_enabled:"
+  "asr-bias: journal counts|src-tauri/src/asr_bias/mod.rs|crate::journal::record_asr_bias"
+  "language-allowlist: token script threshold|src-tauri/src/managers/transcription.rs|MIN_TOKEN_LETTERS: usize = 3"
+  "language-allowlist: fallback script predicate|src-tauri/src/managers/transcription.rs|if script_outside_allowlist.*text, allowlist.*is_some"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"

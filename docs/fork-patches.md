@@ -35,6 +35,7 @@ Conventions used throughout:
 | [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs`, `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                                                                |
 | [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
 | [dictation journal + context](#dictation-journal--app-context)                           | feature | medium         | `actions.rs`, `managers/transcription.rs`, `transcription_coordinator.rs`, `overlay.rs`, `RecordingOverlay.tsx`, `settings.rs`, `lib.rs`, settings UI |
+| [ASR biasing](#asr-biasing-vocabulary--app-context)                                      | feature | medium         | `managers/transcription.rs`, `settings.rs`, `lib.rs`, `ModelSettingsCard.tsx`                                                                         |
 | [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
 | [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/recorder.rs` (+ its `tests.rs`)                                                                                                  |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
@@ -208,18 +209,27 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
 
 Constrains "auto" language detection to an allowlist; when the detected language
 falls outside it, retries pinned to the first allowlisted language and can escalate
-to a fallback model.
+to a fallback model. The script predicate also rejects any whitespace-separated
+token with at least three Unicode alphabetic letters of an unsupported script,
+even inside Latin text (e.g. `Schreib an mark этеxampelpunkt com.`). Digits,
+punctuation, emoji and symbols do not count. Cyrillic names of three or more
+letters inside German intentionally trigger; `Winkel α beträgt` stays in bounds.
+The existing dominant-script threshold remains >60% over at least four letters.
+Fallback output must pass this same predicate even if its reported language is
+allowlisted.
 
 - **New files:** `src/components/settings/LanguageAllowlist.tsx` (allowlist +
   fallback model, inside the shared `components/ui/Disclosure.tsx`).
 - **Upstream files touched:** `managers/transcription.rs` (allowlist guard +
-  `run_allowlist_fallback` around the detection stage), `shortcut/mod.rs`
+  `run_allowlist_fallback` around the detection stage;
+  `script_outside_allowlist` / `fallback_output_in_bounds` token checks), `shortcut/mod.rs`
   (`change_language_allowlist_setting`, fallback-model setter), `settings.rs`
   (`language_allowlist`, `language_allowlist_fallback_model`), `lib.rs`
   (command registrations), `general/ModelSettingsCard.tsx` (mounts
   `LanguageAllowlist`), `stores/settingsStore.ts`, `bindings.ts`.
 - **Probe:** `language-allowlist: *` in `scripts/fork-check.sh`.
-- **Upstream check:** did upstream add language pinning / detection constraints?
+- **Upstream check:** did upstream add language pinning / detection constraints,
+  including mixed-script token detection and fallback validation?
   ```bash
   git grep -iE "allowlist|language_pin|detect.*language|restrict.*language" upstream/main -- src-tauri/src
   ```
@@ -407,3 +417,48 @@ The fork's own scripts and docs — never conflicts with upstream.
   `scripts/sync-upstream.sh`, `scripts/fork-check.sh`, `docs/REQUIREMENTS.md`,
   `docs/fork-patches.md` (this file), the "Fork Workflow" section of `AGENTS.md`.
 - **Upstream check:** none.
+
+## ASR biasing (vocabulary + app context)
+
+Capability-gated `RunOptions::vocabulary` / `prompt` for Qwen3-ASR (including
+allowlist fallback), batch ASR, pinned retries and streaming. Custom words take
+priority over active, enabled learned corrections ranked by observation count,
+then recency. Terms are trimmed, deduplicated case-insensitively, limited to 40
+Unicode characters each and 40 terms total. Overlong terms are omitted.
+
+- **New files:** `src-tauri/src/asr_bias/mod.rs` (builder, capability gates,
+  `run_biased`, settings + support commands, tests),
+  `src/components/settings/AsrContextBiasing.tsx`.
+- **Hook points:** `lib.rs` (`mod asr_bias`, command registrations in the fork
+  command block), `settings.rs` (`asr_context_biasing_enabled` in the fork
+  block, default true for fresh and existing stores), `bindings.ts`, and the
+  four engine runs in `managers/transcription.rs`: one
+  `asr_bias::run_biased(..)` call each for the allowlist fallback, the batch
+  run and the pinned retry (bias + one unbiased retry if the engine rejects
+  it), and `asr_bias::apply(..)` on the stream's `RunOptions`. Whisper's
+  existing initial prompt is preserved; unsupported models receive empty
+  vocabulary and no context prompt. UI: `general/ModelSettingsCard.tsx`
+  mounts `AsrContextBiasing` (shown for every model, so the card no longer
+  hides when a model has no language settings), `stores/settingsStore.ts`.
+- **Context:** `journal::current_id()` joins the run to
+  `dictation_context::get(id)` without waiting for async capture. Never uses a
+  previous dictation's context. Prompt includes non-empty app name (120 chars),
+  window title (180 chars), and the last 300 Unicode characters before the caret.
+  Capture reads neither text nor window title of a secure field or while
+  secure event input is on; the builder checks `secure` again.
+- **Fork-owned integration:** `correction_learning::snapshot` exposes loaded
+  correction pairs. `journal::record_asr_bias` appends count-only `asr_bias`
+  entries in run order (`bias_vocab_n`, `bias_prompt_chars`); no prompt text is
+  journaled by this hook. Each run logs only these counts at debug level.
+- **Setting:** `change_asr_context_biasing_setting(enabled)` persists the shared
+  vocabulary/context switch; `get_asr_bias_support(model_id)` tells the UI
+  whether the model accepted a bias on its last run.
+- **Probe:** `asr-bias: *` in `scripts/fork-check.sh`.
+- **Upstream check:** did upstream wire vocabulary, learned corrections, or
+  app context into capability-gated ASR options?
+  ```bash
+  git grep -iE "Feature::Vocabulary|Feature::ContextPrompt|asr.?bias|text_before_caret" upstream/main -- src-tauri/src
+  ```
+  Drop the module, settings/binding/command hooks, journal count hook and probes
+  together if upstream ships equivalent behavior. Watch all four run-option
+  sites when absorbing transcription pipeline changes.

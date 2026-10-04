@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Brug ordforråd og app-kontekst",
+        "description": "Sender egne ord, lærte rettelser og målappens kontekst til genkendelsen for at forbedre navne og termer.",
+        "unsupported": "Den valgte model ignorerer ordforråd og app-kontekst; egne ord anvendes stadig som efterfølgende rettelser."
+      },
       "shortcutActivation": {
         "title": "Genvejens adfærd",
         "description": "Vælg, hvordan transskriptionsgenvejen starter og stopper optagelsen.",

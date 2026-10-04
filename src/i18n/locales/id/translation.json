@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Gunakan kosakata & konteks aplikasi",
+        "description": "Meneruskan kata khusus, koreksi yang dipelajari, dan konteks aplikasi tujuan ke pengenal untuk memperbaiki nama dan istilah.",
+        "unsupported": "Model yang dipilih mengabaikan kosakata dan konteks aplikasi; kata khusus tetap diterapkan sebagai koreksi setelahnya."
+      },
       "shortcutActivation": {
         "title": "Perilaku Pintasan",
         "description": "Pilih cara pintasan transkripsi memulai dan menghentikan perekaman.",

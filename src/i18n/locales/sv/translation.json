@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Använd ordförråd och appkontext",
+        "description": "Skickar egna ord, inlärda rättelser och målappens kontext till igenkänningen för att förbättra namn och termer.",
+        "unsupported": "Den valda modellen ignorerar ordförråd och appkontext; egna ord tillämpas fortfarande som efterföljande rättelser."
+      },
       "shortcutActivation": {
         "title": "Genvägens beteende",
         "description": "Välj hur kortkommandot för transkribering startar och stoppar inspelningen.",

@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Kelime dağarcığını ve uygulama bağlamını kullan",
+        "description": "Adları ve terimleri iyileştirmek için özel kelimeleri, öğrenilen düzeltmeleri ve hedef uygulamanın bağlamını tanıyıcıya iletir.",
+        "unsupported": "Seçili model kelime dağarcığını ve uygulama bağlamını yok sayar; özel kelimeler yine de sonradan düzeltme olarak uygulanır."
+      },
       "shortcutActivation": {
         "title": "Kısayol davranışı",
         "description": "Transkripsiyon kısayolunun kaydı nasıl başlatıp durduracağını seçin.",

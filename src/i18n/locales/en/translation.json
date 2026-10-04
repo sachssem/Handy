@@ -207,6 +207,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Use vocabulary & app context",
+        "description": "Passes custom words, learned corrections and the target app's context to the recognizer to improve names and terms.",
+        "unsupported": "The selected model ignores vocabulary and app context; custom words still apply as corrections afterwards."
+      },
       "shortcutActivation": {
         "title": "Shortcut Behavior",
         "description": "Choose how the transcribe shortcut starts and stops recording.",

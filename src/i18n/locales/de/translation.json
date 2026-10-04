@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Vokabular & App-Kontext nutzen",
+        "description": "Übergibt eigene Wörter, gelernte Korrekturen und den Kontext der Ziel-App an die Erkennung, um Namen und Begriffe zu verbessern.",
+        "unsupported": "Das gewählte Modell ignoriert Vokabular und App-Kontext; eigene Wörter wirken weiterhin als nachträgliche Korrektur."
+      },
       "shortcutActivation": {
         "title": "Verhalten der Tastenkombination",
         "description": "Wähle aus, wie das Transkriptions-Tastenkürzel die Aufnahme startet und beendet.",

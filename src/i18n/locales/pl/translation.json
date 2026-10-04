@@ -227,6 +227,11 @@
           }
         }
       },
+      "asrBiasing": {
+        "label": "Używaj słownictwa i kontekstu aplikacji",
+        "description": "Przekazuje własne słowa, wyuczone poprawki i kontekst docelowej aplikacji do rozpoznawania, aby poprawić nazwy i terminy.",
+        "unsupported": "Wybrany model ignoruje słownictwo i kontekst aplikacji; własne słowa nadal są stosowane jako późniejsze poprawki."
+      },
       "shortcutActivation": {
         "title": "Zachowanie skrótu",
         "description": "Wybierz, jak skrót transkrypcji rozpoczyna i zatrzymuje nagrywanie.",
