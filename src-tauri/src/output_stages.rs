@@ -82,13 +82,24 @@ fn style_for_target(
         text,
         crate::app_styles::Target {
             bundle_id: context.bundle_id.as_deref(),
-            text_before_caret: context.text_before_caret.as_deref(),
+            text_before_caret: text_before_caret(&context),
         },
         context.secure,
         lang.as_deref(),
         &dictionary,
         protected,
     )
+}
+
+/// The text before the caret for the app style: `Some("")` only when the
+/// capture read the caret at offset 0 (an empty field included). A caret
+/// further in whose text could not be read stays unknown (`None`).
+fn text_before_caret(context: &crate::dictation_context::DictationContext) -> Option<&str> {
+    let at_field_start = context.caret_at_start && !context.secure && !context.secure_input;
+    context
+        .text_before_caret
+        .as_deref()
+        .or(at_field_start.then_some(""))
 }
 
 /// Pure final-stage wiring; no settings store, AX capture or provider calls.
@@ -124,6 +135,37 @@ mod tests {
         assert_eq!(correction_skip(true, false), Some("snippet"));
         assert_eq!(correction_skip(true, true), Some("snippet"));
         assert_eq!(correction_skip(false, true), Some("post_process_applied"));
+    }
+
+    #[test]
+    fn caret_at_field_start_is_empty_before_text() {
+        use crate::dictation_context::DictationContext;
+        let read = DictationContext {
+            selection_len: Some(0),
+            caret_at_start: true,
+            ..Default::default()
+        };
+        assert_eq!(text_before_caret(&read), Some(""));
+        let with_text = DictationContext {
+            text_before_caret: Some("Hallo. ".into()),
+            caret_at_start: false,
+            ..read.clone()
+        };
+        assert_eq!(text_before_caret(&with_text), Some("Hallo. "));
+        // Not captured: unknown.
+        assert_eq!(text_before_caret(&DictationContext::default()), None);
+        // Caret read further in, its text unreadable (Electron /
+        // contenteditable): unknown, never a field start.
+        let unreadable = DictationContext {
+            selection_len: Some(0),
+            ..Default::default()
+        };
+        assert_eq!(text_before_caret(&unreadable), None);
+        let secure_input = DictationContext {
+            secure_input: true,
+            ..read
+        };
+        assert_eq!(text_before_caret(&secure_input), None);
     }
 
     #[test]

@@ -10,6 +10,9 @@
 //! - A *standalone* simple number is only converted when its value is at least
 //!   [`ITN_MIN_STANDALONE`] (German orthography convention). Compound German
 //!   numbers and multi-word English numbers always convert, as do decimals.
+//! - English number words only combine by cardinal grammar: separate numbers
+//!   spoken back to back ("fifty fifty", "five six") stay words, and English
+//!   number words in a German utterance are never converted.
 
 use super::{lex, Token};
 
@@ -25,8 +28,14 @@ enum Lang {
     English,
 }
 
-/// Apply inverse text normalization to `text`.
-pub fn apply_itn(text: &str) -> String {
+/// Apply inverse text normalization to `text`. `language` is the utterance's
+/// language code if known; English number words stay words in German.
+pub fn apply_itn(text: &str, language: Option<&str>) -> String {
+    let english = !language.is_some_and(|lang| {
+        lang.split(['-', '_'])
+            .next()
+            .is_some_and(|base| base.eq_ignore_ascii_case("de"))
+    });
     let tokens = lex(text);
     let mut out = String::new();
     let mut i = 0;
@@ -34,7 +43,7 @@ pub fn apply_itn(text: &str) -> String {
     while i < tokens.len() {
         match &tokens[i] {
             Token::Word(word) => {
-                if let Some((replacement, next)) = convert_at(&tokens, i, word) {
+                if let Some((replacement, next)) = convert_at(&tokens, i, word, english) {
                     out.push_str(&replacement);
                     i = next;
                 } else {
@@ -60,7 +69,7 @@ pub fn apply_itn(text: &str) -> String {
 ///
 /// Returns the replacement text plus the token index just past the consumed
 /// tokens, or `None` when nothing should be converted here.
-fn convert_at(tokens: &[Token], i: usize, word: &str) -> Option<(String, usize)> {
+fn convert_at(tokens: &[Token], i: usize, word: &str, english: bool) -> Option<(String, usize)> {
     let lower = word.to_lowercase();
 
     // Never convert the standalone German article.
@@ -79,19 +88,37 @@ fn convert_at(tokens: &[Token], i: usize, word: &str) -> Option<(String, usize)>
         return None;
     }
 
-    // English numbers span multiple words.
-    if let Some((value, run_end, word_count)) = parse_english_run(tokens, i) {
-        if let Some((fraction, after)) = parse_decimal_tail(tokens, run_end, "point", Lang::English)
-        {
-            return Some((format!("{}.{}", value, fraction), after));
-        }
-        if word_count >= 2 || value >= ITN_MIN_STANDALONE {
-            return Some((value.to_string(), run_end));
-        }
+    // English numbers span multiple words. In a German utterance they are an
+    // idiom or a quote ("fifty fifty"), not a quantity.
+    if !english {
         return None;
     }
+    match parse_english_run(tokens, i)? {
+        EnglishRun::Number(value, run_end, word_count) => {
+            if let Some((fraction, after)) =
+                parse_decimal_tail(tokens, run_end, "point", Lang::English)
+            {
+                return Some((format!("{}.{}", value, fraction), after));
+            }
+            if word_count >= 2 || value >= ITN_MIN_STANDALONE {
+                return Some((value.to_string(), run_end));
+            }
+            None
+        }
+        // Consume the whole run verbatim so its later words are not
+        // converted on their own.
+        EnglishRun::Separate(run_end) => Some((verbatim(&tokens[i..run_end]), run_end)),
+    }
+}
 
-    None
+/// The original text of `tokens`.
+fn verbatim(tokens: &[Token]) -> String {
+    tokens
+        .iter()
+        .map(|token| match token {
+            Token::Word(s) | Token::Space(s) | Token::Other(s) => s.as_str(),
+        })
+        .collect()
 }
 
 /// Parse the fractional tail of a decimal: a connective word (`komma` /
@@ -139,58 +166,96 @@ fn skip_spaces(tokens: &[Token], mut ti: usize) -> usize {
     ti
 }
 
+/// A run of consecutive English number words.
+enum EnglishRun {
+    /// One well-formed cardinal: `(value, end_index, word_count)` where
+    /// `end_index` is the token index just past the last number word
+    /// (trailing whitespace is left intact) and `word_count` excludes the
+    /// `and` connective.
+    Number(u32, usize, usize),
+    /// Number words that do not form one cardinal ("fifty fifty", "five six",
+    /// "nine eleven"): separate numbers spoken back to back. They stay words
+    /// up to this end index — summing them is wrong, and turning each into
+    /// digits would mangle idioms, dates and digit-by-digit dictation.
+    Separate(usize),
+}
+
+/// Grammatical class of a word in an English number run.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EnglishWord {
+    Zero,
+    Unit,
+    Teen,
+    Tens,
+    Hundred,
+    Thousand,
+}
+
 /// Parse a run of consecutive English number words starting at token `start`.
 ///
-/// Returns `(value, end_index, word_count)` where `end_index` is the token
-/// index just past the last number word (trailing whitespace is left intact)
-/// and `word_count` excludes the `and` connective.
-fn parse_english_run(tokens: &[Token], start: usize) -> Option<(u32, usize, usize)> {
+/// Only cardinal grammar combines words: a tens word takes one unit
+/// ("twenty one"), `hundred` follows a unit or teen ("one hundred",
+/// "fifteen hundred"), `thousand` closes the leading group once, and `and`
+/// connects only after `hundred` / `thousand`.
+fn parse_english_run(tokens: &[Token], start: usize) -> Option<EnglishRun> {
+    use EnglishWord::*;
+
     let mut result: u32 = 0;
     let mut current: u32 = 0;
     let mut count = 0;
     let mut end = start;
-    let mut matched_any = false;
+    let mut last: Option<EnglishWord> = None;
+    let mut valid = true;
     let mut ti = start;
 
     while let Some(Token::Word(raw)) = tokens.get(ti) {
         let word = raw.to_lowercase();
 
-        if let Some(value) = english_below_hundred(&word) {
-            current += value;
-            count += 1;
-            matched_any = true;
-            end = ti + 1;
-        } else if word == "hundred" {
-            if current == 0 {
-                current = 1;
+        let value = english_below_hundred(&word);
+        let kind = match (word.as_str(), value) {
+            ("hundred", _) => Hundred,
+            ("thousand", _) => Thousand,
+            (_, Some(0)) => Zero,
+            (_, Some(1..=9)) => Unit,
+            (_, Some(10..=19)) => Teen,
+            (_, Some(_)) => Tens,
+            ("and", None) if matches!(last, Some(Hundred | Thousand)) => {
+                // Connective: `end` is left untouched so a trailing `and` is
+                // not included.
+                ti = skip_spaces(tokens, ti + 1);
+                continue;
             }
-            current *= 100;
-            count += 1;
-            matched_any = true;
-            end = ti + 1;
-        } else if word == "thousand" {
-            if current == 0 {
-                current = 1;
+            _ => break,
+        };
+
+        valid &= match kind {
+            Zero => last.is_none(),
+            Unit => matches!(last, None | Some(Tens | Hundred | Thousand)),
+            Teen | Tens => matches!(last, None | Some(Hundred | Thousand)),
+            Hundred => matches!(last, None | Some(Unit | Teen)) && current < 100,
+            Thousand => result == 0 && last != Some(Zero),
+        };
+        if valid {
+            match kind {
+                Hundred => current = current.max(1) * 100,
+                Thousand => {
+                    result = current.max(1) * 1000;
+                    current = 0;
+                }
+                _ => current += value.unwrap_or(0),
             }
-            result += current * 1000;
-            current = 0;
-            count += 1;
-            matched_any = true;
-            end = ti + 1;
-        } else if word == "and" && matched_any {
-            // Connective: consume only if it stays between number words. `end`
-            // is left untouched so a trailing `and` is not included.
-        } else {
-            break;
         }
 
+        last = Some(kind);
+        count += 1;
+        end = ti + 1;
         ti = skip_spaces(tokens, ti + 1);
     }
 
-    if matched_any {
-        Some((result + current, end, count))
-    } else {
-        None
+    match last {
+        None => None,
+        Some(_) if valid => Some(EnglishRun::Number(result + current, end, count)),
+        Some(_) => Some(EnglishRun::Separate(end)),
     }
 }
 
@@ -353,46 +418,90 @@ mod tests {
 
     #[test]
     fn german_compound() {
-        assert_eq!(apply_itn("fünfhundertneununddreißig"), "539");
+        assert_eq!(apply_itn("fünfhundertneununddreißig", None), "539");
     }
 
     #[test]
     fn german_compound_mixed_case() {
-        assert_eq!(apply_itn("Einundzwanzig Katzen"), "21 Katzen");
+        assert_eq!(apply_itn("Einundzwanzig Katzen", None), "21 Katzen");
     }
 
     #[test]
     fn english_multi_word() {
-        assert_eq!(apply_itn("five hundred thirty nine"), "539");
+        assert_eq!(apply_itn("five hundred thirty nine", None), "539");
     }
 
     #[test]
     fn article_guard() {
-        assert_eq!(apply_itn("ein Haus"), "ein Haus");
-        assert_eq!(apply_itn("eine Katze"), "eine Katze");
+        assert_eq!(apply_itn("ein Haus", None), "ein Haus");
+        assert_eq!(apply_itn("eine Katze", None), "eine Katze");
     }
 
     #[test]
     fn standalone_threshold() {
-        assert_eq!(apply_itn("zwei Äpfel"), "zwei Äpfel");
-        assert_eq!(apply_itn("dreizehn"), "13");
+        assert_eq!(apply_itn("zwei Äpfel", None), "zwei Äpfel");
+        assert_eq!(apply_itn("dreizehn", None), "13");
     }
 
     #[test]
     fn german_decimal() {
-        assert_eq!(apply_itn("zwei Komma fünf"), "2,5");
+        assert_eq!(apply_itn("zwei Komma fünf", None), "2,5");
     }
 
     #[test]
     fn english_decimal() {
-        assert_eq!(apply_itn("five point three"), "5.3");
+        assert_eq!(apply_itn("five point three", None), "5.3");
+    }
+
+    #[test]
+    fn english_compounds_follow_cardinal_grammar() {
+        assert_eq!(apply_itn("twenty one", None), "21");
+        assert_eq!(apply_itn("one hundred twenty three", None), "123");
+        assert_eq!(apply_itn("one hundred and five", None), "105");
+        assert_eq!(apply_itn("two thousand twenty four", None), "2024");
+        assert_eq!(apply_itn("fifteen hundred", None), "1500");
+    }
+
+    #[test]
+    fn separate_english_numbers_are_not_summed() {
+        assert_eq!(apply_itn("fifty fifty", None), "fifty fifty");
+        assert_eq!(apply_itn("five six", None), "five six");
+        assert_eq!(apply_itn("nine eleven", None), "nine eleven");
+        assert_eq!(
+            apply_itn("one hundred one hundred", None),
+            "one hundred one hundred"
+        );
+        // `and` between two complete numbers ends the run instead.
+        assert_eq!(apply_itn("thirty and forty", None), "30 and 40");
+        assert_eq!(
+            apply_itn("we split it fifty fifty.", Some("en")),
+            "we split it fifty fifty."
+        );
+    }
+
+    #[test]
+    fn english_number_words_stay_in_german() {
+        assert_eq!(
+            apply_itn("quasi fifty fifty", Some("de")),
+            "quasi fifty fifty"
+        );
+        assert_eq!(
+            apply_itn("direkt fifty-fifty fahren", Some("de-DE")),
+            "direkt fifty-fifty fahren"
+        );
+        assert_eq!(
+            apply_itn("Seite twenty one", Some("de")),
+            "Seite twenty one"
+        );
+        // German number words still convert.
+        assert_eq!(apply_itn("fünfhundert Euro", Some("de")), "500 Euro");
     }
 
     #[test]
     fn komma_not_decimal_when_not_number() {
         // "Komma" that is not between numbers is left for the substitution pass.
         assert_eq!(
-            apply_itn("Ende Komma dann weiter"),
+            apply_itn("Ende Komma dann weiter", None),
             "Ende Komma dann weiter"
         );
     }

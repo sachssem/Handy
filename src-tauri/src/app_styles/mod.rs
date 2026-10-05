@@ -29,6 +29,12 @@
 //!   capitals, "I" and capitalised words of the custom-word / learned
 //!   dictionary are never touched. With a detected language the matching
 //!   list is used, otherwise both.
+//! - **Sentence start:** when the caret is at the start of the field, after
+//!   blank text, or after `.`/`?`/`!`/`…` (plus closing quote/bracket) and
+//!   whitespace, a plain lowercase first word is capitalised — not in code
+//!   editors (a line start is code), and not for technical tokens, words
+//!   with capitals or lowercase dictionary words. Without a capture the text
+//!   is unchanged.
 //! - **Spacing:** when that text ends in a word or punctuation (`, . ; : ! ? )
 //!   ] }`) without whitespace and the dictation starts with a word, a space is
 //!   prepended. Upstream only appends a trailing space
@@ -365,6 +371,93 @@ fn ends_mid_sentence(before: &str) -> bool {
         .is_some_and(|c| c.is_alphanumeric() || matches!(c, ',' | ';'))
 }
 
+/// Multi-letter DE/EN abbreviations whose period is not a sentence end
+/// (matched case-insensitively, without the period).
+const ABBREVIATIONS: &[&str] = &[
+    "bzw", "ca", "ggf", "vgl", "inkl", "usw", "etc", "evtl", "bspw", "sog", "zzgl", "nr", "dr",
+    "hr", "fr", "mr", "mrs", "ms", "vs", "approx", "incl",
+];
+
+/// The text before the caret leaves the caret at a sentence start: it is
+/// empty or blank, or ends with `.`/`?`/`!`/`…` (plus optional closing quotes
+/// or brackets) followed by whitespace. A period after a single letter, an
+/// inner-dot abbreviation or a bare number ("z. B. ", "e.g. ", "am 3. ") is
+/// not a sentence end.
+/// Neither is one of the common [`ABBREVIATIONS`] ("bzw. ", "Dr. ").
+fn starts_sentence(before: &str) -> bool {
+    let trimmed = before.trim_end();
+    if trimmed.is_empty() {
+        return true;
+    }
+    if trimmed.len() == before.len() {
+        return false;
+    }
+    let closed = trimmed.trim_end_matches(|c: char| {
+        matches!(
+            c,
+            '"' | '\'' | ')' | ']' | '}' | '»' | '«' | '“' | '”' | '’'
+        )
+    });
+    let Some(end) = closed.chars().last() else {
+        return false;
+    };
+    if matches!(end, '?' | '!' | '…') {
+        return true;
+    }
+    if end != '.' {
+        return false;
+    }
+    let last_word = closed
+        .rsplit(char::is_whitespace)
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches('.');
+    // `...` is an ellipsis; an empty word is a lone `.`.
+    if closed.ends_with("..") || last_word.is_empty() {
+        return true;
+    }
+    let word = last_word.trim_start_matches(|c: char| !c.is_alphanumeric());
+    !(word.chars().count() == 1
+        || word.contains('.')
+        || word.chars().all(|c| c.is_ascii_digit())
+        || ABBREVIATIONS.iter().any(|a| a.eq_ignore_ascii_case(word)))
+}
+
+/// Capitalise the first word of `text` when it is a plain lowercase word: no
+/// capitals anywhere (iPhone, eBay), not part of a technical token (path,
+/// URL, identifier) and not a dictionary word spelled lowercase (`npm`).
+fn capitalize_first_word(text: &str, dictionary: &[String]) -> String {
+    let start = text.len() - text.trim_start().len();
+    let rest = &text[start..];
+    let token = rest.split(char::is_whitespace).next().unwrap_or_default();
+    let word = token.trim_end_matches(|c: char| {
+        matches!(
+            c,
+            '.' | ',' | ';' | ':' | '!' | '?' | '…' | '"' | '\'' | ')' | ']' | '}'
+        )
+    });
+    let plain = word
+        .chars()
+        .all(|c| (c.is_alphabetic() && !c.is_uppercase()) || matches!(c, '\'' | '-'));
+    let in_dictionary = dictionary
+        .iter()
+        .flat_map(|entry| entry.split_whitespace())
+        .any(|entry| entry == word);
+    let mut chars = rest.chars();
+    let Some(first) = chars.next().filter(|c| c.is_lowercase()) else {
+        return text.to_string();
+    };
+    if !plain || in_dictionary {
+        return text.to_string();
+    }
+    format!(
+        "{}{}{}",
+        &text[..start],
+        first.to_uppercase(),
+        chars.as_str()
+    )
+}
+
 /// A space is needed between the text before the caret and the dictation.
 fn needs_leading_space(before: &str, text: &str) -> bool {
     let joins_after = before.chars().last().is_some_and(|c| {
@@ -377,6 +470,8 @@ fn needs_leading_space(before: &str, text: &str) -> bool {
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct Target<'a> {
     pub bundle_id: Option<&'a str>,
+    /// `None`: unknown (not captured). `Some("")`: the caret is at the start
+    /// of the field.
     pub text_before_caret: Option<&'a str>,
 }
 
@@ -425,9 +520,14 @@ pub(crate) fn style(
     }
 
     if toggles.match_context {
-        if let Some(before) = target.text_before_caret.filter(|b| !b.is_empty()) {
+        if let Some(before) = target.text_before_caret {
             if !starts_protected && ends_mid_sentence(before) {
                 out = lowercase_first_word(&out, lang, dictionary);
+            } else if !starts_protected && category != AppCategory::Code && starts_sentence(before)
+            {
+                // Code editors are left alone: a line start there is code,
+                // not a sentence start.
+                out = capitalize_first_word(&out, dictionary);
             }
             if needs_leading_space(before, &out) {
                 out.insert(0, ' ');
@@ -554,6 +654,102 @@ mod tests {
         assert_eq!(after("Fertig. ", "Weil ich.", None), "Weil ich.");
         assert_eq!(after("Hallo Marc,\n\n", "Weil ich.", None), "Weil ich.");
         assert_eq!(after("", "Weil ich.", None), "Weil ich.");
+    }
+
+    #[test]
+    fn sentence_start_capitalises_a_lowercase_first_word() {
+        // Journal cases: after a finished sentence, and in an empty field.
+        assert_eq!(
+            after(
+                "kann ich mir noch untersuchen. ",
+                "und ja das Melden.",
+                Some("de")
+            ),
+            "Und ja das Melden."
+        );
+        assert_eq!(after("", "aber dass wir.", Some("de")), "Aber dass wir.");
+        assert_eq!(after("  \n", "aber dass wir.", None), "Aber dass wir.");
+        assert_eq!(after("Wirklich?\n", "ja.", None), "Ja.");
+        assert_eq!(after("Super!» ", "und dann.", None), "Und dann.");
+        assert_eq!(after("Er sagte: \"Fertig.\" ", "dann.", None), "Dann.");
+        assert_eq!(after("Mal sehen… ", "ok.", None), "Ok.");
+        assert_eq!(after("Mal sehen... ", "ok.", None), "Ok.");
+    }
+
+    #[test]
+    fn non_sentence_starts_and_special_words_stay_lowercase() {
+        // Mid-sentence, after a comma line break, or glued to the period.
+        assert_eq!(after("Hallo Marc,\n\n", "weil ich.", None), "weil ich.");
+        assert_eq!(after("und ", "dann.", None), "dann.");
+        assert_eq!(after("Ende.", "neu.", None), " neu.");
+        // Abbreviations and ordinals are not sentence ends.
+        assert_eq!(after("Obst, z. B. ", "äpfel.", None), "äpfel.");
+        assert_eq!(after("Obst, z.B. ", "äpfel.", None), "äpfel.");
+        assert_eq!(after("am 3. ", "oktober.", None), "oktober.");
+        assert_eq!(after("heute bzw. ", "morgen.", None), "morgen.");
+        assert_eq!(after("Termin bei Dr. ", "müller.", None), "müller.");
+        assert_eq!(after("Äpfel (vgl. ", "oben).", None), "oben).");
+        assert_eq!(after("cats VS. ", "dogs.", None), "dogs.");
+        assert_eq!(after("Apples, pears etc. ", "and more.", None), "and more.");
+        // A longer word ending in an abbreviation is a sentence end.
+        assert_eq!(
+            after("Das ist ein Problem. ", "aber gut.", None),
+            "Aber gut."
+        );
+        // Technical tokens, inner capitals, lowercase dictionary words.
+        assert_eq!(after("", "src/main.rs", None), "src/main.rs");
+        assert_eq!(after("", "iPhone kaufen.", None), "iPhone kaufen.");
+        let style_with = |text: &str, dictionary: &[String]| {
+            style(
+                text,
+                Target {
+                    bundle_id: Some("com.apple.Notes"),
+                    text_before_caret: Some(""),
+                },
+                &ALL,
+                None,
+                dictionary,
+                &[],
+            )
+        };
+        assert_eq!(style_with("npm install.", &["npm".into()]), "npm install.");
+    }
+
+    #[test]
+    fn sentence_start_respects_app_and_capture() {
+        let target = |bundle_id: &'static str, before: Option<&'static str>| Target {
+            bundle_id: Some(bundle_id),
+            text_before_caret: before,
+        };
+        let run = |t: Target| style("aber dass wir.", t, &ALL, None, &[], &[]);
+        // No capture: unchanged.
+        assert_eq!(run(target("com.apple.Notes", None)), "aber dass wir.");
+        // Code editors and terminals keep the lowercase start.
+        assert_eq!(
+            run(target("com.microsoft.VSCode", Some(""))),
+            "aber dass wir."
+        );
+        assert_eq!(run(target("com.apple.Terminal", Some(""))), "aber dass wir");
+        // Chat capitalises (it only drops the period of one sentence).
+        assert_eq!(
+            run(target("com.tinyspeck.slackmacgap", Some(""))),
+            "Aber dass wir"
+        );
+        let off = AppStyleCategories {
+            match_context: false,
+            ..ALL
+        };
+        assert_eq!(
+            style(
+                "aber dass wir.",
+                target("com.apple.Notes", Some("")),
+                &off,
+                None,
+                &[],
+                &[]
+            ),
+            "aber dass wir."
+        );
     }
 
     #[test]

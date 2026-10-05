@@ -400,7 +400,7 @@ mod tests {
         settings.text_rules_enabled = true;
         let shielded = shield("voice Bindestrich control, mein Calendly.", &snippets);
         assert!(shielded.fired());
-        let ruled = crate::text_rules::apply_text_rules(&shielded.text, &settings);
+        let ruled = crate::text_rules::apply_text_rules(&shielded.text, &settings, None);
         assert_eq!(
             shielded.restore(&ruled),
             "voice-control, https://calendly.com/marc. Punkt Komma"

@@ -53,6 +53,10 @@ pub struct DictationContext {
     pub text_before_caret: Option<String>,
     /// Selected length in UTF-16 units (0 = plain caret).
     pub selection_len: Option<usize>,
+    /// The caret was read at the very start of the field (nothing before it,
+    /// an empty field included). Omitted from the journal when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub caret_at_start: bool,
     /// `string_for_range` | `value` — how the text was read.
     pub text_source: Option<String>,
     /// Why the capture stopped early, if it did.
@@ -159,6 +163,7 @@ fn capture(id: u64, pid: Option<i32>, captured_at_ms: u64) -> DictationContext {
     context.focused_subrole = read.subrole;
     context.secure = read.secure;
     context.selection_len = read.selection_len;
+    context.caret_at_start = read.caret_at_start && !read.secure;
     context.error = read.error.map(str::to_string);
     if !read.secure {
         // A password dialog's window title can name the account; drop it.

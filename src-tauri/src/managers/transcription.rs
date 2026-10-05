@@ -2434,7 +2434,11 @@ pub(crate) fn post_process_transcription_text(
         let snippets = crate::snippets::shield(&normalized, &settings.snippets);
 
         // fork(voice-control): deterministic text rules
-        let ruled = crate::text_rules::apply_text_rules(&snippets.text, settings);
+        let ruled = crate::text_rules::apply_text_rules(
+            &snippets.text,
+            settings,
+            output_language.language(),
+        );
 
         // fork(voice-control): exact misheard→intended learned corrections
         let learned = crate::correction_learning::apply_learned(

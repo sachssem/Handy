@@ -250,7 +250,9 @@ pub(crate) fn builtin_active(key: &str, custom_rules: &[TextRule], disabled: &[S
             .any(|rule| normalize_trigger(&rule.trigger) == key)
 }
 
-/// Apply the deterministic text-rules layer to `text`.
+/// Apply the deterministic text-rules layer to `text`. `language` is the
+/// utterance's language code if known (ITN keeps English number words in a
+/// German utterance).
 ///
 /// Returns `text` unchanged when the feature is disabled. When enabled the
 /// passes run in this order:
@@ -261,24 +263,31 @@ pub(crate) fn builtin_active(key: &str, custom_rules: &[TextRule], disabled: &[S
 /// 4. [`links`] — domain/file/version dots and e-mail `at` → joined tokens;
 /// 5. [`substitutions`] — the remaining spoken commands, context-gated;
 /// 6. a lone path/URL/e-mail loses the ASR's sentence period.
-pub fn apply_text_rules(text: &str, settings: &AppSettings) -> String {
+pub fn apply_text_rules(text: &str, settings: &AppSettings, language: Option<&str>) -> String {
     if !settings.text_rules_enabled {
         return text.to_string();
     }
     apply_rules(
         text,
         settings.text_rules_itn_enabled,
+        language,
         &settings.text_rules_custom,
         &settings.text_rules_disabled_builtins,
     )
 }
 
 /// [`apply_text_rules`] without the settings struct (testable).
-fn apply_rules(text: &str, itn: bool, custom: &[TextRule], disabled: &[String]) -> String {
+fn apply_rules(
+    text: &str,
+    itn: bool,
+    language: Option<&str>,
+    custom: &[TextRule],
+    disabled: &[String],
+) -> String {
     let mut out = text.to_string();
 
     if itn {
-        out = itn::apply_itn(&out);
+        out = itn::apply_itn(&out, language);
     }
 
     out = lists::apply_lists(&out, custom, disabled);
@@ -368,7 +377,7 @@ mod tests {
     use super::*;
 
     fn rules(text: &str) -> String {
-        apply_rules(text, false, &[], &[])
+        apply_rules(text, false, None, &[], &[])
     }
 
     /// Prose that uses command words as ordinary words must survive unchanged.
@@ -503,7 +512,10 @@ mod tests {
             replacement: ".".to_string(),
             spacing: SpacingPolicy::Glue,
         }];
-        assert_eq!(apply_rules("Der Punkt ist", false, &custom, &[]), "Der.ist");
+        assert_eq!(
+            apply_rules("Der Punkt ist", false, None, &custom, &[]),
+            "Der.ist"
+        );
     }
 
     #[test]

@@ -579,7 +579,7 @@ mod tests {
         // Domain dots are joined by the links pass (full pipeline); the
         // substitution engine alone leaves a mid-sentence "Punkt" as a word.
         assert_eq!(
-            super::super::apply_rules("www Punkt example Punkt com", false, &[], &[]),
+            super::super::apply_rules("www Punkt example Punkt com", false, None, &[], &[]),
             "www.example.com"
         );
     }

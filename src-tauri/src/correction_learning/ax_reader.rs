@@ -78,6 +78,8 @@ pub struct FocusContextRead {
     pub caret_utf16: usize,
     /// Selected length in UTF-16 units, when the element has a selection.
     pub selection_len: Option<usize>,
+    /// The caret was read at UTF-16 offset 0: nothing precedes it.
+    pub caret_at_start: bool,
     /// `string_for_range` (only the slice before the caret) or `value`.
     pub text_source: Option<&'static str>,
     /// Why the read stopped early, if it did.
@@ -699,6 +701,7 @@ mod imp {
         out.selection_len = Some(range.length as usize);
         let caret = range.location as usize;
         if caret == 0 {
+            out.caret_at_start = true;
             return out;
         }
 

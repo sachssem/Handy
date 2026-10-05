@@ -75,7 +75,9 @@ Captured at recording start, off-thread: `id` (the dictation id),
 `window_title`, `focused_role`, `focused_subrole`, `secure` (password field:
 its text is never read, its window title dropped), `secure_input` (secure
 event input was on: no focused element was read at all), `text_before_caret`
-(≤ 500 chars), `selection_len` (UTF-16 units), `text_source`
+(≤ 500 chars), `selection_len` (UTF-16 units), `caret_at_start` (only
+present, as `true`, when the caret was read at offset 0 — field start or
+empty field), `text_source`
 (`string_for_range` \| `value`), `capture_ms`, `error` (`secure_input`,
 `no_frontmost_app`, `no_focused_element`, `budget_exhausted`,
 `value_too_large`, …), `text_redacted`.

@@ -99,6 +99,11 @@ missed command is cheaper than corrupted prose; details in each module's docs):
   before the first ordinal or at least three items. Verb / pronoun / particle-led
   ordinal items and finite-verb-led numbered items stay prose. Label line + one
   `1. item` / `- item` per line.
+- **ITN** (`itn.rs`): English number words combine only by cardinal grammar
+  (`twenty one` → 21, `one hundred twenty three` → 123); separate numbers back to
+  back (`fifty fifty`, `five six`, `nine eleven`) stay words, never summed. English
+  number words are not converted when the utterance language is German (the
+  pipeline passes the output-language evidence into `apply_text_rules`).
 - New built-ins: `Tilde` → `~`, `Klammeraffe` → `@`. Structural keys appear in the
   built-ins list (UI) so each pass can be disabled individually.
 
@@ -611,7 +616,12 @@ Outlook, Notes, Pages, Word) are unchanged; browsers are not classified.
   word is lowercased **only** if it is a known DE/EN function word (list per
   detected language — `correction_learning::last_transcription_language` —
   else both; German nouns and formal `Sie`/`Ihr` are never lowercased;
-  acronyms, inner capitals, `I`, custom/learned dictionary words stay). A
+  acronyms, inner capitals, `I`, custom/learned dictionary words stay). At a
+  sentence start — caret at the field start (capture read the caret but no
+  text before it), blank text, or `. ? ! …` (+ closing quote/bracket) followed
+  by whitespace; not after `z. B.`/`e.g.`/ordinals — a plain lowercase first
+  word is capitalised (not in code editors; technical tokens, words with
+  capitals and lowercase dictionary words stay). A
   space is prepended when the caret follows a word or `, . ; : ! ? ) ] }`
   directly and the dictation starts with a word (upstream only appends a
   trailing space, so no double spaces).
