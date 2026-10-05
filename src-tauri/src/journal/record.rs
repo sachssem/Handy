@@ -277,6 +277,13 @@ pub struct DictationRecord {
     pub retained_audio_secs: Option<f64>,
     pub wav_file: Option<String>,
     pub wav_saved: Option<bool>,
+    /// The press loaded the model (it was not resident): load call ms,
+    /// including the warm-up below. Absent when the model was already loaded.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_load_ms: Option<u64>,
+    /// Warm-up inference ms within that load (transcribe-cpp only).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_warmup_ms: Option<u64>,
     pub asr: Option<AsrFacts>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub asr_bias: Vec<AsrBiasFacts>,

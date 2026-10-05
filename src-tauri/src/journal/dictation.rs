@@ -222,6 +222,14 @@ pub fn record_asr_bias(id: Option<u64>, vocabulary_n: usize, prompt_chars: usize
     }
 }
 
+/// A model load (and its warm-up inference) the press kicked off finished.
+pub fn record_model_load(load: Duration, warmup_ms: Option<u64>) {
+    with_current(|r| {
+        r.model_load_ms = Some(load.as_millis() as u64);
+        r.model_warmup_ms = warmup_ms;
+    });
+}
+
 pub fn record_asr(facts: AsrFacts) {
     with_current(|r| r.asr = Some(facts));
 }

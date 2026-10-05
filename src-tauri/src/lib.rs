@@ -28,6 +28,8 @@ mod journal;
 mod llm_client;
 mod managers;
 mod memory;
+// fork(voice-control): warm-up inference after a model load.
+mod model_warmup;
 // fork(voice-control): self-correction pass + per-app style after the result.
 mod output_stages;
 mod overlay;

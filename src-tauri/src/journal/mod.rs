@@ -36,8 +36,9 @@ mod writer;
 
 pub use dictation::{
     begin_dictation, current_id, last_dictation_id, mark_mic_ready, record_allowlist_guard,
-    record_allowlist_result, record_asr, record_asr_bias, record_learning, record_self_correction,
-    record_start_path, record_text_stage, start_failed, DictationGuard, AUTO_STOP_TRIGGER,
+    record_allowlist_result, record_asr, record_asr_bias, record_learning, record_model_load,
+    record_self_correction, record_start_path, record_text_stage, start_failed, DictationGuard,
+    AUTO_STOP_TRIGGER,
 };
 pub use record::{
     AllowlistResult, AsrFacts, LearningPair, LearningRecord, SelfCorrectionFacts, Stage, StartPath,

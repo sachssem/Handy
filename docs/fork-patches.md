@@ -44,6 +44,7 @@ Conventions used throughout:
 | [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
 | [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
 | [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                      |
+| [model warm-up after load](#model-warm-up-after-load)                                    | perf    | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -734,6 +735,39 @@ writes no journal record. Existing stores get the binding through upstream's
   git grep -n -i "paste_last\|repaste\|last_transcript" upstream/main -- src-tauri/src/actions.rs src-tauri/src/settings.rs
   ```
   If so, drop this feature and migrate the user's binding to upstream's id.
+
+## model warm-up after load
+
+Experimental. Right after a transcribe-cpp model load (`load_model_with_device`,
+so the press-path background load, a model switch and `--transcribe-file`
+alike) one throwaway inference on 1 s of silence runs before
+`loading_completed` is emitted. The first real run after a load otherwise pays
+the lazy Metal pipeline compiles and weight page-in. The warm-up runs inside
+the loading window (`is_loading` set) with the engine mutex held, so a real
+transcription waits for it and never runs concurrently on the engine; a stop
+right after the press waits at most the warm-up (~0.1–0.4 s). On the press
+path (`model_unload_timeout` reload) it overlaps the user's speech. Its text
+is discarded; the duration logs at debug (`Model warm-up inference took N ms`)
+and lands on the dictation line as `model_warmup_ms` (with `model_load_ms`, see
+[journal](journal.md)). ONNX engines are skipped (onnxruntime plans at session
+creation). Kill switch: `HANDY_MODEL_WARMUP=0`.
+
+Measured (Qwen3-ASR-1.7B Q5_K_M, Metal, 43 s WAV, `--transcribe-file
+--repeat 2`, 3 runs each): first run without warm-up 3355/3460/3570 ms vs.
+warm 2887/3004/2963 ms; with warm-up the first run is 3018/2992/3190 ms, the
+warm-up itself 164–382 ms.
+
+- **New files:** `src-tauri/src/model_warmup.rs`.
+- **Upstream files touched:** `managers/transcription.rs` (`warm_up_engine`
+  call in `load_model_with_device`, the method itself, journal hook in
+  `initiate_model_load`), `lib.rs` (`mod model_warmup;`). Fork-owned:
+  `journal/` (`record_model_load`, `model_load_ms` / `model_warmup_ms`).
+- **Probe:** `model-warmup: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream warm the engine after load?
+  ```bash
+  git grep -n -i "warm" upstream/main -- src-tauri/src/managers/transcription.rs
+  ```
+  If so, drop this feature.
 
 ## benchmark harness
 

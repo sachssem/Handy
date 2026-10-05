@@ -558,6 +558,11 @@ impl TranscriptionManager {
             *current_model = Some(model_id.to_string());
         }
 
+        // fork(voice-control): warm-up inference before reporting loaded (see
+        // `model_warmup`); callers hold the loading window, so a real
+        // transcription waits for it.
+        self.warm_up_engine()?;
+
         // Reset idle timer so the watcher doesn't immediately unload a just-loaded model
         self.touch_activity();
 
@@ -579,6 +584,54 @@ impl TranscriptionManager {
             load_duration.as_millis()
         );
         Ok(())
+    }
+
+    /// fork(voice-control): one throwaway inference on the just-installed engine
+    /// (transcribe-cpp only, see [`crate::model_warmup`]). Holds the engine
+    /// mutex for the run so nothing else can use the engine concurrently; a
+    /// panic unloads the engine exactly like a panicking transcription does
+    /// (engine dropped, id cleared, `unloaded` emitted) and fails the load.
+    fn warm_up_engine(&self) -> Result<()> {
+        if !crate::model_warmup::enabled() {
+            return Ok(());
+        }
+        let mut engine = self.lock_engine();
+        let Some(LoadedEngine::TranscribeCpp(session)) = engine.as_mut() else {
+            return Ok(());
+        };
+        let Err(panic_payload) =
+            catch_unwind(AssertUnwindSafe(|| crate::model_warmup::run(session)))
+        else {
+            return Ok(());
+        };
+        *engine = None;
+        drop(engine);
+
+        let panic_msg = panic_payload_message(panic_payload.as_ref());
+        error!(
+            "Model warm-up inference panicked: {}. Model has been unloaded.",
+            panic_msg
+        );
+        {
+            let mut current_model = self
+                .current_model_id
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *current_model = None;
+        }
+        let _ = self.app_handle.emit(
+            "model-state-changed",
+            ModelStateEvent {
+                event_type: "unloaded".to_string(),
+                model_id: None,
+                model_name: None,
+                error: Some(format!("Engine panicked: {}", panic_msg)),
+            },
+        );
+        Err(anyhow::anyhow!(
+            "Model warm-up inference panicked: {}. The model has been unloaded and will reload on next attempt.",
+            panic_msg
+        ))
     }
 
     /// fork(voice-control): Build a fresh [`LoadedEngine`] for `model_id` without
@@ -873,8 +926,17 @@ impl TranscriptionManager {
                     .store(false, Ordering::Release);
             }
             let settings = get_settings(&self_clone.app_handle);
+            // fork(voice-control): journal the press-path load + warm-up.
+            let _ = crate::model_warmup::take_last_ms();
+            let load_started = Instant::now();
             if let Err(e) = self_clone.load_model(&settings.selected_model) {
                 error!("Failed to load model: {}", e);
+            } else {
+                // fork(voice-control): attach to the dictation that triggered it.
+                crate::journal::record_model_load(
+                    load_started.elapsed(),
+                    crate::model_warmup::take_last_ms(),
+                );
             }
             let mut is_loading = self_clone.is_loading.lock().unwrap();
             *is_loading = false;

@@ -140,6 +140,11 @@ PROBES=(
   "paste-last: idle gate tray getter|src-tauri/src/tray.rs|pub\(crate\) fn current_tray_state"
   "paste-last: settings row|src/components/settings/general/GeneralSettings.tsx|shortcutId=\"paste_last_transcript\""
 
+  # -- model warm-up inference after a load --
+  "model-warmup: module declared|src-tauri/src/lib.rs|^mod model_warmup;"
+  "model-warmup: load hook|src-tauri/src/managers/transcription.rs|self\.warm_up_engine\(\)\?;"
+  "model-warmup: journal hook|src-tauri/src/managers/transcription.rs|journal::record_model_load"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"
