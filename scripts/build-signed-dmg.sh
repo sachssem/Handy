@@ -55,7 +55,10 @@ codesign --verify --strict "$APP" && echo "    signature valid"
 VERSION="$(defaults read "$REPO_ROOT/$APP/Contents/Info.plist" CFBundleShortVersionString 2>/dev/null || echo "dev")"
 ARCH="$(uname -m)"
 BUILD_OUT_DIR="src-tauri/target/release/bundle"
-ARTIFACT_DIR="$REPO_ROOT/Handy artifacts"
+# Always the main checkout's folder, also when building from a linked worktree,
+# so the current DMG is found in one place.
+MAIN_ROOT="$(dirname "$(git -C "$REPO_ROOT" rev-parse --path-format=absolute --git-common-dir)")"
+ARTIFACT_DIR="$MAIN_ROOT/Handy artifacts"
 DMG_NAME="Handy_${VERSION}_voice-control_${ARCH}.dmg"
 BUILD_DMG="$BUILD_OUT_DIR/$DMG_NAME"
 FINAL_DMG="$ARTIFACT_DIR/$DMG_NAME"

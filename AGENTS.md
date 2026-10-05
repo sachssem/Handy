@@ -338,8 +338,11 @@ scripts/build-signed-dmg.sh
 ```
 
 This is the required release-build workflow for agents and humans working on
-the fork. Finished DMGs are moved to the ignored repo-root directory
-`Handy artifacts/`; only the three newest matching voice-control DMGs are kept.
+the fork. Finished DMGs are moved to the ignored directory `Handy artifacts/`
+in the **main checkout** (`~/Code/Handy/Handy artifacts/`), also when the build
+runs in a linked worktree — the script resolves it via `git --git-common-dir`;
+never leave a DMG in a worktree's own folder. Only the three newest matching
+voice-control DMGs are kept.
 After a successful build, Cargo intermediates are removed automatically. A
 failed build deliberately keeps them for diagnosis. For an exceptional follow-up
 build where retaining the cache is useful, opt out explicitly:
