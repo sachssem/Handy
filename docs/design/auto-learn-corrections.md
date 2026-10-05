@@ -116,13 +116,13 @@ Reihenfolge: Case/Punktuation normalisieren → nur **Substitutionen** (reine In
 
 ## Toast-UI
 
-**Eigenes kleines Fenster** (`learned_toast`), keine neue Phase des Recording-Overlays: das Overlay ist an den Record-Lifecycle gekoppelt und nicht klickbar. Der nicht aktivierende Toast bleibt für Vorschläge 8 s, für aktive Paare 5 s sichtbar, danach läuft eine 200-ms-Exit-Animation; ein Rust-Failsafe blendet nach 11 s aus. Vorschläge bieten Accept / Never, aktivierte Paare Undo. Never und Undo → Command `reject_learned_corrections(ids)`: Paar entfernen und erneutes Lernen blockieren. Accept aktiviert nur die vorgeschlagenen Paare.
+**Eigenes kleines Fenster** (`learned_toast`), keine neue Phase des Recording-Overlays: das Overlay ist an den Record-Lifecycle gekoppelt und nicht klickbar. Der nicht aktivierende Toast bleibt für Vorschläge 8 s, für aktive Paare 5 s sichtbar, danach läuft eine 200-ms-Exit-Animation; ein Rust-Failsafe blendet nach 11 s aus. Vorschläge bieten Accept, aktivierte Paare Undo. Undo → Command `reject_learned_corrections(ids)`: Paar entfernen und erneutes Lernen blockieren. Accept aktiviert nur die vorgeschlagenen Paare. Ein `⌃esc`-Chip oben rechts (bzw. `ctrl+escape`, nur registriert solange der Toast sichtbar ist) blendet den Toast nur aus und ändert nichts: ein Vorschlag bleibt Vorschlag; blockieren („Nie“) geht weiterhin in der Liste in den Einstellungen.
 
 **Implementiert (Abweichungen vom Plan):**
 
 - **Feld-Events statt Key-Hook** (Risiko #5 aufgelöst): Die Session hängt einen `AXObserver` an das gepinnte Feld und wacht bei jeder Wertänderung (und beim Zerstören des Elements) auf, statt einen zweiten globalen Key-Listener neben `handy_keys` aufzuspannen — kein Input-Tap-Konflikt. Ein 2-s-Poll bleibt als Fallback (Apps ohne verlässliche AX-Notifications; kein Observer erstellbar → reines Polling). Zwischen Reads liegen mindestens 15 ms, damit schnelle Korrektur-dann-Submit-Folgen noch erfasst werden. Details im Modul-Doc von `session.rs`.
-- **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event`, mit getrennten `suggested_ids` und `active_ids`, damit Accept / Never / Undo nur ihre jeweiligen Paare ändern.
-- **Vorschläge statt Dry-Run-Schalter**: Neue Auto-Paare werden zunächst vorgeschlagen; Annahme oder eine zweite Beobachtung aktiviert sie. Undo und Never entfernen und blockieren ihre Paare.
+- **Event-Struct** heißt `LearnedCorrectionEvent`, Wire-Name `learned-correction-event`, mit getrennten `suggested_ids` und `active_ids`, damit Accept und Undo nur ihre jeweiligen Paare ändern.
+- **Vorschläge statt Dry-Run-Schalter**: Neue Auto-Paare werden zunächst vorgeschlagen; Annahme oder eine zweite Beobachtung aktiviert sie. Undo (Toast oder Einstellungen) und Never (Einstellungsliste) entfernen und blockieren ihre Paare; Schließen des Toasts ändert nichts.
 - **i18n-Namespace**: sämtliche Strings liegen unter `settings.advanced.learnedCorrections.*` (inkl. `learnFromEdits`, `aggressiveness`, `window`), nicht unter einem Top-Level `learnedCorrection.*`.
 - **Eigener Store-Key**: `learned_corrections` enthält Liste und Blockliste; `AppSettings` enthält nur die Steuerungsfelder und eine einmalig migrierte Alt-Liste.
 
@@ -157,7 +157,7 @@ Review-UI `LearnedCorrections.tsx` neben CustomWords/TextRules: Master-Switch, F
 1. **Electron/Web-Lücke** (Hauptrisiko) → akzeptieren, per-App stumm degradieren, dokumentieren; Phase A trägt allein. Entscheidet der Spike.
 2. **`axuielement` v0.9 Reife** auf Darwin 25.3 → Spike gated; Fallback objc2-FFI oder nur Phase A.
 3. **Snapshot vs. Paste-Methode** — clipboard.rs:597 hängt Trailing-Space an; `PasteMethod::Direct` tippt zeichenweise → exakt den an `utils::paste` übergebenen String snapshotten bzw. im Differ trimmen.
-4. **Wörterbuch-Vergiftung** → Default off, neue Paare erst als Vorschläge, Conservative-Default, jedes Auto-Paar 1 Klick von Never/Undo entfernt.
+4. **Wörterbuch-Vergiftung** → Default off, neue Paare erst als Vorschläge, Conservative-Default, jedes Auto-Paar 1 Klick von Undo (Toast) bzw. Never (Einstellungsliste) entfernt.
 5. **rdev-Listener vs. `handy_keys`-Hook** — rdev ist direkte Dep (Cargo.toml:50), aber im Code ungenutzt; ob ein zweiter globaler Listener neben dem Shortcut-Backend koexistiert, zu Beginn von Phase B verifizieren (bevorzugt an bestehende Key-Events von handy_keys anhängen statt zweiter Hook).
 6. **Deutsche Phonetik** — Double Metaphone ist englisch-zentriert → Kölner Phonetik (in `rphonetic` enthalten) bei `de`, Gate nie hart blockierend.
 

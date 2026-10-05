@@ -529,8 +529,8 @@
             "description": "מאשר את ההצעה בהתראת התיקון שנלמד. פעיל רק כל עוד ההתראה מוצגת."
           },
           "dismiss": {
-            "title": "קיצור: אף פעם / בטל",
-            "description": "דוחה את ההצעה (אף פעם) או מבטל תיקון שנלמד זה עתה (בטל). פעיל רק כל עוד ההתראה מוצגת."
+            "title": "קיצור: בטל",
+            "description": "מבטל תיקון שנלמד זה עתה (בטל). פעיל רק כל עוד ההתראה מציגה תיקון שנלמד; Ctrl+Esc סוגר את ההתראה בלי לשנות דבר."
           },
           "errors": {
             "needsModifier": "השתמשו לפחות במקש שינוי אחד (Control,‏ Option,‏ Shift או Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "ההקלטה תיעצר אוטומטית בעוד {{seconds}} שניות"
   },
   "learnedToast": {
-    "title": "נלמד: ”{{misheard}}“ ← ”{{intended}}“",
-    "suggestionTitle": "הצעה: ”{{misheard}}“ ← ”{{intended}}“",
+    "pair": "”{{misheard}}“ ← ”{{intended}}“",
     "undo": "בטל",
     "accept": "אישור",
-    "dismiss": "אף פעם",
+    "dismiss": "סגור",
     "more": "+{{count}} נוספות"
   },
   "whatsNew": {

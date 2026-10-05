@@ -529,8 +529,8 @@
             "description": "Accepterer forslaget i meddelelsen om lærte rettelser. Kun aktiv, mens meddelelsen er synlig."
           },
           "dismiss": {
-            "title": "Genvej: Aldrig / Fortryd",
-            "description": "Afviser forslaget (Aldrig) eller fortryder en netop lært rettelse (Fortryd). Kun aktiv, mens meddelelsen er synlig."
+            "title": "Genvej: Fortryd",
+            "description": "Fortryder en netop lært rettelse (Fortryd). Kun aktiv, mens meddelelsen viser en lært rettelse; Ctrl+Esc lukker meddelelsen uden at ændre noget."
           },
           "errors": {
             "needsModifier": "Brug mindst én ændringstast (Control, Option, Skift eller Kommando).",
@@ -939,11 +939,10 @@
     "dismiss": "Afvis"
   },
   "learnedToast": {
-    "title": "Lært: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Forslag: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Fortryd",
     "accept": "Acceptér",
-    "dismiss": "Aldrig",
+    "dismiss": "Luk",
     "more": "+{{count}} mere"
   }
 }

@@ -529,8 +529,8 @@
             "description": "Accepta el suggeriment de l'avís de correcció apresa. Només és activa mentre l'avís és visible."
           },
           "dismiss": {
-            "title": "Drecera: Mai / Desfés",
-            "description": "Rebutja el suggeriment (Mai) o desfà una correcció que s'acaba d'aprendre (Desfés). Només és activa mentre l'avís és visible."
+            "title": "Drecera: Desfés",
+            "description": "Desfà una correcció que s'acaba d'aprendre (Desfés). Només és activa mentre l'avís mostra una correcció apresa; Ctrl+Esc tanca l'avís sense canviar res."
           },
           "errors": {
             "needsModifier": "Fes servir almenys una tecla modificadora (Control, Opció, Majúscules o Ordre).",
@@ -939,11 +939,10 @@
     "dismiss": "Descarta"
   },
   "learnedToast": {
-    "title": "Après: «{{misheard}}» → «{{intended}}»",
-    "suggestionTitle": "Suggeriment: «{{misheard}}» → «{{intended}}»",
+    "pair": "«{{misheard}}» → «{{intended}}»",
     "undo": "Desfés",
     "accept": "Accepta",
-    "dismiss": "Mai",
+    "dismiss": "Tanca",
     "more": "+{{count}} més"
   }
 }

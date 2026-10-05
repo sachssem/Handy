@@ -314,8 +314,9 @@ Rules:
   single-instance): shows a sample learned-correction suggestion toast through
   the exact production display path — the repeatable test for toast
   regressions without a dictation + manual-correction round trip. It also
-  arms the toast shortcuts (default ⌃↩ / ⌃⌫) like a real toast; its ids match
-  no stored pair, so Accept / Never are harmless no-ops. It must not take
+  arms the toast shortcuts (default ⌃↩, plus ⌃⎋ to dismiss; ⌃⌫ Undo only
+  arms for learned pairs) like a real toast; its ids match no stored pair, so
+  Accept is a harmless no-op. It must not take
   keyboard focus: typing in another app while it shows has to keep working.
   Display-chain breadcrumbs (`toast-show`, `toast-webview: …`, `toast-hide`,
   `learned-toast shortcut …`) log at debug level.

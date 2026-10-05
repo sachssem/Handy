@@ -529,8 +529,8 @@
             "description": "学習した修正の通知に表示された提案を承認します。通知が表示されている間だけ有効です。"
           },
           "dismiss": {
-            "title": "ショートカット：今後しない / 元に戻す",
-            "description": "提案を拒否する（今後しない）か、学習したばかりの修正を元に戻します。通知が表示されている間だけ有効です。"
+            "title": "ショートカット：元に戻す",
+            "description": "学習したばかりの修正を元に戻します。学習済みの修正が通知に表示されている間だけ有効です。Ctrl+Esc は何も変更せずに通知を閉じます。"
           },
           "errors": {
             "needsModifier": "修飾キー（Control、Option、Shift、Command）を少なくとも 1 つ使ってください。",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "録音はあと{{seconds}}秒で自動的に停止します"
   },
   "learnedToast": {
-    "title": "学習：「{{misheard}}」→「{{intended}}」",
-    "suggestionTitle": "提案：「{{misheard}}」→「{{intended}}」",
+    "pair": "「{{misheard}}」→「{{intended}}」",
     "undo": "元に戻す",
     "accept": "承認",
-    "dismiss": "今後しない",
+    "dismiss": "閉じる",
     "more": "他{{count}}件"
   },
   "whatsNew": {

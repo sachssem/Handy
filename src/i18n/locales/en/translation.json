@@ -529,8 +529,8 @@
             "description": "Accepts the suggestion in the learned-correction toast. Only active while the toast is visible."
           },
           "dismiss": {
-            "title": "Never / Undo shortcut",
-            "description": "Rejects the suggestion (Never) or undoes a just-learned correction (Undo). Only active while the toast is visible."
+            "title": "Undo shortcut",
+            "description": "Undoes a just-learned correction (Undo). Only active while the toast shows a learned correction; Ctrl+Esc dismisses the toast without changing anything."
           },
           "errors": {
             "needsModifier": "Use at least one modifier key (Control, Option, Shift or Command).",
@@ -939,11 +939,10 @@
     "dismiss": "Dismiss"
   },
   "learnedToast": {
-    "title": "Learned: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Suggestion: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Undo",
     "accept": "Accept",
-    "dismiss": "Never",
+    "dismiss": "Dismiss",
     "more": "+{{count}} more"
   }
 }

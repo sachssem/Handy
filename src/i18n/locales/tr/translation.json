@@ -529,8 +529,8 @@
             "description": "Öğrenilen düzeltme bildirimindeki öneriyi kabul eder. Yalnızca bildirim görünürken etkindir."
           },
           "dismiss": {
-            "title": "Kısayol: Asla / Geri Al",
-            "description": "Öneriyi reddeder (Asla) ya da yeni öğrenilmiş bir düzeltmeyi geri alır (Geri Al). Yalnızca bildirim görünürken etkindir."
+            "title": "Kısayol: Geri Al",
+            "description": "Yeni öğrenilmiş bir düzeltmeyi geri alır (Geri Al). Yalnızca bildirim öğrenilmiş bir düzeltme gösterirken etkindir; Ctrl+Esc hiçbir şeyi değiştirmeden bildirimi kapatır."
           },
           "errors": {
             "needsModifier": "En az bir değiştirici tuş kullanın (Control, Option, Shift veya Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak"
   },
   "learnedToast": {
-    "title": "Öğrenildi: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Öneri: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Geri Al",
     "accept": "Kabul et",
-    "dismiss": "Asla",
+    "dismiss": "Kapat",
     "more": "+{{count}} daha"
   },
   "whatsNew": {

@@ -529,8 +529,8 @@
             "description": "Acepta la sugerencia del aviso de corrección aprendida. Solo está activo mientras el aviso es visible."
           },
           "dismiss": {
-            "title": "Atajo: Nunca / Deshacer",
-            "description": "Rechaza la sugerencia (Nunca) o deshace una corrección recién aprendida (Deshacer). Solo está activo mientras el aviso es visible."
+            "title": "Atajo: Deshacer",
+            "description": "Deshace una corrección recién aprendida (Deshacer). Solo está activo mientras el aviso muestra una corrección aprendida; Ctrl+Esc cierra el aviso sin cambiar nada."
           },
           "errors": {
             "needsModifier": "Usa al menos una tecla modificadora (Control, Opción, Mayúsculas o Comando).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "La grabación se detendrá automáticamente en {{seconds}} segundos"
   },
   "learnedToast": {
-    "title": "Aprendido: «{{misheard}}» → «{{intended}}»",
-    "suggestionTitle": "Sugerencia: «{{misheard}}» → «{{intended}}»",
+    "pair": "«{{misheard}}» → «{{intended}}»",
     "undo": "Deshacer",
     "accept": "Aceptar",
-    "dismiss": "Nunca",
+    "dismiss": "Cerrar",
     "more": "+{{count}} más"
   },
   "whatsNew": {

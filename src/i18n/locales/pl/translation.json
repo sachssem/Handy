@@ -529,8 +529,8 @@
             "description": "Akceptuje sugestię w powiadomieniu o wyuczonej poprawce. Aktywny tylko wtedy, gdy powiadomienie jest widoczne."
           },
           "dismiss": {
-            "title": "Skrót: Nigdy / Cofnij",
-            "description": "Odrzuca sugestię (Nigdy) lub cofa właśnie wyuczoną poprawkę (Cofnij). Aktywny tylko wtedy, gdy powiadomienie jest widoczne."
+            "title": "Skrót: Cofnij",
+            "description": "Cofa właśnie wyuczoną poprawkę (Cofnij). Aktywny tylko wtedy, gdy powiadomienie pokazuje wyuczoną poprawkę; Ctrl+Esc zamyka powiadomienie bez żadnych zmian."
           },
           "errors": {
             "needsModifier": "Użyj co najmniej jednego klawisza modyfikującego (Control, Option, Shift lub Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Nagrywanie zatrzyma się automatycznie za {{seconds}} sekund"
   },
   "learnedToast": {
-    "title": "Nauczono: „{{misheard}}“ → „{{intended}}“",
-    "suggestionTitle": "Sugestia: „{{misheard}}“ → „{{intended}}“",
+    "pair": "„{{misheard}}“ → „{{intended}}“",
     "undo": "Cofnij",
     "accept": "Akceptuj",
-    "dismiss": "Nigdy",
+    "dismiss": "Zamknij",
     "more": "+{{count}} więcej"
   },
   "whatsNew": {

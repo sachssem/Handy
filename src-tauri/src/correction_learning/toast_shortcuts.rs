@@ -1,12 +1,15 @@
 //! Keyboard shortcuts for the learned-correction toast (fork feature:
 //! voice-control).
 //!
-//! Accept (default ⌃↩, plus the keypad Enter twin) and Never / Undo (default
-//! ⌃⌫) act on the visible toast without reaching for the mouse. They are
-//! **transient**: registered only while a toast is on screen, so the combos
-//! stay free for every other app the rest of the time. With the handy-keys
-//! backend (blocking mode) the combo is swallowed for the frontmost app while
-//! registered — acceptable precisely because that window is a few seconds.
+//! Accept (default ⌃↩, plus the keypad Enter twin), Undo (default ⌃⌫) and a
+//! fixed ⌃⎋ (dismiss) act on the visible toast without reaching for the mouse
+//! — the toast panel never takes focus, so even dismiss has to go through the
+//! global shortcut backend. Dismiss is ⌃⎋ rather than bare Esc so plain Esc
+//! keeps reaching the focused app; it matches the usual recording-cancel combo. They are **transient**: registered only while a
+//! toast is on screen, so the combos stay free for every other app the rest of
+//! the time. With the handy-keys backend (blocking mode) the combo is
+//! swallowed for the frontmost app while registered — acceptable precisely
+//! because that window is a few seconds.
 //!
 //! ## Lifecycle
 //!
@@ -22,7 +25,14 @@
 //!   thread, which must never wait on its own registration channel).
 //!
 //! Which slots are wanted follows the toast's content: Accept only when the
-//! toast carries suggestions, Never / Undo whenever it carries any pair.
+//! toast carries suggestions, Undo only when it carries learned (promoted)
+//! pairs, dismiss always. Dismissing changes nothing in the store: a
+//! suggestion stays a suggestion and can still be blocked from the settings
+//! list. The cancel shortcut is only registered while recording; when a
+//! recording starts with a toast on screen and its cancel binding resolves to
+//! the dismiss combo, dismiss yields (the backends refuse a duplicate combo,
+//! and cancelling the recording wins) and is re-armed once the recording
+//! stops, if the toast is still visible.
 //!
 //! ## Generation guard
 //!
@@ -45,10 +55,15 @@ use tauri::AppHandle;
 /// Default Accept combo. `enter` parses in both backends (handy-keys maps it
 /// to Return, global-hotkey to Enter — the same main key on a Mac).
 pub const DEFAULT_ACCEPT: &str = "ctrl+enter";
-/// Default Never / Undo combo.
+/// Default Undo combo.
 pub const DEFAULT_DISMISS: &str = "ctrl+backspace";
+/// The fixed dismiss combo (not configurable). Parses in both backends; the
+/// toast's `⌃esc` chip shows it (`DISMISS_SHORTCUT` in LearnedToast.tsx).
+const DISMISS: &str = "ctrl+escape";
 
-/// Which toast shortcut a setting / command refers to.
+/// Which toast shortcut a setting / command refers to. `Dismiss` is the Undo
+/// combo (`learned_toast_dismiss_shortcut`); the name predates the fixed
+/// dismiss combo and is kept so stored settings and the bindings stay stable.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "snake_case")]
 pub enum LearnedToastShortcut {
@@ -62,17 +77,22 @@ pub enum LearnedToastShortcut {
 enum Slot {
     Accept,
     AcceptKeypad,
+    Undo,
     Dismiss,
 }
 
+/// One entry per [`Slot`].
+const SLOTS: usize = 4;
+
 impl Slot {
-    const ALL: [Slot; 3] = [Slot::Accept, Slot::AcceptKeypad, Slot::Dismiss];
+    const ALL: [Slot; SLOTS] = [Slot::Accept, Slot::AcceptKeypad, Slot::Undo, Slot::Dismiss];
 
     fn index(self) -> usize {
         match self {
             Slot::Accept => 0,
             Slot::AcceptKeypad => 1,
-            Slot::Dismiss => 2,
+            Slot::Undo => 2,
+            Slot::Dismiss => 3,
         }
     }
 
@@ -81,6 +101,7 @@ impl Slot {
         match self {
             Slot::Accept => "learned_toast_accept",
             Slot::AcceptKeypad => "learned_toast_accept_keypad",
+            Slot::Undo => "learned_toast_undo",
             Slot::Dismiss => "learned_toast_dismiss",
         }
     }
@@ -115,27 +136,25 @@ impl Target {
 enum ToastAction {
     /// Accept: every suggestion of the group.
     Accept(Vec<String>),
-    /// Never (the suggestions) or Undo (the promoted pairs): reject + block.
-    Reject(Vec<String>),
+    /// Undo the promoted pairs: reject + block.
+    Undo(Vec<String>),
+    /// Hide the toast; the store is left untouched.
+    Dismiss,
 }
 
-/// Mirrors the toast buttons: Accept acts on the suggestions; Never / Undo
-/// rejects the suggestions when there are any (the "Never" button), otherwise
-/// the promoted pairs (the "Undo" button). `None` = the slot has nothing to
-/// act on for this toast, so it is not registered at all.
+/// Mirrors the toast buttons: Accept acts on the suggestions, Undo on the
+/// promoted pairs, dismiss (⌃⎋, the `⌃esc` chip) only hides. `None` = the slot has
+/// nothing to act on for this toast, so it is not registered at all — Undo on
+/// a suggestion-only toast stays unregistered rather than doubling as
+/// dismiss, so ⌃⌫ (delete word in many editors) is not swallowed for nothing.
 fn action_for(slot: Slot, target: &Target) -> Option<ToastAction> {
     match slot {
         Slot::Accept | Slot::AcceptKeypad => (!target.suggested_ids.is_empty())
             .then(|| ToastAction::Accept(target.suggested_ids.clone())),
-        Slot::Dismiss => {
-            if !target.suggested_ids.is_empty() {
-                Some(ToastAction::Reject(target.suggested_ids.clone()))
-            } else if !target.active_ids.is_empty() {
-                Some(ToastAction::Reject(target.active_ids.clone()))
-            } else {
-                None
-            }
+        Slot::Undo => {
+            (!target.active_ids.is_empty()).then(|| ToastAction::Undo(target.active_ids.clone()))
         }
+        Slot::Dismiss => Some(ToastAction::Dismiss),
     }
 }
 
@@ -216,8 +235,9 @@ fn find_conflict<'a>(
         .map(|(id, _)| id)
 }
 
-/// Every global binding plus — for Dismiss — the Accept combo (Accept wins a
-/// tie, so a hand-edited settings file cannot make one press do both).
+/// Every global binding, the fixed dismiss combo, plus — for Undo — the Accept
+/// combo (Accept wins a tie, so a hand-edited settings file cannot make one
+/// press do both).
 fn reserved_bindings(settings: &AppSettings, which: LearnedToastShortcut) -> Vec<(&str, &str)> {
     let mut reserved: Vec<(&str, &str)> = settings
         .bindings
@@ -230,6 +250,8 @@ fn reserved_bindings(settings: &AppSettings, which: LearnedToastShortcut) -> Vec
             settings.learned_toast_accept_shortcut.as_str(),
         ));
     }
+    // The fixed dismiss combo is never available to Accept / Undo.
+    reserved.push((Slot::Dismiss.binding_id(), DISMISS));
     reserved
 }
 
@@ -283,14 +305,41 @@ fn keypad_twin(raw: &str, implementation: KeyboardImplementation) -> Option<Stri
     Some(parts.join("+"))
 }
 
+/// Whether the fixed dismiss combo must stay unregistered: another binding
+/// resolves to it. The recording cancel binding only counts while `recording`
+/// (it is registered for the recording's duration only); the toast's own
+/// combos are refused it at validation (see [`reserved_bindings`]).
+fn dismiss_conflict(settings: &AppSettings, recording: bool) -> Option<&str> {
+    find_conflict(
+        DISMISS,
+        settings
+            .bindings
+            .iter()
+            .filter(|(id, _)| recording || id.as_str() != "cancel")
+            .map(|(id, binding)| (id.as_str(), binding.current_binding.as_str())),
+    )
+}
+
 /// The combo each slot should hold for `target` (`None` = not registered).
-fn desired_bindings(target: Option<&Target>, settings: &AppSettings) -> [Option<String>; 3] {
-    let mut desired: [Option<String>; 3] = [None, None, None];
+/// `recording` = the recording cancel shortcut is wanted right now.
+fn desired_bindings(
+    target: Option<&Target>,
+    settings: &AppSettings,
+    recording: bool,
+) -> [Option<String>; SLOTS] {
+    let mut desired: [Option<String>; SLOTS] = Default::default();
     let Some(target) = target else {
         return desired;
     };
     for slot in Slot::ALL {
         if action_for(slot, target).is_none() {
+            continue;
+        }
+        if slot == Slot::Dismiss {
+            match dismiss_conflict(settings, recording) {
+                None => desired[slot.index()] = Some(DISMISS.to_string()),
+                Some(id) => debug!("learned-toast dismiss yields to binding '{}'", id),
+            }
             continue;
         }
         let (which, raw) = match slot {
@@ -307,10 +356,11 @@ fn desired_bindings(target: Option<&Target>, settings: &AppSettings) -> [Option<
                     None => continue,
                 }
             }
-            Slot::Dismiss => (
+            Slot::Undo => (
                 LearnedToastShortcut::Dismiss,
                 settings.learned_toast_dismiss_shortcut.clone(),
             ),
+            Slot::Dismiss => continue,
         };
         // The keypad twin is backend-specific (and global-hotkey's name fails
         // the handy-keys parser), so only the conflict check applies to it.
@@ -372,7 +422,7 @@ struct Registration {
 
 /// Registered state per [`Slot`]. Remembers the backend it went to, so an
 /// implementation switch mid-toast still unregisters from the right one.
-static REGISTERED: Mutex<[Option<Registration>; 3]> = Mutex::new([None, None, None]);
+static REGISTERED: Mutex<[Option<Registration>; SLOTS]> = Mutex::new([None, None, None, None]);
 
 /// Arm with the event captured by this reveal's main-thread closure; a later
 /// reveal's staging can never be consumed by an earlier reveal.
@@ -407,6 +457,19 @@ pub fn resume(app: &AppHandle) {
     schedule_reconcile(app);
 }
 
+/// The recording cancel shortcut is about to be registered: release dismiss
+/// now, synchronously, so the cancel registration does not hit a duplicate
+/// combo. Called by the cancel reconciliation after the recording asked for it.
+pub fn yield_dismiss_to_cancel(app: &AppHandle) {
+    reconcile(app);
+}
+
+/// The recording cancel shortcut was released: re-arm dismiss if a toast is
+/// still on screen.
+pub fn reclaim_dismiss_from_cancel(app: &AppHandle) {
+    schedule_reconcile(app);
+}
+
 /// Apply the desired state off the calling thread; each pass applies the
 /// latest request, so spawned passes may run in any order.
 fn schedule_reconcile(app: &AppHandle) {
@@ -435,7 +498,8 @@ fn reconcile(app: &AppHandle) {
             .cloned();
         let settings = settings::get_settings(app);
         let implementation = settings.keyboard_implementation;
-        let desired = desired_bindings(target.as_ref(), &settings);
+        let recording = crate::shortcut::cancel_shortcut_requested();
+        let desired = desired_bindings(target.as_ref(), &settings, recording);
 
         for slot in Slot::ALL {
             let wanted = desired[slot.index()].as_ref();
@@ -547,11 +611,13 @@ fn run_action(app: &AppHandle, action: ToastAction) {
                 }
             }
         }
-        ToastAction::Reject(ids) => {
+        ToastAction::Undo(ids) => {
             if let Err(e) = commands::reject_learned_corrections(app.clone(), ids) {
-                warn!("learned-toast shortcut: reject failed: {}", e);
+                warn!("learned-toast shortcut: undo failed: {}", e);
             }
         }
+        // Only hides (the caller dismisses the toast); nothing to persist.
+        ToastAction::Dismiss => {}
     }
 }
 
@@ -571,11 +637,11 @@ pub fn change_learned_toast_shortcut_setting(
         LearnedToastShortcut::Dismiss => DEFAULT_DISMISS.to_string(),
     });
     let mut reserved = reserved_bindings(&settings, action);
-    // Accept must not take the Dismiss combo either (the runtime tie-break
-    // only covers hand-edited settings).
+    // Accept must not take the Undo combo either (the runtime tie-break only
+    // covers hand-edited settings).
     if action == LearnedToastShortcut::Accept {
         reserved.push((
-            Slot::Dismiss.binding_id(),
+            Slot::Undo.binding_id(),
             settings.learned_toast_dismiss_shortcut.as_str(),
         ));
     }
@@ -685,7 +751,7 @@ mod tests {
     }
 
     #[test]
-    fn suggestion_toast_maps_accept_and_never() {
+    fn suggestion_toast_maps_accept_and_dismiss_but_no_undo() {
         let t = target(1, &["a", "b"], &[]);
         assert_eq!(
             action_for(Slot::Accept, &t),
@@ -695,30 +761,40 @@ mod tests {
             action_for(Slot::AcceptKeypad, &t),
             Some(ToastAction::Accept(ids(&["a", "b"])))
         );
-        assert_eq!(
-            action_for(Slot::Dismiss, &t),
-            Some(ToastAction::Reject(ids(&["a", "b"])))
-        );
+        // Nothing to undo: the suggestion is never rejected from the toast.
+        assert_eq!(action_for(Slot::Undo, &t), None);
+        assert_eq!(action_for(Slot::Dismiss, &t), Some(ToastAction::Dismiss));
     }
 
     #[test]
-    fn promoted_toast_maps_dismiss_to_undo_and_has_no_accept() {
+    fn promoted_toast_maps_undo_and_dismiss_and_has_no_accept() {
         let t = target(1, &[], &["x"]);
         assert_eq!(action_for(Slot::Accept, &t), None);
         assert_eq!(action_for(Slot::AcceptKeypad, &t), None);
         assert_eq!(
-            action_for(Slot::Dismiss, &t),
-            Some(ToastAction::Reject(ids(&["x"])))
+            action_for(Slot::Undo, &t),
+            Some(ToastAction::Undo(ids(&["x"])))
+        );
+        assert_eq!(action_for(Slot::Dismiss, &t), Some(ToastAction::Dismiss));
+    }
+
+    #[test]
+    fn mixed_toast_undo_rejects_only_the_promoted_pairs() {
+        let t = target(1, &["s"], &["x"]);
+        assert_eq!(
+            action_for(Slot::Undo, &t),
+            Some(ToastAction::Undo(ids(&["x"])))
         );
     }
 
     #[test]
-    fn mixed_toast_dismiss_rejects_only_the_suggestions() {
-        let t = target(1, &["s"], &["x"]);
-        assert_eq!(
-            action_for(Slot::Dismiss, &t),
-            Some(ToastAction::Reject(ids(&["s"])))
-        );
+    fn dismiss_claims_once_without_touching_pairs() {
+        let mut current = Some(target(6, &["s"], &["x"]));
+        let (claimed, action) = claim(&mut current, Slot::Dismiss).expect("dismiss acts");
+        assert_eq!(claimed.generation, 6);
+        assert_eq!(action, ToastAction::Dismiss);
+        assert!(current.is_none());
+        assert!(claim(&mut current, Slot::Dismiss).is_none());
     }
 
     #[test]
@@ -737,10 +813,10 @@ mod tests {
     fn claim_acts_on_the_newest_toast_only() {
         // A newer reveal replaced the target: the press carries the newer
         // generation, so the follow-up dismissal can never hit the old toast.
-        let mut current = Some(target(4, &["new"], &[]));
-        let (claimed, action) = claim(&mut current, Slot::Dismiss).unwrap();
+        let mut current = Some(target(4, &[], &["new"]));
+        let (claimed, action) = claim(&mut current, Slot::Undo).unwrap();
         assert_eq!(claimed.generation, 4);
-        assert_eq!(action, ToastAction::Reject(ids(&["new"])));
+        assert_eq!(action, ToastAction::Undo(ids(&["new"])));
     }
 
     #[test]
@@ -840,23 +916,69 @@ mod tests {
     fn desired_bindings_follow_the_toast_content() {
         let mut settings = settings::get_default_settings();
         settings.keyboard_implementation = KeyboardImplementation::Tauri;
-        assert_eq!(desired_bindings(None, &settings), [None, None, None]);
+        assert_eq!(
+            desired_bindings(None, &settings, false),
+            [None, None, None, None]
+        );
 
         let suggestion = target(1, &["s"], &[]);
         assert_eq!(
-            desired_bindings(Some(&suggestion), &settings),
+            desired_bindings(Some(&suggestion), &settings, false),
             [
                 Some("ctrl+enter".into()),
                 Some("ctrl+numpadenter".into()),
-                Some("ctrl+backspace".into())
+                None,
+                Some("ctrl+escape".into())
             ]
         );
 
         let promoted = target(2, &[], &["x"]);
         assert_eq!(
-            desired_bindings(Some(&promoted), &settings),
-            [None, None, Some("ctrl+backspace".into())]
+            desired_bindings(Some(&promoted), &settings, false),
+            [
+                None,
+                None,
+                Some("ctrl+backspace".into()),
+                Some("ctrl+escape".into())
+            ]
         );
+    }
+
+    #[test]
+    fn dismiss_yields_to_a_recording_cancel_on_the_same_combo() {
+        let mut settings = settings::get_default_settings();
+        let t = target(1, &["s"], &[]);
+        // Default cancel (bare Esc) never collides with ⌃⎋.
+        assert_eq!(
+            desired_bindings(Some(&t), &settings, true)[Slot::Dismiss.index()],
+            Some("ctrl+escape".into())
+        );
+        // A cancel on ⌃⎋ (side-specific spelling included) owns it while
+        // recording; idle, the toast has it.
+        if let Some(cancel) = settings.bindings.get_mut("cancel") {
+            cancel.current_binding = "ctrl_left+escape".into();
+        }
+        assert_eq!(
+            desired_bindings(Some(&t), &settings, true)[Slot::Dismiss.index()],
+            None
+        );
+        assert_eq!(
+            desired_bindings(Some(&t), &settings, false)[Slot::Dismiss.index()],
+            Some("ctrl+escape".into())
+        );
+    }
+
+    #[test]
+    fn dismiss_combo_parses_in_both_backends_and_is_reserved() {
+        assert!(tauri_impl::validate_shortcut(DISMISS).is_ok());
+        assert!(handy_keys::validate_shortcut(DISMISS).is_ok());
+        let settings = settings::get_default_settings();
+        for which in [LearnedToastShortcut::Accept, LearnedToastShortcut::Dismiss] {
+            assert_eq!(
+                validate_binding("ctrl+escape", reserved_bindings(&settings, which)),
+                Err("conflict:learned_toast_dismiss".into())
+            );
+        }
     }
 
     #[test]
@@ -867,17 +989,17 @@ mod tests {
             cancel.current_binding = "ctrl+backspace".into();
         }
         settings.learned_toast_dismiss_shortcut = "ctrl+backspace".into();
-        let desired = desired_bindings(Some(&target(1, &["s"], &[])), &settings);
-        assert_eq!(desired[Slot::Dismiss.index()], None);
+        let desired = desired_bindings(Some(&target(1, &["s"], &["x"])), &settings, false);
+        assert_eq!(desired[Slot::Undo.index()], None);
         assert!(desired[Slot::Accept.index()].is_some());
     }
 
     #[test]
-    fn dismiss_equal_to_accept_loses_the_tie() {
+    fn undo_equal_to_accept_loses_the_tie() {
         let mut settings = settings::get_default_settings();
         settings.learned_toast_dismiss_shortcut = settings.learned_toast_accept_shortcut.clone();
-        let desired = desired_bindings(Some(&target(1, &["s"], &[])), &settings);
+        let desired = desired_bindings(Some(&target(1, &["s"], &["x"])), &settings, false);
         assert!(desired[Slot::Accept.index()].is_some());
-        assert_eq!(desired[Slot::Dismiss.index()], None);
+        assert_eq!(desired[Slot::Undo.index()], None);
     }
 }

@@ -13,7 +13,7 @@
 //!   blocks a pair for good; persisted apart from `AppSettings`.
 //! - [`apply_learned`] — the deterministic apply stage in the transcription
 //!   funnel; only active, enabled pairs fire.
-//! - [`toast`] — suggestions with Accept / Never, promotions with Undo.
+//! - [`toast`] — suggestions with Accept, promotions with Undo; ⌃⎋ dismisses.
 //! - [`toast_shortcuts`] — keyboard shortcuts for those buttons, registered
 //!   only while the toast is visible.
 //! - [`commands`] — the review UI's command surface.
@@ -83,7 +83,7 @@ pub struct LearnedCorrectionEvent {
     /// The first pair's status after this edit: `suggested` (stored, not yet
     /// applied) or `active` (now applied).
     pub status: CorrectionStatus,
-    /// The new suggestions of this group; Accept / Never act on these only.
+    /// The new suggestions of this group; Accept acts on these only.
     pub suggested_ids: Vec<String>,
     /// The pairs this group promoted to active; Undo rejects these only.
     pub active_ids: Vec<String>,

@@ -36,7 +36,9 @@ const MODIFIER_KEYS = [
 const TOAST_SLOT_TITLES: Record<string, string> = {
   learned_toast_accept: `${KEY}.accept.title`,
   learned_toast_accept_keypad: `${KEY}.accept.title`,
-  learned_toast_dismiss: `${KEY}.dismiss.title`,
+  learned_toast_undo: `${KEY}.dismiss.title`,
+  // The toast's fixed dismiss combo (ctrl+escape), reserved for both.
+  learned_toast_dismiss: "learnedToast.dismiss",
 };
 
 interface LearnedToastShortcutInputProps {

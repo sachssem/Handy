@@ -197,6 +197,9 @@ mod imp {
     /// The pinned element was destroyed (field torn down) — wakes the session for
     /// an immediate teardown check instead of waiting out the poll interval.
     const AX_UI_ELEMENT_DESTROYED_NOTIFICATION: &str = "AXUIElementDestroyed";
+    /// The caret or selection moved — wakes the session so a caret move restarts
+    /// the pending set's quiet period at once, not only at the next timer read.
+    const AX_SELECTED_TEXT_CHANGED_NOTIFICATION: &str = "AXSelectedTextChanged";
 
     /// Copy an AX attribute value (+1 retained, released when the `CFType`
     /// drops). `None` on any AX error or a null value.
@@ -404,6 +407,7 @@ mod imp {
         for name in [
             AX_VALUE_CHANGED_NOTIFICATION,
             AX_UI_ELEMENT_DESTROYED_NOTIFICATION,
+            AX_SELECTED_TEXT_CHANGED_NOTIFICATION,
         ] {
             let notification = CFString::new(name);
             let err = unsafe {

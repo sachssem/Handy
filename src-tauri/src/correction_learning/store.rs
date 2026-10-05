@@ -183,6 +183,9 @@ pub enum Observation {
     /// The user disabled the auto pair for this misheard text; a new target
     /// does not replace it.
     DisabledKept,
+    /// The candidate rewrites the output of a known pair (`X High → xhigh`
+    /// stored, then `xhigh → high`): learning it would chain two pairs.
+    Chained,
 }
 
 impl Observation {
@@ -197,6 +200,7 @@ impl Observation {
             Self::InverseOfManual => "inverse of manual",
             Self::Full => "store full",
             Self::DisabledKept => "disabled kept",
+            Self::Chained => "chained",
         }
     }
 
@@ -284,6 +288,15 @@ impl LearnedCorrections {
             let removed = self.corrections.remove(idx);
             self.block(&removed.misheard, &removed.intended, now);
             return Observation::InverseReverted(removed.id);
+        }
+
+        // Rewriting what a known pair produces is not a new mishearing.
+        if self
+            .corrections
+            .iter()
+            .any(|c| key(&c.intended) == misheard_key)
+        {
+            return Observation::Chained;
         }
 
         let mut entry = LearnedCorrection::new(
@@ -756,6 +769,32 @@ mod tests {
         assert_eq!(entry.intended, "Jonas");
         assert_eq!(entry.count, 1);
         assert_eq!(entry.status, CorrectionStatus::Suggested);
+    }
+
+    #[test]
+    fn rewriting_a_known_pairs_output_is_not_learned() {
+        let mut data = LearnedCorrections::default();
+        data.observe(&candidate("X High", "xhigh"), None, 1);
+        assert_eq!(
+            data.observe(&candidate("xhigh", "high"), None, 2),
+            Observation::Chained
+        );
+        assert!(!Observation::Chained.mutates_store());
+        assert_eq!(data.corrections.len(), 1);
+        // The inverse still reverts the pair.
+        assert!(matches!(
+            data.observe(&candidate("xhigh", "X High"), None, 3),
+            Observation::InverseReverted(_)
+        ));
+    }
+
+    #[test]
+    fn conflicting_targets_in_one_session_keep_only_the_last() {
+        let mut data = LearnedCorrections::default();
+        data.observe(&candidate("Wertebad", "Werte button"), None, 1);
+        data.observe(&candidate("Wertebad", "Werte"), None, 2);
+        assert_eq!(data.corrections.len(), 1);
+        assert_eq!(find(&data, "Wertebad").intended, "Werte");
     }
 
     #[test]

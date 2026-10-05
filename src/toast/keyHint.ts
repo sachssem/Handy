@@ -18,8 +18,9 @@ const KEY_GLYPHS: Record<string, string> = {
   keypadenter: "⌤",
   backspace: "⌫",
   delete: "⌦",
-  escape: "⎋",
-  esc: "⎋",
+  // Spelled out: the toast's dismiss chip reads "⌃esc", like the key cap.
+  escape: "esc",
+  esc: "esc",
   tab: "⇥",
   space: "␣",
   up: "↑",

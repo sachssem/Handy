@@ -529,8 +529,8 @@
             "description": "接受已學習修正通知中的建議。僅在通知顯示時有效。"
           },
           "dismiss": {
-            "title": "快捷鍵：永不 / 復原",
-            "description": "拒絕建議（永不）或復原剛學習的修正（復原）。僅在通知顯示時有效。"
+            "title": "快捷鍵：復原",
+            "description": "復原剛學習的修正（復原）。僅在通知顯示已學習的修正時有效；Ctrl+Esc 會關閉通知，不做任何變更。"
           },
           "errors": {
             "needsModifier": "請至少使用一個修飾鍵（Control、Option、Shift 或 Command）。",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "錄音將在 {{seconds}} 秒後自動停止"
   },
   "learnedToast": {
-    "title": "已學習：「{{misheard}}」→「{{intended}}」",
-    "suggestionTitle": "建議：「{{misheard}}」→「{{intended}}」",
+    "pair": "「{{misheard}}」→「{{intended}}」",
     "undo": "復原",
     "accept": "接受",
-    "dismiss": "永不",
+    "dismiss": "關閉",
     "more": "另 {{count}} 個"
   },
   "whatsNew": {

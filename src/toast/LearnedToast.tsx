@@ -20,18 +20,24 @@ const EXIT_MS = 200;
 // acted on the toast; the payload is the toast's first-pair id.
 const SHORTCUT_DISMISS_EVENT = "learned-toast-shortcut-dismiss";
 
+// The fixed dismiss combo, registered by Rust while the toast is visible
+// (correction_learning::toast_shortcuts::DISMISS); the corner chip shows it.
+const DISMISS_SHORTCUT = "ctrl+escape";
+
 interface KeyHints {
   accept: string;
-  dismiss: string;
+  undo: string;
 }
 
 /**
  * The learned-correction toast (fork feature: voice-control). Lives in its own
  * always-on-top window and listens for the backend `learnedCorrectionEvent`:
- * a new suggestion shows "Suggestion: X → Y" with Accept / Never, a pair that
- * became active shows "Learned: X → Y" with Undo. A group mixing both offers
- * all three, each acting only on its own pairs. Auto-dismisses either way.
- * The window is positioned and revealed from Rust (see
+ * a new suggestion shows "X → Y" with a sparkle badge and Accept, a pair that
+ * became active shows it with a check badge and Undo. A group mixing both
+ * offers both, each acting only on its own pairs. A "⌃esc" chip in the corner
+ * (and that combo) dismisses without touching the store: a suggestion stays
+ * a suggestion, still blockable from the settings list. Auto-dismisses either
+ * way. The window is positioned and revealed from Rust (see
  * correction_learning::toast); this component owns only the content and its
  * lifecycle. The buttons show their keyboard shortcuts (registered by Rust
  * only while the toast is visible); a shortcut acts in Rust and then asks this
@@ -99,7 +105,7 @@ const LearnedToast: React.FC = () => {
             accept: formatKeyHint(
               result.data.learned_toast_accept_shortcut ?? "",
             ),
-            dismiss: formatKeyHint(
+            undo: formatKeyHint(
               result.data.learned_toast_dismiss_shortcut ?? "",
             ),
           });
@@ -142,7 +148,8 @@ const LearnedToast: React.FC = () => {
         else unlisten = fn;
       });
 
-    // A keyboard shortcut already accepted / rejected in Rust: just leave.
+    // A keyboard shortcut already accepted / undid / dismissed in Rust: just
+    // leave.
     // Scoped to the toast it acted on, so it never closes a newer one.
     void listen<string>(SHORTCUT_DISMISS_EVENT, (event) => {
       if (visibleRef.current && contentRef.current?.id === event.payload) {
@@ -171,9 +178,9 @@ const LearnedToast: React.FC = () => {
     };
   }, []);
 
-  // Undo (the promoted pairs) and Never (the suggestions) reject their own
-  // pairs only: removed and blocked from being learned again.
-  const reject = async (ids: string[]) => {
+  // Undo rejects the promoted pairs only: removed and blocked from being
+  // learned again.
+  const undo = async (ids: string[]) => {
     if (ids.length > 0) {
       try {
         const result = await commands.rejectLearnedCorrections(ids);
@@ -253,15 +260,10 @@ const LearnedToast: React.FC = () => {
           )}
         </span>
         <span className="lt-title">
-          {t(
-            isSuggestion
-              ? "learnedToast.suggestionTitle"
-              : "learnedToast.title",
-            {
-              misheard: content.misheard,
-              intended: content.intended,
-            },
-          )}
+          {t("learnedToast.pair", {
+            misheard: content.misheard,
+            intended: content.intended,
+          })}
         </span>
         {content.extra > 0 && (
           // Several corrections settled together; the toast shows the first pair
@@ -271,32 +273,29 @@ const LearnedToast: React.FC = () => {
           </span>
         )}
         {hasSuggestions && (
-          <>
-            <button className="lt-action lt-primary" onClick={handleAccept}>
-              {t("learnedToast.accept")}
-              {keyHint(hints?.accept)}
-            </button>
-            <button
-              className="lt-action"
-              onClick={() => reject(content.suggested_ids)}
-            >
-              {t("learnedToast.dismiss")}
-              {keyHint(hints?.dismiss)}
-            </button>
-          </>
-        )}
-        {hasLearned && (
-          // The dismiss shortcut is Never when there are suggestions, Undo
-          // otherwise (mirrors correction_learning::toast_shortcuts::action_for),
-          // so Undo shows its hint only without suggestions.
-          <button
-            className={`lt-action${hasSuggestions ? "" : " lt-primary"}`}
-            onClick={() => reject(content.active_ids)}
-          >
-            {t("learnedToast.undo")}
-            {!hasSuggestions && keyHint(hints?.dismiss)}
+          <button className="lt-action lt-primary" onClick={handleAccept}>
+            {t("learnedToast.accept")}
+            {keyHint(hints?.accept)}
           </button>
         )}
+        {hasLearned && (
+          <button
+            className={`lt-action${hasSuggestions ? "" : " lt-primary"}`}
+            onClick={() => undo(content.active_ids)}
+          >
+            {t("learnedToast.undo")}
+            {keyHint(hints?.undo)}
+          </button>
+        )}
+        {/* Plain dismiss, same as ⌃esc: the store is left untouched. */}
+        <button
+          className="lt-close"
+          onClick={dismiss}
+          aria-label={t("learnedToast.dismiss")}
+          title={t("learnedToast.dismiss")}
+        >
+          {formatKeyHint(DISMISS_SHORTCUT)}
+        </button>
       </div>
     </div>
   );

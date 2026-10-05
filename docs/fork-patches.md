@@ -132,6 +132,8 @@ inside that span. Gated pairs (names, jargon — not grammar: inflections,
 numbers, everyday-word swaps are rejected) are stored as **suggestions**; a
 pair becomes **active** (applied on future transcriptions) when observed again
 or confirmed. Undo (toast or UI) removes an auto pair and blocks it for good;
+dismissing the toast (`⌃esc` chip or `ctrl+escape`) changes nothing — a suggestion stays
+a suggestion and can still be blocked from the settings list;
 manually reverting an applied pair is detected as its inverse (before any
 vocabulary gate) and blocks it. The master switch ("Personal dictionary",
 `learn_corrections_enabled`) applies the dictionary; the macOS-only sub-switch
@@ -147,10 +149,24 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   `likely_typo` rejects small edits (≤2 edits or relative distance ≤0.34)
   from a common de/en word to an unknown word, unless the target is
   distinctive (inner capitals, an all-caps acronym, or mixed digits/letters).
+  It also rejects any deletion-only or single-char-append edit of a common
+  word (`Werkstatt → Werk`), whatever the result. Edits diffed against a
+  paste-only anchor (the paste was never found verbatim) use at most the
+  Conservative distance bound and always need the phonetic match. The store
+  refuses a candidate whose misheard side is the intended side of a known pair
+  (`chained`, e.g. `X High → xhigh` then `xhigh → high`); a second target for
+  the same misheard text replaces the first, so one session never keeps two.
   First names are known and distinctive case-insensitively, even when also
   common words (`mark → marc`, `Mark → Marc`); case-only edits remain rejected.
   Field diffs split `@`, `.`, `/` into separate tokens, so e-mail local-part
   and URL corrections yield individual word pairs without losing byte offsets.
+- **Settling:** a candidate set commits only after the field was quiet for
+  `SETTLE` (1.5 s) — every text change _and_ every caret move restarts it
+  (`AXSelectedTextChanged` wakes the session), and a superseded intermediate
+  set never settles, so a multi-step fix (`Sparaboos` → `Spar-Abos`) is
+  proposed once, as its final state. With the caret at a word end it waits
+  `LONG_SETTLE` (3 s). Clear-on-submit / focus change still commit a finished
+  edit at once; the window expiring drops a set younger than `SETTLE`.
 - **Toast focus:** the toast panel never becomes key
   (`can_become_key_window: false`, `focusable(false)`) and is revealed via the
   nspanel API (`orderFrontRegardless`), never `WebviewWindow::show` (tao's
@@ -158,9 +174,11 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   Return meant for a chat composer was lost. Clicks still work through
   `accept_first_mouse(true)` + the non-activating style mask.
 - **Toast shortcuts:** Accept (`learned_toast_accept_shortcut`, default
-  `ctrl+enter`, plus the keypad-Enter twin) and Never / Undo
-  (`learned_toast_dismiss_shortcut`, default `ctrl+backspace`) are registered
-  only while a toast is visible (`toast_shortcuts.rs`: armed on reveal,
+  `ctrl+enter`, plus the keypad-Enter twin; only with suggestions), Undo
+  (`learned_toast_dismiss_shortcut` — the name predates the re-scope —
+  default `ctrl+backspace`; only with learned pairs) and a fixed plain dismiss
+  (`ctrl+escape`, not bare Esc, so Esc keeps reaching the focused app; the
+  corner chip shows it as `⌃esc`) are registered only while a toast is visible (`toast_shortcuts.rs`: armed on reveal,
   disarmed on every hide, generation-guarded take-once claim), through the
   active keyboard backend. Each reveal carries its own event into the main-thread
   closure; delayed hides match the current toast id/generation, and
@@ -170,6 +188,11 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   Bare/Shift-only combos return `needs-modifier`; conflicts retain the
   `conflict:<binding_id>` marker. Editable under "Learning options"
   (`LearnedToastShortcutInput.tsx`); the toast buttons show them as key hints.
+  The fixed dismiss combo is reserved against Accept / Undo. Cancel is only
+  registered while recording; if a recording starts with the toast visible and
+  the cancel binding resolves to `ctrl+escape` (side-agnostic), dismiss yields
+  (the backends refuse duplicates): the cancel reconciliation releases it
+  before registering cancel and hands it back after unregistering.
 - **New files:** `src-tauri/src/correction_learning/` (`mod.rs` apply stage +
   language, `ax_reader.rs`, `commands.rs` Tauri commands, `differ.rs` gates,
   `lexicon.rs` + `data/` word lists, `session.rs`, `store.rs` lifecycle +
@@ -195,7 +218,10 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   - `shortcut/handler.rs`: routes the transient toast bindings to
     `toast_shortcuts::handle_shortcut_event` before the `ACTION_MAP` lookup.
   - `shortcut/mod.rs`: marked suspend/resume hooks include transient toast
-    shortcuts in settings shortcut capture.
+    shortcuts in settings shortcut capture; `cancel_shortcut_requested()` and
+    the cancel reconciliation's `yield_dismiss_to_cancel` /
+    `reclaim_dismiss_from_cancel` calls hand `ctrl+escape` between the toast
+    and the recording cancel shortcut.
   - `bindings.ts`: optional toast id on the generated hide command.
   - `cli.rs`: the hidden `--debug-toast` flag.
   - `settings.rs`: `learn_corrections_*`, `learn_from_edits_enabled` and

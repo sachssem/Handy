@@ -61,6 +61,12 @@ pub fn init_shortcuts(app: &AppHandle) {
 /// Written synchronously by start/stop, so it always holds the latest request.
 static CANCEL_REQUESTED: AtomicBool = AtomicBool::new(false);
 
+// fork(voice-control): the learned toast's transient dismiss combo yields to
+// the cancel shortcut while a recording wants it (see `toast_shortcuts`).
+pub fn cancel_shortcut_requested() -> bool {
+    CANCEL_REQUESTED.load(Ordering::SeqCst)
+}
+
 /// Whether the cancel shortcut is actually registered with the backend.
 /// The lock also serializes reconciliation passes.
 #[cfg(not(target_os = "linux"))]
@@ -109,6 +115,11 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
         let mut registered = CANCEL_REGISTERED.lock().unwrap_or_else(|e| e.into_inner());
         let requested = CANCEL_REQUESTED.load(Ordering::SeqCst);
         if requested == *registered {
+            // fork(voice-control): a toast pass may have released dismiss
+            // while a (very short) recording was requested; hand it back.
+            if !requested {
+                crate::correction_learning::toast_shortcuts::reclaim_dismiss_from_cancel(app);
+            }
             return;
         }
 
@@ -117,6 +128,9 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
         };
 
         if requested {
+            // fork(voice-control): release the toast's dismiss combo first —
+            // the backends refuse a duplicate combo.
+            crate::correction_learning::toast_shortcuts::yield_dismiss_to_cancel(app);
             match register_shortcut(app, cancel_binding) {
                 Ok(()) => *registered = true,
                 Err(e) => error!("Failed to register cancel shortcut: {}", e),
@@ -126,6 +140,8 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
                 Ok(()) => *registered = false,
                 Err(e) => error!("Failed to unregister cancel shortcut: {}", e),
             }
+            // fork(voice-control): hand dismiss back to a toast still on screen.
+            crate::correction_learning::toast_shortcuts::reclaim_dismiss_from_cancel(app);
         }
     }
 }

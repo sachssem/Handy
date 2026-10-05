@@ -1,7 +1,7 @@
 //! Learned-correction toast window (fork feature: voice-control).
 //!
-//! A self-dismissing toast for new suggestions (Accept / Never) and promoted
-//! corrections (Undo).
+//! A self-dismissing toast for new suggestions (Accept) and promoted
+//! corrections (Undo); a `⌃esc` chip and ⌃⎋ dismiss it unchanged.
 //! It is a **separate** window from the recording overlay ([`crate::overlay`]):
 //! the overlay is bound to the record lifecycle and non-interactive, whereas the
 //! toast owns its dismissal timer and must be clickable. The two only share the
@@ -9,8 +9,8 @@
 //!
 //! ## Focus policy (macOS)
 //!
-//! The toast has one hard requirement: it must be clickable (Accept / Never /
-//! Undo) yet must never take keyboard focus from the app the user is typing in
+//! The toast has one hard requirement: it must be clickable (Accept / Undo /
+//! esc) yet must never take keyboard focus from the app the user is typing in
 //! — not when it appears, and not when a button is clicked. A user pressing
 //! Return in a chat composer right after the toast appeared must still send
 //! the message. It is therefore the overlay's recipe exactly:
@@ -95,7 +95,7 @@ const SHORTCUT_HIDE_BACKUP: Duration = Duration::from_millis(600);
 /// Toast window size (logical points). The pill card is centered inside this
 /// frame, with vertical slack for the slide-in/out animation; keep it at least
 /// as large as the `.lt-card` footprint in LearnedToast.css.
-const TOAST_WIDTH: f64 = 420.0;
+const TOAST_WIDTH: f64 = 560.0;
 const TOAST_HEIGHT: f64 = 76.0;
 
 /// Margin above the screen's bottom edge, clearing the Dock comfortably.
@@ -304,7 +304,7 @@ pub fn toast_stage(stage: String) {
 /// --debug-toast`, forwarded via single-instance). Exercises the exact
 /// production path — stash, lazy window creation, positioning, reveal —
 /// without needing a real dictation + manual correction round trip. The ids
-/// match no stored pair, so its Undo is a harmless no-op.
+/// match no stored pair, so its Accept is a harmless no-op.
 pub fn debug_show_learned_toast(app: &AppHandle) {
     use tauri_specta::Event as _;
     log::info!("debug-toast: staging sample suggestion toast");

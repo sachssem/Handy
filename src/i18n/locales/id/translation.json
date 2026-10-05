@@ -529,8 +529,8 @@
             "description": "Menerima saran di notifikasi koreksi yang dipelajari. Hanya aktif selama notifikasi terlihat."
           },
           "dismiss": {
-            "title": "Pintasan: Jangan pernah / Urungkan",
-            "description": "Menolak saran (Jangan pernah) atau mengurungkan koreksi yang baru dipelajari (Urungkan). Hanya aktif selama notifikasi terlihat."
+            "title": "Pintasan: Urungkan",
+            "description": "Mengurungkan koreksi yang baru dipelajari (Urungkan). Hanya aktif selama notifikasi menampilkan koreksi yang dipelajari; Ctrl+Esc menutup notifikasi tanpa mengubah apa pun."
           },
           "errors": {
             "needsModifier": "Gunakan setidaknya satu tombol pengubah (Control, Option, Shift, atau Command).",
@@ -939,11 +939,10 @@
     "dismiss": "Tutup"
   },
   "learnedToast": {
-    "title": "Dipelajari: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Saran: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Urungkan",
     "accept": "Terima",
-    "dismiss": "Jangan pernah",
+    "dismiss": "Tutup",
     "more": "+{{count}} lainnya"
   }
 }

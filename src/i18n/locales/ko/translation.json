@@ -529,8 +529,8 @@
             "description": "학습된 교정 알림의 제안을 수락합니다. 알림이 표시되는 동안에만 작동합니다."
           },
           "dismiss": {
-            "title": "단축키: 다시 안 함 / 실행 취소",
-            "description": "제안을 거부하거나(다시 안 함) 방금 학습한 교정을 되돌립니다(실행 취소). 알림이 표시되는 동안에만 작동합니다."
+            "title": "단축키: 실행 취소",
+            "description": "방금 학습한 교정을 되돌립니다(실행 취소). 알림에 학습된 교정이 표시되는 동안에만 작동하며, Ctrl+Esc는 아무것도 바꾸지 않고 알림을 닫습니다."
           },
           "errors": {
             "needsModifier": "보조 키(Control, Option, Shift, Command)를 하나 이상 사용하세요.",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "{{seconds}}초 후 녹음이 자동으로 중지됩니다"
   },
   "learnedToast": {
-    "title": "학습됨: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "제안: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "실행 취소",
     "accept": "수락",
-    "dismiss": "다시 안 함",
+    "dismiss": "닫기",
     "more": "외 {{count}}개"
   },
   "whatsNew": {

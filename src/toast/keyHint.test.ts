@@ -4,7 +4,8 @@ import { formatKeyHint } from "./keyHint";
 const cases = [
   ["ctrl+enter", "⌃↩"],
   ["command+shift+k", "⇧⌘K"],
-  ["option_left+escape", "⌥⎋"],
+  ["option_left+escape", "⌥esc"],
+  ["ctrl+escape", "⌃esc"],
   ["ctrl+pageup", "⌃⇞"],
   ["ctrl+pagedown", "⌃⇟"],
   ["ctrl+home", "⌃↖"],

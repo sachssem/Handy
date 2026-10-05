@@ -529,8 +529,8 @@
             "description": "Chấp nhận gợi ý trong thông báo sửa lỗi đã học. Chỉ hoạt động khi thông báo đang hiển thị."
           },
           "dismiss": {
-            "title": "Phím tắt: Không bao giờ / Hoàn tác",
-            "description": "Từ chối gợi ý (Không bao giờ) hoặc hoàn tác một sửa lỗi vừa học (Hoàn tác). Chỉ hoạt động khi thông báo đang hiển thị."
+            "title": "Phím tắt: Hoàn tác",
+            "description": "Hoàn tác một sửa lỗi vừa học (Hoàn tác). Chỉ hoạt động khi thông báo đang hiển thị một sửa lỗi đã học; Ctrl+Esc đóng thông báo mà không thay đổi gì."
           },
           "errors": {
             "needsModifier": "Hãy dùng ít nhất một phím bổ trợ (Control, Option, Shift hoặc Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây"
   },
   "learnedToast": {
-    "title": "Đã học: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Đề xuất: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Hoàn tác",
     "accept": "Chấp nhận",
-    "dismiss": "Không bao giờ",
+    "dismiss": "Đóng",
     "more": "+{{count}} nữa"
   },
   "whatsNew": {

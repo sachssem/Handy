@@ -529,8 +529,8 @@
             "description": "接受已学习纠正提示中的建议。仅在提示显示时有效。"
           },
           "dismiss": {
-            "title": "快捷键：永不 / 撤销",
-            "description": "拒绝建议（永不）或撤销刚学习的纠正（撤销）。仅在提示显示时有效。"
+            "title": "快捷键：撤销",
+            "description": "撤销刚学习的纠正（撤销）。仅在提示显示已学习的纠正时有效；Ctrl+Esc 会关闭提示，不做任何更改。"
           },
           "errors": {
             "needsModifier": "请至少使用一个修饰键（Control、Option、Shift 或 Command）。",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "录音将在 {{seconds}} 秒后自动停止"
   },
   "learnedToast": {
-    "title": "已学习：“{{misheard}}”→“{{intended}}”",
-    "suggestionTitle": "建议：“{{misheard}}”→“{{intended}}”",
+    "pair": "“{{misheard}}”→“{{intended}}”",
     "undo": "撤销",
     "accept": "接受",
-    "dismiss": "永不",
+    "dismiss": "关闭",
     "more": "另 {{count}} 个"
   },
   "whatsNew": {

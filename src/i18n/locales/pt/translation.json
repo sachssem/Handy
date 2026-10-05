@@ -529,8 +529,8 @@
             "description": "Aceita a sugestão no aviso de correção aprendida. Ativo apenas enquanto o aviso estiver visível."
           },
           "dismiss": {
-            "title": "Atalho: Nunca / Desfazer",
-            "description": "Rejeita a sugestão (Nunca) ou desfaz uma correção recém-aprendida (Desfazer). Ativo apenas enquanto o aviso estiver visível."
+            "title": "Atalho: Desfazer",
+            "description": "Desfaz uma correção recém-aprendida (Desfazer). Ativo apenas enquanto o aviso mostrar uma correção aprendida; Ctrl+Esc fecha o aviso sem alterar nada."
           },
           "errors": {
             "needsModifier": "Use pelo menos uma tecla modificadora (Control, Option, Shift ou Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "A gravação será interrompida automaticamente em {{seconds}} segundos"
   },
   "learnedToast": {
-    "title": "Aprendido: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Sugestão: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Desfazer",
     "accept": "Aceitar",
-    "dismiss": "Nunca",
+    "dismiss": "Fechar",
     "more": "+{{count}} mais"
   },
   "whatsNew": {

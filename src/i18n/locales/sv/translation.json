@@ -529,8 +529,8 @@
             "description": "Godkänner förslaget i aviseringen om inlärda korrigeringar. Endast aktivt medan aviseringen visas."
           },
           "dismiss": {
-            "title": "Kortkommando: Aldrig / Ångra",
-            "description": "Avvisar förslaget (Aldrig) eller ångrar en nyss inlärd korrigering (Ångra). Endast aktivt medan aviseringen visas."
+            "title": "Kortkommando: Ångra",
+            "description": "Ångrar en nyss inlärd korrigering (Ångra). Endast aktivt medan aviseringen visar en inlärd korrigering; Ctrl+Esc stänger aviseringen utan att ändra något."
           },
           "errors": {
             "needsModifier": "Använd minst en modifieringstangent (Control, Alternativ, Skift eller Kommando).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder"
   },
   "learnedToast": {
-    "title": "Inlärt: ”{{misheard}}” → ”{{intended}}”",
-    "suggestionTitle": "Förslag: ”{{misheard}}” → ”{{intended}}”",
+    "pair": "”{{misheard}}” → ”{{intended}}”",
     "undo": "Ångra",
     "accept": "Godkänn",
-    "dismiss": "Aldrig",
+    "dismiss": "Stäng",
     "more": "+{{count}} till"
   },
   "whatsNew": {

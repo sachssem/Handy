@@ -60,10 +60,12 @@
   font-family: var(--lt-font);
 }
 
-/* The pill: badge | title | optional "+N more" | actions (Accept / Never for
-   suggestions, Undo for learned pairs). Flat — theme surface + hairline border,
-   no shadow or blur. */
+/* The pill: badge | title | optional "+N more" | actions (Accept for
+   suggestions, Undo for learned pairs), plus the `esc` dismiss chip on its
+   top-right corner. Flat — theme surface + hairline border, no shadow or
+   blur. */
 .lt-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -136,7 +138,7 @@
   color: color-mix(in srgb, var(--color-text) 55%, transparent);
 }
 
-/* Action buttons — Undo for a learned pair, Accept / Dismiss for a suggestion.
+/* Action buttons — Undo for a learned pair, Accept for a suggestion.
    `.lt-primary` carries the accent; a secondary action stays muted so the
    suggestion pill still has one obvious choice. */
 .lt-action {
@@ -182,4 +184,37 @@
   font-size: 11px;
   font-weight: 500;
   opacity: 0.6;
+}
+
+/* Dismiss chip ("⌃esc") straddling the pill's top-right corner (top-left in
+   RTL), like the key it mirrors. Opaque so it covers the hairline border it
+   sits on; it stays inside the window's vertical slack, so the window keeps
+   its size. */
+.lt-close {
+  position: absolute;
+  top: -7px;
+  inset-inline-end: -5px;
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--lt-border);
+  border-radius: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  background: var(--color-background);
+  cursor: pointer;
+  transition:
+    color 150ms ease,
+    transform 100ms ease;
+}
+.lt-close:hover {
+  color: var(--color-text);
+}
+.lt-close:active {
+  transform: scale(0.94);
 }

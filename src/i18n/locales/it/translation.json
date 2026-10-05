@@ -529,8 +529,8 @@
             "description": "Accetta il suggerimento nella notifica delle correzioni apprese. Attiva solo mentre la notifica è visibile."
           },
           "dismiss": {
-            "title": "Scorciatoia: Mai / Annulla",
-            "description": "Rifiuta il suggerimento (Mai) o annulla una correzione appena appresa (Annulla). Attiva solo mentre la notifica è visibile."
+            "title": "Scorciatoia: Annulla",
+            "description": "Annulla una correzione appena appresa (Annulla). Attiva solo mentre la notifica mostra una correzione appresa; Ctrl+Esc chiude la notifica senza modificare nulla."
           },
           "errors": {
             "needsModifier": "Usa almeno un tasto modificatore (Control, Opzione, Maiuscole o Comando).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "La registrazione si interromperà automaticamente tra {{seconds}} secondi"
   },
   "learnedToast": {
-    "title": "Appreso: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Suggerimento: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Annulla",
     "accept": "Accetta",
-    "dismiss": "Mai",
+    "dismiss": "Chiudi",
     "more": "+{{count}} in più"
   },
   "whatsNew": {

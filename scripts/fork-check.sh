@@ -42,6 +42,8 @@ PROBES=(
   "correction-learning: tauri commands registered|src-tauri/src/lib.rs|correction_learning::commands::"
   "correction-learning: init at startup|src-tauri/src/lib.rs|correction_learning::init\\(app_handle\\)"
   "correction-learning: toast shortcut hook|src-tauri/src/shortcut/handler.rs|toast_shortcuts::handle_shortcut_event"
+  "correction-learning: toast dismiss yields to recording cancel|src-tauri/src/shortcut/mod.rs|toast_shortcuts::yield_dismiss_to_cancel"
+  "correction-learning: toast dismiss handed back after cancel|src-tauri/src/shortcut/mod.rs|toast_shortcuts::reclaim_dismiss_from_cancel"
   "correction-learning: toast shortcut command|src-tauri/src/lib.rs|toast_shortcuts::change_learned_toast_shortcut_setting"
   "correction-learning: toast shortcut settings|src-tauri/src/settings.rs|learned_toast_accept_shortcut"
   "correction-learning: settings fields|src-tauri/src/settings.rs|learned_corrections"

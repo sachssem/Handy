@@ -529,8 +529,8 @@
             "description": "Accepteert de suggestie in de melding over geleerde correcties. Alleen actief zolang de melding zichtbaar is."
           },
           "dismiss": {
-            "title": "Sneltoets: Nooit / Ongedaan maken",
-            "description": "Wijst de suggestie af (Nooit) of maakt een zojuist geleerde correctie ongedaan. Alleen actief zolang de melding zichtbaar is."
+            "title": "Sneltoets: Ongedaan maken",
+            "description": "Maakt een zojuist geleerde correctie ongedaan. Alleen actief zolang de melding een geleerde correctie toont; Ctrl+Esc sluit de melding zonder iets te wijzigen."
           },
           "errors": {
             "needsModifier": "Gebruik minstens één modificatietoets (Control, Option, Shift of Command).",
@@ -939,11 +939,10 @@
     "dismiss": "Sluiten"
   },
   "learnedToast": {
-    "title": "Geleerd: “{{misheard}}” → “{{intended}}”",
-    "suggestionTitle": "Suggestie: “{{misheard}}” → “{{intended}}”",
+    "pair": "“{{misheard}}” → “{{intended}}”",
     "undo": "Ongedaan maken",
     "accept": "Accepteren",
-    "dismiss": "Nooit",
+    "dismiss": "Sluiten",
     "more": "+{{count}} meer"
   }
 }

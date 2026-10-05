@@ -529,8 +529,8 @@
             "description": "Accepte la suggestion affichée dans la notification de correction apprise. Actif uniquement pendant que la notification est visible."
           },
           "dismiss": {
-            "title": "Raccourci : Jamais / Annuler",
-            "description": "Refuse la suggestion (Jamais) ou annule une correction tout juste apprise (Annuler). Actif uniquement pendant que la notification est visible."
+            "title": "Raccourci : Annuler",
+            "description": "Annule une correction tout juste apprise (Annuler). Actif uniquement pendant que la notification affiche une correction apprise ; Ctrl+Échap ferme la notification sans rien modifier."
           },
           "errors": {
             "needsModifier": "Utilisez au moins une touche de modification (Contrôle, Option, Maj ou Commande).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "L’enregistrement s’arrêtera automatiquement dans {{seconds}} secondes"
   },
   "learnedToast": {
-    "title": "Appris: « {{misheard}} » → « {{intended}} »",
-    "suggestionTitle": "Suggestion: « {{misheard}} » → « {{intended}} »",
+    "pair": "« {{misheard}} » → « {{intended}} »",
     "undo": "Annuler",
     "accept": "Accepter",
-    "dismiss": "Jamais",
+    "dismiss": "Fermer",
     "more": "+{{count}} de plus"
   },
   "whatsNew": {

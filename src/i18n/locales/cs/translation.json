@@ -529,8 +529,8 @@
             "description": "Přijme návrh v oznámení o naučené opravě. Aktivní jen, dokud je oznámení viditelné."
           },
           "dismiss": {
-            "title": "Zkratka: Nikdy / Zpět",
-            "description": "Odmítne návrh (Nikdy) nebo vrátí právě naučenou opravu (Zpět). Aktivní jen, dokud je oznámení viditelné."
+            "title": "Zkratka: Zpět",
+            "description": "Vrátí právě naučenou opravu (Zpět). Aktivní jen, dokud oznámení ukazuje naučenou opravu; Ctrl+Esc oznámení zavře, aniž by cokoli změnil."
           },
           "errors": {
             "needsModifier": "Použijte alespoň jednu modifikační klávesu (Control, Option, Shift nebo Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund"
   },
   "learnedToast": {
-    "title": "Naučeno: „{{misheard}}“ → „{{intended}}“",
-    "suggestionTitle": "Návrh: „{{misheard}}“ → „{{intended}}“",
+    "pair": "„{{misheard}}“ → „{{intended}}“",
     "undo": "Zpět",
     "accept": "Přijmout",
-    "dismiss": "Nikdy",
+    "dismiss": "Zavřít",
     "more": "+{{count}} další"
   },
   "whatsNew": {

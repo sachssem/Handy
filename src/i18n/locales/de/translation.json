@@ -529,8 +529,8 @@
             "description": "Übernimmt den Vorschlag im Hinweis zu gelernten Korrekturen. Nur aktiv, solange der Hinweis sichtbar ist."
           },
           "dismiss": {
-            "title": "Tastenkürzel: Nie lernen / Rückgängig",
-            "description": "Lehnt den Vorschlag ab (Nie lernen) oder macht eine gerade gelernte Korrektur rückgängig. Nur aktiv, solange der Hinweis sichtbar ist."
+            "title": "Tastenkürzel: Rückgängig",
+            "description": "Macht eine gerade gelernte Korrektur rückgängig. Nur aktiv, solange der Hinweis eine gelernte Korrektur zeigt; Ctrl+Esc schließt den Hinweis, ohne etwas zu ändern."
           },
           "errors": {
             "needsModifier": "Verwende mindestens eine Sondertaste (Control, Option, Umschalt oder Befehl).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "Aufnahme stoppt automatisch in {{seconds}} Sekunden"
   },
   "learnedToast": {
-    "title": "Gelernt: „{{misheard}}“ → „{{intended}}“",
-    "suggestionTitle": "Vorschlag: „{{misheard}}“ → „{{intended}}“",
+    "pair": "„{{misheard}}“ → „{{intended}}“",
     "undo": "Rückgängig",
     "accept": "Übernehmen",
-    "dismiss": "Nie lernen",
+    "dismiss": "Schließen",
     "more": "+{{count}} weitere"
   },
   "whatsNew": {

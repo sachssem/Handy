@@ -20,23 +20,28 @@
 //!
 //! ## Settling and committing
 //!
-//! A gated candidate set is *pending* until it has been stable for [`SETTLE`]
-//! with the caret off the end of a word (or [`LONG_SETTLE`] regardless — a
-//! mid-word pause must not commit `Jo` for `John`). A settled set is learned
-//! and the session keeps watching until the window expires, re-anchored on the
-//! fixed text, so a second fix in the same window is learned too.
+//! A gated candidate set is *pending* until the field has been quiet for
+//! [`SETTLE`] — no text change and no caret move — with the caret off the end
+//! of a word (or [`LONG_SETTLE`] regardless — a mid-word pause must not commit
+//! `Jo` for `John`). Every keystroke and every caret move restarts the quiet
+//! period, so a multi-step fix (`Sparaboos` → delete `o`, move the caret, type
+//! `-`, capitalise `A`) is proposed once, as its final state. A settled set is
+//! learned and the session keeps watching until the window expires,
+//! re-anchored on the fixed text, so a second fix in the same window is
+//! learned too.
 //!
 //! When focus moves on or the field is cleared / turns unrelated
 //! (Slack-style fix-then-Enter), the session ends: the pending set commits only
 //! if it was a finished edit — the caret had left the word, or (also for apps
 //! without caret information) it was stable for [`SETTLE`]. A half-typed word
 //! (`Jon → Joh`, Enter pressed before the last keystroke was read) is dropped.
-//! The window expiring or a newer paste commits what is pending; a secure field
-//! or a quit app drops it.
+//! A newer paste commits what is pending; the window expiring commits it only
+//! once it was quiet for [`SETTLE`] (else it is mid-edit and dropped); a secure
+//! field or a quit app drops it.
 //!
 //! Commit hands the set to the store ([`super::store`]): new pairs become
 //! suggestions, repeats promote, reverts block. A toast announces suggestions
-//! (Accept / Never) and promotions (Undo).
+//! (Accept, or dismiss to leave them suggested) and promotions (Undo).
 //!
 //! Only macOS has the Accessibility read; elsewhere [`begin_session`] is a
 //! no-op.
@@ -48,9 +53,12 @@ use crate::correction_learning::{CorrectionStatus, LearnedCorrectionEvent};
 use std::ops::Range;
 use std::time::{Duration, Instant};
 
-/// Stable for this long (caret off a word end) → commit.
-const SETTLE: Duration = Duration::from_millis(800);
-/// Stable for this long → commit even with the caret at a word end.
+/// Quiet (no text change, no caret move) for this long, caret off a word end →
+/// commit. 1.5 s rather than 1 s: a multi-step fix pauses between its steps
+/// (delete, reposition the caret, retype), and a toast that arrives a moment
+/// later costs nothing while a premature one proposes a half-done edit.
+const SETTLE: Duration = Duration::from_millis(1500);
+/// Quiet for this long → commit even with the caret at a word end.
 const LONG_SETTLE: Duration = Duration::from_secs(3);
 const RELATED_WORD_RATIO: f64 = 0.5;
 
@@ -233,6 +241,8 @@ struct SessionState {
     last_text: Option<String>,
     last_caret: Option<usize>,
     pending: Vec<Candidate>,
+    /// Last activity (text change or caret move) while a set is pending: the
+    /// start of the current quiet period.
     pending_since: Option<Instant>,
     unrelated_logged: bool,
     oversized_logged: bool,
@@ -272,7 +282,18 @@ impl SessionState {
             .is_some_and(|text| caret_in_word(text, self.last_caret))
     }
 
-    /// How long the pending set has been stable by `now`.
+    /// Whether `at` (a byte range of `text`) lies in or next to an occurrence
+    /// of a pending candidate's intended text.
+    fn touches_pending(&self, text: &str, at: Range<usize>) -> bool {
+        self.pending.iter().any(|candidate| {
+            !candidate.intended.is_empty()
+                && text
+                    .match_indices(candidate.intended.as_str())
+                    .any(|(start, m)| start <= at.end && at.start <= start + m.len())
+        })
+    }
+
+    /// How long the field has been quiet with a pending set by `now`.
     fn pending_age(&self, now: Instant) -> Duration {
         self.pending_since
             .map_or(Duration::ZERO, |since| now.saturating_duration_since(since))
@@ -301,6 +322,17 @@ impl SessionState {
             return None;
         }
         Some(since + if self.typing() { LONG_SETTLE } else { SETTLE })
+    }
+
+    /// End the session when the window expires: commit the pending set only if
+    /// the field has been quiet for [`SETTLE`] — a younger set is mid-edit.
+    fn expire(&mut self, now: Instant) -> Decision {
+        if !self.pending.is_empty() && self.pending_age(now) < SETTLE {
+            self.pending.clear();
+            self.pending_since = None;
+            self.notes.push(Note::PendingDropped);
+        }
+        self.flush("window elapsed")
     }
 
     /// Commit whatever is pending (final edit state reached).
@@ -408,6 +440,13 @@ impl SessionState {
         }
 
         if self.last_text.as_deref() == Some(current.as_str()) {
+            // A caret move into (or next to) a pending span restarts the quiet
+            // period: the user is repositioning for the next step of the fix.
+            if let (Some(to), Some(from)) = (caret, self.last_caret) {
+                if to != from && self.touches_pending(&current, to..to) {
+                    self.pending_since = Some(now);
+                }
+            }
             self.last_caret = caret;
             return if self.settled(now) {
                 self.learn_settled()
@@ -438,15 +477,24 @@ impl SessionState {
         }
         self.unrelated_logged = false;
 
+        // A paste-only anchor diffs against the pasted text alone: less
+        // certain, so the gates are tightened.
+        let paste_only;
+        let profile = if anchor.exact {
+            ctx.profile
+        } else {
+            paste_only = ctx.profile.paste_only();
+            &paste_only
+        };
         let extraction = differ::extract_anchored(
             &anchor.base,
             anchor.paste.clone(),
             &current,
-            ctx.profile,
+            profile,
             ctx.lang,
             ctx.applied,
         );
-        self.last_text = Some(current);
+        let previous = self.last_text.replace(current);
         self.last_caret = caret;
         if extraction.oversized && !self.oversized_logged {
             self.oversized_logged = true;
@@ -467,9 +515,21 @@ impl SessionState {
             self.pending_since = None;
             return Decision::Continue;
         }
-        if extraction.candidates != self.pending {
+        // A changed set restarts the quiet period (a superseded intermediate
+        // set never settles); so does a keystroke in or next to a pending span.
+        // Typing elsewhere in the field leaves a finished fix settling.
+        let restart = if extraction.candidates != self.pending {
             self.notes.push(Note::Pending(extraction.candidates.len()));
             self.pending = extraction.candidates;
+            true
+        } else {
+            let current = self.last_text.as_deref().unwrap_or_default();
+            previous.as_deref().is_none_or(|previous| {
+                let (prefix, suffix) = differ::common_affixes(previous, current);
+                self.touches_pending(current, prefix..current.len() - suffix)
+            })
+        };
+        if restart || self.pending_since.is_none() {
             self.pending_since = Some(now);
         }
         if self.settled(now) {
@@ -480,7 +540,7 @@ impl SessionState {
 }
 
 /// The toast event for one commit's new suggestions and promotions, ids split
-/// by status so Accept / Never act on the suggestions only and Undo on the
+/// by status so Accept acts on the suggestions only and Undo on the
 /// promoted pairs only. The first pair (suggestions first: they ask for a
 /// decision) is shown verbatim. `None` when nothing is worth a toast.
 fn toast_event(
@@ -719,7 +779,10 @@ mod imp {
                 return;
             }
             if started.elapsed() >= params.window {
-                let decision = state.flush("window elapsed");
+                let decision = state.expire(Instant::now());
+                for note in std::mem::take(&mut state.notes) {
+                    log_note(generation, note, &mut journal);
+                }
                 finish(&app, generation, decision, &params, journal, started);
                 return;
             }
@@ -1062,7 +1125,7 @@ mod tests {
         assert_eq!(h.text("deploy on Cubernetes", 0), Decision::Continue);
         assert_eq!(h.text("deploy on Kubernetes ", 100), Decision::Continue);
         // A timer wake with unchanged text after SETTLE commits.
-        let d = h.text("deploy on Kubernetes ", 1000);
+        let d = h.text("deploy on Kubernetes ", 1_700);
         assert_eq!(intended(&d), vec!["Kubernetes"]);
     }
 
@@ -1071,10 +1134,10 @@ mod tests {
         let mut h = Harness::new("ask Jon about k8s");
         h.text("ask Jon about k8s", 0);
         h.text("ask John about k8s", 100);
-        assert_eq!(intended(&h.text("ask John about k8s", 1_000)), vec!["John"]);
+        assert_eq!(intended(&h.text("ask John about k8s", 1_700)), vec!["John"]);
         assert!(h.state.pending.is_empty());
         assert_eq!(
-            h.text("", 1_100),
+            h.text("", 1_800),
             Decision::Teardown("field cleared or unrelated")
         );
     }
@@ -1116,7 +1179,7 @@ mod tests {
         let mut h = Harness::new("ask Jon about k8s");
         h.text("ask Jon about k8s", 0);
         assert_eq!(h.text("ask John about k8s", 200), Decision::Continue);
-        let d = h.text("", 1_000);
+        let d = h.text("", 1_800);
         assert!(matches!(d, Decision::Commit(..)));
         assert_eq!(intended(&d), vec!["John"]);
 
@@ -1178,7 +1241,7 @@ mod tests {
         h.text("ask Jon now", 0);
         h.text("ask John now", 100);
         assert_eq!(
-            intended(&h.read(FocusRead::FocusChanged, None, 1_000)),
+            intended(&h.read(FocusRead::FocusChanged, None, 1_700)),
             vec!["John"]
         );
 
@@ -1225,8 +1288,10 @@ mod tests {
         let caret = "send it to Kubernetes".len();
         h.at(done, caret, 1_100);
         assert_eq!(h.at(done, caret, 2_000), Decision::Continue);
-        // …until the caret moves off the word, or LONG_SETTLE passes.
-        let d = h.at(done, 0, 2_100);
+        // …until the caret moves off the word (a move that restarts the
+        // quiet period) and the field stays quiet for SETTLE.
+        assert_eq!(h.at(done, 0, 2_100), Decision::Continue);
+        let d = h.at(done, 0, 3_600);
         assert_eq!(intended(&d), vec!["Kubernetes"]);
     }
 
@@ -1235,7 +1300,7 @@ mod tests {
         let mut h = Harness::new("deploy on Cubernetes now");
         h.text("Hi team, deploy on Cubernetes now", 0);
         h.text("Hello team, deploy on Kubernetes now. Thanks!", 100);
-        let d = h.text("", 1_000);
+        let d = h.text("", 1_700);
         assert_eq!(intended(&d), vec!["Kubernetes"]);
     }
 
@@ -1245,7 +1310,7 @@ mod tests {
         assert_eq!(h.text("Hi team, ", 0), Decision::Continue);
         h.text("Hi team, deploy on Cubernetes", 100);
         h.text("Hi team, deploy on Kubernetes", 200);
-        let d = h.read(FocusRead::FocusChanged, None, 1_100);
+        let d = h.read(FocusRead::FocusChanged, None, 1_800);
         assert_eq!(intended(&d), vec!["Kubernetes"]);
     }
 
@@ -1267,14 +1332,14 @@ mod tests {
         let mut h = Harness::new("Cubernetes");
         h.text("Cubernetes", 0);
         h.text("Kubernetes", 100);
-        assert_eq!(intended(&h.text("Kubernetes", 1_000)), vec!["Kubernetes"]);
+        assert_eq!(intended(&h.text("Kubernetes", 1_700)), vec!["Kubernetes"]);
 
         // Inside other text: the surroundings survive.
         let mut h = Harness::new("Cubernetes");
         h.text("We run Cubernetes in prod", 0);
         h.text("We run Kubernetes in prod", 100);
         assert_eq!(
-            intended(&h.text("We run Kubernetes in prod", 1_000)),
+            intended(&h.text("We run Kubernetes in prod", 1_700)),
             vec!["Kubernetes"]
         );
 
@@ -1291,17 +1356,17 @@ mod tests {
         h.text("ask Jon to deploy Cubernetes", 0);
         h.text("ask John to deploy Cubernetes", 100);
         assert!(matches!(
-            h.text("ask John to deploy Cubernetes", 1_000),
+            h.text("ask John to deploy Cubernetes", 1_700),
             Decision::Learn(_)
         ));
         // The settled fix is not learned again; the second one is.
         assert_eq!(
-            h.text("ask John to deploy Cubernetes", 2_000),
+            h.text("ask John to deploy Cubernetes", 3_000),
             Decision::Continue
         );
-        h.text("ask John to deploy Kubernetes", 2_100);
+        h.text("ask John to deploy Kubernetes", 3_100);
         assert_eq!(
-            intended(&h.text("ask John to deploy Kubernetes", 3_000)),
+            intended(&h.text("ask John to deploy Kubernetes", 4_700)),
             vec!["Kubernetes"]
         );
     }
@@ -1312,7 +1377,7 @@ mod tests {
         h.applied = vec![("mark".to_string(), "marc".to_string())];
         h.text("ask Marc now", 0);
         h.text("ask mark now", 100);
-        assert_eq!(intended(&h.text("ask mark now", 1_000)), vec!["mark"]);
+        assert_eq!(intended(&h.text("ask mark now", 1_700)), vec!["mark"]);
     }
 
     #[test]
@@ -1334,9 +1399,127 @@ mod tests {
         h.text("ask John now", 100);
         assert_eq!(h.read(FocusRead::NoSignal, None, 200), Decision::Continue);
         assert_eq!(
-            intended(&h.read(FocusRead::NoSignal, None, 1_000)),
+            intended(&h.read(FocusRead::NoSignal, None, 1_700)),
             vec!["John"]
         );
+    }
+
+    #[test]
+    fn mid_edit_pause_shorter_than_the_quiet_period_does_not_commit() {
+        // The real `Sparaboos` -> `Spar-Abos` fix: delete an `o`, pause, move
+        // the caret, type `-`, capitalise `A`. After the deletion the caret
+        // sits mid-word, which the old 800 ms settle took for a finished edit.
+        let pasted = "Coupons, Promotions und Sparaboos einen Code";
+        let mut h = Harness::new(pasted);
+        h.at(pasted, pasted.len(), 0);
+        let step1 = "Coupons, Promotions und Sparabos einen Code";
+        let caret1 = "Coupons, Promotions und Sparabo".len();
+        assert_eq!(h.at(step1, caret1, 100), Decision::Continue);
+        // A 1.3 s pause: still inside the quiet period.
+        assert_eq!(h.at(step1, caret1, 1_400), Decision::Continue);
+        let hyphen = "Coupons, Promotions und Spar".len();
+        assert_eq!(h.at(step1, hyphen, 1_500), Decision::Continue);
+        let step2 = "Coupons, Promotions und Spar-abos einen Code";
+        assert_eq!(h.at(step2, hyphen + 1, 1_700), Decision::Continue);
+        let done = "Coupons, Promotions und Spar-Abos einen Code";
+        assert_eq!(h.at(done, hyphen + 2, 2_000), Decision::Continue);
+        assert_eq!(h.at(done, hyphen + 2, 3_000), Decision::Continue);
+        assert_eq!(intended(&h.at(done, hyphen + 2, 3_500)), vec!["Spar-Abos"]);
+    }
+
+    #[test]
+    fn caret_movement_restarts_the_quiet_period() {
+        let mut h = Harness::new("ask Jon about k8s");
+        h.at("ask Jon about k8s", 17, 0);
+        h.at("ask John about k8s", 18, 100);
+        // The caret moves into the fixed word at 1 s without a text change.
+        assert_eq!(h.at("ask John about k8s", 6, 1_000), Decision::Continue);
+        // 1.5 s after the edit, but only 0.6 s after the caret move.
+        assert_eq!(h.at("ask John about k8s", 6, 1_600), Decision::Continue);
+        assert_eq!(
+            intended(&h.at("ask John about k8s", 6, 2_500)),
+            vec!["John"]
+        );
+    }
+
+    #[test]
+    fn typing_elsewhere_does_not_hold_back_a_finished_fix() {
+        let pasted = "ask Jon about k8s.";
+        let mut h = Harness::new(pasted);
+        h.at(pasted, pasted.len(), 0);
+        h.at("ask John about k8s.", "ask John".len(), 100);
+        // The user keeps composing after the paste, a keystroke every 200 ms.
+        let mut text = String::from("ask John about k8s.");
+        let mut commits = Vec::new();
+        for (i, at) in (300..=2_500).step_by(200).enumerate() {
+            text.push(if i % 5 == 0 { ' ' } else { 'x' });
+            let d = h.at(&text, text.len(), at);
+            if matches!(d, Decision::Learn(_) | Decision::Commit(..)) {
+                commits.push(intended(&d).join(" "));
+            }
+        }
+        assert_eq!(commits, vec!["John"]);
+    }
+
+    #[test]
+    fn successive_edits_of_one_span_yield_only_the_final_pair() {
+        // The real `Wertebad` session committed both `Werte` and
+        // `Werte button`: an intermediate state must never be proposed.
+        let pasted = "den Rahmen von dem Wertebad zum Hinzufügen";
+        let mut h = Harness::new(pasted);
+        h.at(pasted, pasted.len(), 0);
+        let steps = [
+            ("den Rahmen von dem Werte zum Hinzufügen", 100),
+            ("den Rahmen von dem Werte b zum Hinzufügen", 900),
+            ("den Rahmen von dem Werte but zum Hinzufügen", 1_400),
+            ("den Rahmen von dem Werte button zum Hinzufügen", 2_000),
+        ];
+        let mut decisions = Vec::new();
+        for (text, at) in steps {
+            let caret = text.find(" zum").expect("marker");
+            decisions.push(h.at(text, caret, at));
+        }
+        let done = steps[3].0;
+        decisions.push(h.at(done, 0, 2_100));
+        decisions.push(h.at(done, 0, 3_700));
+        decisions.push(h.state.expire(h.t0 + Duration::from_millis(45_000)));
+        let commits: Vec<Vec<&str>> = decisions
+            .iter()
+            .filter(|d| matches!(d, Decision::Commit(..) | Decision::Learn(_)))
+            .map(intended)
+            .collect();
+        assert_eq!(commits, vec![vec!["Werte button"]]);
+    }
+
+    #[test]
+    fn paste_only_anchor_tightens_the_gates() {
+        // Exact anchor: Balanced learns the borderline pair.
+        let mut h = Harness::new("das ist Meier");
+        h.text("das ist Meier", 0);
+        h.text("das ist Meile", 100);
+        assert_eq!(intended(&h.text("das ist Meile", 1_700)), vec!["Meile"]);
+        // Already edited before the first read: paste-only anchor, rejected.
+        let mut h = Harness::new("das ist Meier");
+        assert_eq!(h.text("das ist Meile", 0), Decision::Continue);
+        assert!(h.state.notes.contains(&Note::Anchored { exact: false }));
+        assert!(h.state.pending.is_empty());
+        assert_eq!(h.text("das ist Meile", 1_700), Decision::Continue);
+    }
+
+    #[test]
+    fn window_expiry_drops_a_set_still_being_edited() {
+        let mut h = Harness::new("ask Jon now");
+        h.text("ask Jon now", 0);
+        h.text("ask John now", 100);
+        let d = h.state.expire(h.t0 + Duration::from_millis(1_000));
+        assert_eq!(d, Decision::Teardown("window elapsed"));
+        assert!(h.state.notes.contains(&Note::PendingDropped));
+
+        let mut h = Harness::new("ask Jon now");
+        h.text("ask Jon now", 0);
+        h.text("ask John now", 100);
+        let d = h.state.expire(h.t0 + Duration::from_millis(1_700));
+        assert_eq!(intended(&d), vec!["John"]);
     }
 
     #[test]

@@ -506,8 +506,8 @@
             "description": "يقبل الاقتراح في إشعار التصحيح المُتعلَّم. يعمل فقط أثناء ظهور الإشعار."
           },
           "dismiss": {
-            "title": "اختصار: أبدًا / تراجع",
-            "description": "يرفض الاقتراح (أبدًا) أو يتراجع عن تصحيح تم تعلّمه للتو (تراجع). يعمل فقط أثناء ظهور الإشعار."
+            "title": "اختصار: تراجع",
+            "description": "يتراجع عن تصحيح تم تعلّمه للتو (تراجع). يعمل فقط أثناء ظهور الإشعار مع تصحيح تم تعلّمه؛ أما Ctrl+Esc فيغلق الإشعار دون تغيير أي شيء."
           },
           "errors": {
             "needsModifier": "استخدم مفتاح تعديل واحدًا على الأقل (Control أو Option أو Shift أو Command).",
@@ -925,11 +925,10 @@
     "recordingLimitWarning": "سيتوقف التسجيل تلقائيًا خلال {{seconds}} ثوانٍ"
   },
   "learnedToast": {
-    "title": "تم التعلم: ”{{misheard}}“ ← ”{{intended}}“",
-    "suggestionTitle": "اقتراح: ”{{misheard}}“ ← ”{{intended}}“",
+    "pair": "”{{misheard}}“ ← ”{{intended}}“",
     "undo": "تراجع",
     "accept": "قبول",
-    "dismiss": "أبدًا",
+    "dismiss": "إغلاق",
     "more": "+{{count}} أخرى"
   },
   "whatsNew": {

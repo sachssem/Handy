@@ -16,7 +16,7 @@
 //! | `case_or_punctuation`| case-only / punctuation-only edits                        |
 //! | `number`             | a side without letters (`2024 → 2025`)                    |
 //! | `distance`           | relative edit distance above the profile bound            |
-//! | `likely_typo`        | small edit from a common word to an unknown, non-distinctive word |
+//! | `likely_typo`        | small edit from a common word to an unknown, non-distinctive word; any deletion-only or single-char-append edit of a common word |
 //! | `inflection`         | everyday words, inflection-only ending change (`einen → einem`)|
 //! | `common_words`       | both sides only everyday de/en words (`Montag → Sonntag`) |
 //! | `phonetic`           | Conservative only: borderline pair that does not sound alike |
@@ -84,6 +84,20 @@ pub struct GateProfile {
 }
 
 impl GateProfile {
+    /// The profile for an edit diffed against the pasted text alone (the
+    /// paste was never found verbatim in the field, so the diff is less
+    /// certain): at most Conservative's distance bound, and borderline pairs
+    /// must sound alike.
+    pub fn paste_only(self) -> Self {
+        let conservative = Self::for_aggressiveness(Aggressiveness::Conservative);
+        GateProfile {
+            max_relative_distance: self
+                .max_relative_distance
+                .min(conservative.max_relative_distance),
+            require_phonetic: true,
+        }
+    }
+
     /// Conservative ⊂ Balanced ⊂ Aggressive.
     pub fn for_aggressiveness(level: Aggressiveness) -> Self {
         match level {
@@ -556,6 +570,15 @@ fn gate(candidate: &Candidate, profile: &GateProfile, lang: PhoneticLang) -> Res
         if is_inflection_only(&misheard_raw, &intended_raw) {
             return Err(Gate::Inflection);
         }
+        // Dropping letters from, or tacking one onto, an everyday word is a
+        // slip (`Milch → Mlch`, `Brot → Broti`), whatever the result is.
+        if misheard_words.len() == 1
+            && intended_words.len() == 1
+            && is_common_word(&candidate.misheard)
+            && is_deletion_or_append(&misheard, &intended)
+        {
+            return Err(Gate::LikelyTypo);
+        }
         if misheard_raw.iter().all(|w| is_common_word(w))
             && intended_raw.iter().all(|w| is_common_word(w))
         {
@@ -569,6 +592,17 @@ fn gate(candidate: &Candidate, profile: &GateProfile, lang: PhoneticLang) -> Res
         return Err(Gate::Phonetic);
     }
     Ok(())
+}
+
+/// Whether `intended` is `misheard` with characters only deleted, or with one
+/// character appended at the end.
+fn is_deletion_or_append(misheard: &str, intended: &str) -> bool {
+    let (m, i) = (misheard.chars().count(), intended.chars().count());
+    if i < m {
+        let mut rest = misheard.chars();
+        return intended.chars().all(|c| rest.any(|r| r == c));
+    }
+    i == m + 1 && intended.starts_with(misheard)
 }
 
 fn has_letter(text: &str) -> bool {
@@ -770,6 +804,43 @@ mod tests {
             }
         }
         assert_eq!(Gate::LikelyTypo.name(), "likely_typo");
+    }
+
+    #[test]
+    fn deletion_or_single_append_of_a_common_word_is_a_typo() {
+        // Even when the result is a known word or the distance is large.
+        for (original, corrected) in [
+            ("Milch", "Mlch"),
+            ("Brot", "Broti"),
+            ("Werkstatt", "Werk"),
+            ("Eier", "Eierk"),
+        ] {
+            assert_eq!(rejected_by(original, corrected), Some(Gate::LikelyTypo));
+        }
+        assert!(is_deletion_or_append("milch", "mlch"));
+        assert!(is_deletion_or_append("brot", "broti"));
+        assert!(!is_deletion_or_append("brot", "brote2"));
+        assert!(!is_deletion_or_append("jon", "john"));
+        // Rejected words aside, inserts and names stay learnable.
+        assert_eq!(extract("Jon", "John"), pair("Jon", "John"));
+    }
+
+    #[test]
+    fn paste_only_profile_is_at_most_conservative() {
+        let aggressive = GateProfile::for_aggressiveness(Aggressiveness::Aggressive);
+        let strict = aggressive.paste_only();
+        assert_eq!(strict.max_relative_distance, 0.4);
+        assert!(strict.require_phonetic);
+        let out = extract_anchored(
+            "das ist Meier",
+            0.."das ist Meier".len(),
+            "das ist Meile",
+            &strict,
+            PhoneticLang::German,
+            &[],
+        );
+        assert!(out.candidates.is_empty());
+        assert_eq!(out.rejected, vec![Gate::Phonetic]);
     }
 
     #[test]
