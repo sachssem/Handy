@@ -12,6 +12,17 @@
 //! (`in`, `at`, `es`, `it`, `go` …) are deliberately absent from the lists.
 //! Governed by the `Punkt` / `dot` built-in keys.
 //!
+//! In a German utterance an English `dot` is no prose word, so `w dot w` joins
+//! verbatim even without a TLD/extension (`Discount dot value` →
+//! `Discount.value`) when separated by single plain spaces only and the
+//! words are no determiner/veto words.
+//!
+//! **Dashes.** A ticket id — an all-caps acronym (2–6 ASCII letters), a spoken
+//! `dash` / `Bindestrich` / `minus` and a number — joins in any language
+//! (`PP Dash 106` → `PP-106`). In a German utterance an English `dash` between
+//! two words also glues (`voice dash control` → `voice-control`). Governed by
+//! the `dash` / `Bindestrich` built-in keys.
+//!
 //! **E-mail.** `local at|ät domain.tld` → `local@domain.tld` (lowercased) when
 //! the domain is dotted (spoken or written) and a positive address signal is
 //! present: explicit `ät` / `Klammeraffe`, a spoken local-part joiner, or a
@@ -25,12 +36,14 @@
 //! is dropped.
 
 use super::context;
-use super::{builtin_active, lex, TextRule, Token};
+use super::{builtin_active, is_german, lex, TextRule, Token};
 
 pub(crate) const KEY_EMAIL_AT: &str = "at";
 const KEY_DOT_DE: &str = "Punkt";
 const KEY_DOT_EN: &str = "dot";
 const KEY_EMAIL_AT_DE: &str = "Klammeraffe";
+const KEY_DASH_DE: &str = "Bindestrich";
+const KEY_DASH_EN: &str = "dash";
 
 /// Recipient instructions shared with the symbol substitution pass.
 pub(crate) const ADDRESS_VERBS: &[&str] = &[
@@ -70,8 +83,15 @@ const NOT_LOCAL_PART: &[&str] = &[
     "looking", "me", "us", "it", "him", "them", "here", "there", "live", "lives", "ich", "bin",
 ];
 
-/// Apply dot-chain joining and e-mail detection to `text`.
-pub fn apply_links(text: &str, custom: &[TextRule], disabled: &[String]) -> String {
+/// Apply dot-chain joining, dash joining and e-mail detection to `text`.
+/// `language` is the utterance's language code if known.
+pub fn apply_links(
+    text: &str,
+    language: Option<&str>,
+    custom: &[TextRule],
+    disabled: &[String],
+) -> String {
+    let german = is_german(language);
     let punkt = builtin_active(KEY_DOT_DE, custom, disabled);
     let dot = builtin_active(KEY_DOT_EN, custom, disabled);
     // Detect addresses before dot joining erases the spoken local-part signal.
@@ -85,14 +105,59 @@ pub fn apply_links(text: &str, custom: &[TextRule], disabled: &[String]) -> Stri
     } else {
         text.to_string()
     };
+    let out = join_dashes(
+        &out,
+        german,
+        builtin_active(KEY_DASH_EN, custom, disabled),
+        builtin_active(KEY_DASH_DE, custom, disabled),
+    );
     if punkt || dot {
-        join_dot_chains(&out, punkt, dot)
+        join_dot_chains(&out, punkt, dot, german && dot)
     } else {
         out
     }
 }
 
-fn join_dot_chains(text: &str, punkt: bool, dot: bool) -> String {
+/// Join ticket ids (`PP Dash 106` → `PP-106`) and, in a German utterance,
+/// `w dash w` → `w-w`. Only single plain spaces may separate the words.
+fn join_dashes(text: &str, german: bool, dash: bool, bindestrich: bool) -> String {
+    let tokens = lex(text);
+    let plain_space = |i: usize| matches!(tokens.get(i), Some(Token::Space(s)) if s == " ");
+    let mut out = String::new();
+    let mut i = 0;
+    while i < tokens.len() {
+        out.push_str(tokens[i].text());
+        if let (Token::Word(left), Some(Token::Word(joiner)), Some(Token::Word(right))) =
+            (&tokens[i], tokens.get(i + 2), tokens.get(i + 4))
+        {
+            let joiner = joiner.to_lowercase();
+            let is_dash = (dash && joiner == "dash")
+                || (bindestrich && joiner == "bindestrich")
+                || joiner == "minus";
+            let ticket = is_dash
+                && (2..=6).contains(&left.len())
+                && left.chars().all(|c| c.is_ascii_uppercase())
+                && right.chars().all(|c| c.is_ascii_digit());
+            let german_glue = german
+                && dash
+                && joiner == "dash"
+                && !context::is_veto_word(left)
+                && !context::is_veto_word(right);
+            if plain_space(i + 1) && plain_space(i + 3) && (ticket || german_glue) {
+                // Continue at `right` so chains (`a dash b dash c`) join too.
+                out.push('-');
+                i += 4;
+                continue;
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+/// With `identifier`, a chain linked only by English `dot` over single plain
+/// spaces is valid at any length (German utterance: `dot` is no prose word).
+fn join_dot_chains(text: &str, punkt: bool, dot: bool, identifier: bool) -> String {
     let tokens = lex(text);
     let is_dot_word = |token: &Token| match token {
         Token::Word(w) => {
@@ -113,6 +178,8 @@ fn join_dot_chains(text: &str, punkt: bool, dot: bool) -> String {
 
         // Collect `w (sep dot sep w)*`, where sep is spaces/ASR punctuation.
         let mut words = vec![i];
+        // Per link: an identifier join (English `dot`, plain spaces, no veto).
+        let mut plain_dots = Vec::new();
         let mut j = i + 1;
         loop {
             let k = skip_separator(&tokens, j);
@@ -122,6 +189,15 @@ fn join_dot_chains(text: &str, punkt: bool, dot: bool) -> String {
             let m = skip_separator(&tokens, k + 1);
             match tokens.get(m) {
                 Some(Token::Word(_)) if !is_dot_word(&tokens[m]) => {
+                    plain_dots.push(
+                        identifier
+                            && k == j + 1
+                            && m == k + 2
+                            && tokens[j].text() == " "
+                            && tokens[k + 1].text() == " "
+                            && tokens[k].text().eq_ignore_ascii_case("dot")
+                            && !context::is_veto_word(tokens[m].text()),
+                    );
                     words.push(m);
                     j = m + 1;
                 }
@@ -129,7 +205,7 @@ fn join_dot_chains(text: &str, punkt: bool, dot: bool) -> String {
             }
         }
 
-        match longest_valid_chain(&tokens, &words) {
+        match longest_valid_chain(&tokens, &words, &plain_dots) {
             Some(n) => {
                 out.push_str(&render_chain(&tokens, &words[..n]));
                 i = words[n - 1] + 1;
@@ -155,8 +231,8 @@ fn skip_separator(tokens: &[Token], mut i: usize) -> usize {
 }
 
 /// The longest prefix (≥ 2 words) of the chain that forms a domain, file name
-/// or version number.
-fn longest_valid_chain(tokens: &[Token], words: &[usize]) -> Option<usize> {
+/// or version number, or links only identifier dots (`plain_dots`).
+fn longest_valid_chain(tokens: &[Token], words: &[usize], plain_dots: &[bool]) -> Option<usize> {
     if words.len() < 2 || context::is_veto_word(tokens[words[0]].text()) {
         return None;
     }
@@ -171,6 +247,7 @@ fn longest_valid_chain(tokens: &[Token], words: &[usize]) -> Option<usize> {
             || TLDS.contains(&last.as_str())
             || EXTENSIONS.contains(&last.as_str())
             || (is_www && n == words.len())
+            || plain_dots[..n - 1].iter().all(|&plain| plain)
     })
 }
 
@@ -183,8 +260,11 @@ fn render_chain(tokens: &[Token], chain: &[usize]) -> String {
     } else if EXTENSIONS.contains(&last.as_str()) {
         let stem = parts[..parts.len() - 1].join(".");
         format!("{}.{}", stem, last)
-    } else {
+    } else if TLDS.contains(&last.as_str()) || parts[0].eq_ignore_ascii_case("www") {
         parts.join(".").to_lowercase()
+    } else {
+        // Identifier in a German utterance (`Discount.value`): join only.
+        parts.join(".")
     }
 }
 
@@ -361,7 +441,52 @@ mod tests {
     use super::*;
 
     fn links(text: &str) -> String {
-        apply_links(text, &[], &[])
+        apply_links(text, None, &[], &[])
+    }
+
+    fn links_de(text: &str) -> String {
+        apply_links(text, Some("de"), &[], &[])
+    }
+
+    #[test]
+    fn ticket_ids_join_in_any_language() {
+        assert_eq!(links("Fix PP Dash 106 today"), "Fix PP-106 today");
+        assert_eq!(links_de("der PP Bindestrich 7 Branch"), "der PP-7 Branch");
+        assert_eq!(links("see HANDY minus 42"), "see HANDY-42");
+        for text in [
+            "Pp dash 106",
+            "PP dash v2",
+            "A dash 1",
+            "I made a mad dash for the door.",
+        ] {
+            assert_eq!(links(text), text, "input: {text}");
+        }
+        let disabled = vec![KEY_DASH_EN.to_string()];
+        assert_eq!(
+            apply_links("PP dash 106", None, &[], &disabled),
+            "PP dash 106"
+        );
+    }
+
+    #[test]
+    fn english_joiners_in_a_german_utterance() {
+        assert_eq!(links_de("Discount dot value wird"), "Discount.value wird");
+        assert_eq!(links_de("voice dash control"), "voice-control");
+        assert_eq!(
+            links_de("Gehe auf Handy, Punkt, Computer."),
+            "Gehe auf handy.computer."
+        );
+        // English utterances keep the TLD/extension requirement.
+        assert_eq!(links("Discount dot value"), "Discount dot value");
+        assert_eq!(links("voice dash control"), "voice dash control");
+        for text in [
+            "Das ist der Punkt Hallo",
+            "Das war's. Dot. Weiter",
+            "Er sagt der dot com Boom",
+            "Ein dash der Sache",
+        ] {
+            assert_eq!(links_de(text), text, "input: {text}");
+        }
     }
 
     #[test]
@@ -425,7 +550,7 @@ mod tests {
     fn email_key_disabled() {
         let disabled = vec![KEY_EMAIL_AT.to_string()];
         assert_eq!(
-            apply_links("marc at example.com", &[], &disabled),
+            apply_links("marc at example.com", None, &[], &disabled),
             "marc at example.com"
         );
     }

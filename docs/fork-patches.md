@@ -77,6 +77,10 @@ missed command is cheaper than corrupted prose; details in each module's docs):
 - **Links** (`links.rs`): `w Punkt|dot w …` joins to `.` (ASR commas/periods around
   the spoken dot dropped) when it ends in a known TLD / file extension, starts with
   `www`, or is all digits (versions); domains lowercased, file stems keep case.
+  In a German utterance an English `dot` over plain spaces joins any non-veto
+  words verbatim (`Discount dot value` → `Discount.value`).
+  Ticket ids `ACRONYM dash|Bindestrich|minus 123` → `PP-106` in any language; in a
+  German utterance English `w dash w` → `w-w` (keys `dash` / `Bindestrich`).
   `local at|ät domain.tld` → e-mail (key `at`) only with a positive signal:
   explicit `ät` / `Klammeraffe`, a spoken-chain local part, or a recipient cue
   within three preceding words. Ordinary “Sign up at example.com” stays prose.

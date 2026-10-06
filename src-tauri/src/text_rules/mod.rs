@@ -292,9 +292,18 @@ fn apply_rules(
 
     out = lists::apply_lists(&out, custom, disabled);
     out = quotes::apply_quotes(&out, custom, disabled);
-    out = links::apply_links(&out, custom, disabled);
+    out = links::apply_links(&out, language, custom, disabled);
     out = substitutions::apply_substitutions(&out, custom, disabled);
     links::strip_lone_token_period(&out)
+}
+
+/// Whether the utterance language code is German (`de`, `de-DE`, `de_AT` …).
+pub(crate) fn is_german(language: Option<&str>) -> bool {
+    language.is_some_and(|lang| {
+        lang.split(['-', '_'])
+            .next()
+            .is_some_and(|base| base.eq_ignore_ascii_case("de"))
+    })
 }
 
 /// A lexical token shared by the text-rule passes. Splitting on Unicode
@@ -516,6 +525,28 @@ mod tests {
             apply_rules("Der Punkt ist", false, None, &custom, &[]),
             "Der.ist"
         );
+    }
+
+    /// Journal samples: English joiners and ticket ids in German dictation.
+    #[test]
+    fn english_joiners_and_ticket_ids_in_full_pipeline() {
+        let de = |text: &str| apply_rules(text, true, Some("de"), &[], &[]);
+        let en = |text: &str| apply_rules(text, true, Some("en"), &[], &[]);
+        assert_eq!(
+            de("Discount dot value wird nur angezeigt, wenn es passt."),
+            "Discount.value wird nur angezeigt, wenn es passt."
+        );
+        assert_eq!(
+            de("Was glaube ich auch der PP Dash 106 Branch einführt, oder?"),
+            "Was glaube ich auch der PP-106 Branch einführt, oder?"
+        );
+        assert_eq!(en("Merge PP Dash 106 today."), "Merge PP-106 today.");
+        for text in [
+            "I made a mad dash for the door.",
+            "She wore a polka dot dress.",
+        ] {
+            assert_eq!(en(text), text, "input: {text}");
+        }
     }
 
     #[test]
