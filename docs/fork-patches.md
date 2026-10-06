@@ -288,7 +288,8 @@ degrade or hang past a length), for models with a measured limit.
 - **Upstream files touched:** `settings.rs` (`auto_stop_recording_on_limit`),
   `shortcut/mod.rs` (settings command), `transcription_coordinator.rs`
   (`schedule_recording_limit` — the actual auto-stop enforcement, scheduled per
-  recording session; stops with `journal::AUTO_STOP_TRIGGER`),
+  recording session; stops with `journal::AUTO_STOP_TRIGGER` 1 s after the
+  overlay countdown hits zero, so the last word is not cut),
   `managers/model.rs` (per-model limit metadata), `AdvancedSettings.tsx`,
   `RecordingOverlay.tsx` (countdown ring).
 - **Probe:** `recording-limit: *` in `scripts/fork-check.sh` (incl. the

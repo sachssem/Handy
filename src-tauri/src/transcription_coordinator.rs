@@ -761,6 +761,9 @@ fn stop(app: &AppHandle, binding_id: &str, hotkey_string: &str) {
     action.stop(app, binding_id, hotkey_string);
 }
 
+// fork(voice-control): extra recording after the overlay countdown ends.
+const RECORDING_LIMIT_GRACE_MS: u64 = 1_000;
+
 // fork(voice-control): enforce the selected model's measured safe recording limit.
 fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u64) {
     let settings = get_settings(app);
@@ -789,7 +792,11 @@ fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u
 
     let tx = tx.clone();
     thread::spawn(move || {
-        thread::sleep(Duration::from_millis(limit.max_recording_ms));
+        // fork(voice-control): keep recording briefly past the countdown so the
+        // word spoken as it hits zero is not cut off.
+        thread::sleep(Duration::from_millis(
+            limit.max_recording_ms + RECORDING_LIMIT_GRACE_MS,
+        ));
         if tx.send(Command::AutoStop { session_id }).is_err() {
             warn!("Transcription coordinator channel closed before auto-stop");
         }
