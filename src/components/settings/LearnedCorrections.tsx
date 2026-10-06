@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { type } from "@tauri-apps/plugin-os";
@@ -80,6 +86,11 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
     const [newIntended, setNewIntended] = useState("");
     const [filter, setFilter] = useState("");
     const [isMutating, setIsMutating] = useState(false);
+    // The add inputs are disabled while a mutation runs, which drops focus;
+    // after a successful add, focus returns to the misheard field once they
+    // are enabled again so the next pair can be typed right away.
+    const addRowRef = useRef<HTMLDivElement>(null);
+    const refocusAddRef = useRef(false);
     // Draft for the window input: typing "45" passes through "4", which must
     // not be clamped (and saved) before the user is done.
     const [windowDraft, setWindowDraft] = useState(String(windowSecs));
@@ -181,8 +192,16 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
       if (ok) {
         setNewMisheard("");
         setNewIntended("");
+        refocusAddRef.current = true;
       }
     };
+
+    useEffect(() => {
+      if (!isMutating && refocusAddRef.current) {
+        refocusAddRef.current = false;
+        addRowRef.current?.querySelector("input")?.focus();
+      }
+    }, [isMutating]);
 
     const handleAddKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === "Enter") {
@@ -377,7 +396,10 @@ export const LearnedCorrections: React.FC<LearnedCorrectionsProps> = React.memo(
               defaultOpen
             >
               <div className="px-4 space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
+                <div
+                  ref={addRowRef}
+                  className="flex flex-wrap items-center gap-2"
+                >
                   <Input
                     type="text"
                     className="max-w-40"
