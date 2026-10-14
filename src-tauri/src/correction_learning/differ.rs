@@ -21,6 +21,12 @@
 //! | `common_words`       | both sides only everyday de/en words (`Montag → Sonntag`) |
 //! | `phonetic`           | Conservative only: borderline pair that does not sound alike |
 //!
+//! A *spoken acronym* skips `distance` and `phonetic`: the user typed one
+//! all-caps word (`HMAC`) and the misheard side sounds like some reading of
+//! it — letters spelled out (en or de letter names) up to a split point, the
+//! rest read as a word (`Edge Mac` ≈ `aitch` + `mac`). Spelling and transcript
+//! share almost no characters there, so only the sound can link them.
+//!
 //! `inflection` and `common_words` let a pair through when the intended side is
 //! *distinctive* even though its words are frequent: a first name (any case)
 //! (`Jon → John`, `Ann → Anne`), internal capitals (`iPhone`) or a digit/letter
@@ -551,7 +557,8 @@ fn gate(candidate: &Candidate, profile: &GateProfile, lang: PhoneticLang) -> Res
     let distance = strsim::levenshtein(&misheard, &intended);
     let span = misheard.chars().count().max(intended.chars().count());
     let relative = (distance as f64) / (span as f64);
-    if relative > profile.max_relative_distance {
+    let acronym = is_spoken_acronym(&misheard_words, &candidate.intended);
+    if relative > profile.max_relative_distance && !acronym {
         return Err(Gate::Distance);
     }
     // Vocabulary gates: only everyday words aimed at a non-distinctive target
@@ -588,6 +595,7 @@ fn gate(candidate: &Candidate, profile: &GateProfile, lang: PhoneticLang) -> Res
     }
     if profile.require_phonetic
         && relative > PHONETIC_FLOOR
+        && !acronym
         && !sounds_alike(&misheard_words, &intended_words, lang)
     {
         return Err(Gate::Phonetic);
@@ -691,6 +699,112 @@ fn sounds_alike(misheard: &[String], intended: &[String], lang: PhoneticLang) ->
         })
 }
 
+/// Letter names by alphabet position, as an acronym is spelled out loud.
+const LETTER_NAMES_EN: [&str; 26] = [
+    "ay",
+    "bee",
+    "see",
+    "dee",
+    "ee",
+    "ef",
+    "jee",
+    "aitch",
+    "eye",
+    "jay",
+    "kay",
+    "el",
+    "em",
+    "en",
+    "oh",
+    "pee",
+    "cue",
+    "ar",
+    "es",
+    "tee",
+    "you",
+    "vee",
+    "doubleyou",
+    "ex",
+    "why",
+    "zee",
+];
+const LETTER_NAMES_DE: [&str; 26] = [
+    "a", "be", "ze", "de", "e", "ef", "ge", "ha", "i", "jot", "ka", "el", "em", "en", "o", "pe",
+    "ku", "er", "es", "te", "u", "fau", "we", "ix", "ypsilon", "zet",
+];
+
+/// Acronym length range the spoken-acronym check considers.
+const ACRONYM_LETTERS: std::ops::RangeInclusive<usize> = 2..=6;
+
+/// Whether `intended` is one typed all-caps word (`HMAC`) and the normalized
+/// `misheard` words sound like a reading of it: the first `k` letters spelled
+/// out (en or de names), the rest read as a word. Phonetic codes may differ
+/// by one symbol — a spelled letter rarely transcribes exactly.
+fn is_spoken_acronym(misheard: &[String], intended: &str) -> bool {
+    let intended = intended.trim_matches(|c: char| !c.is_alphanumeric());
+    if !ACRONYM_LETTERS.contains(&intended.len())
+        || !intended.chars().all(|c| c.is_ascii_uppercase())
+    {
+        return false;
+    }
+    let heard = ascii_fold(&misheard.concat());
+    if heard.is_empty() {
+        return false;
+    }
+    let letters: Vec<usize> = intended.bytes().map(|b| (b - b'A') as usize).collect();
+    let word = intended.to_ascii_lowercase();
+    let readings = [&LETTER_NAMES_EN, &LETTER_NAMES_DE]
+        .into_iter()
+        .flat_map(|names| {
+            let word = &word;
+            let letters = &letters;
+            (0..=letters.len()).map(move |k| {
+                let spelled: String = letters[..k].iter().map(|&i| names[i]).collect();
+                spelled + &word[k..]
+            })
+        });
+    let multi_word = misheard.len() > 1;
+    let metaphone = DoubleMetaphone::new(None);
+    readings.into_iter().any(|reading| {
+        codes_close(
+            &Cologne.encode(&heard),
+            &Cologne.encode(&reading),
+            multi_word,
+        ) || codes_close(
+            &metaphone.encode(&heard),
+            &metaphone.encode(&reading),
+            multi_word,
+        )
+    })
+}
+
+/// Phonetic codes match, allowing one differing symbol once both carry three.
+/// Shorter codes collide with everyday words (`die` ≈ `DE`), so they only
+/// count as an exact match of a multi-word transcript (`Ka Pe I` → `KPI`).
+fn codes_close(a: &str, b: &str, multi_word: bool) -> bool {
+    if a.len().min(b.len()) < 3 {
+        return multi_word && !a.is_empty() && a == b;
+    }
+    strsim::levenshtein(a, b) <= 1
+}
+
+/// Map umlauts/`ß` to their ASCII spellings and drop anything else non-ASCII,
+/// so the encoders (Double Metaphone indexes bytes) only see ASCII.
+fn ascii_fold(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for c in text.chars() {
+        match c {
+            'ä' => out.push_str("ae"),
+            'ö' => out.push_str("oe"),
+            'ü' => out.push_str("ue"),
+            'ß' => out.push_str("ss"),
+            c if c.is_ascii_alphabetic() => out.push(c),
+            _ => {}
+        }
+    }
+    out
+}
+
 /// Whether a diff token contains any word character.
 fn is_word(token: &str) -> bool {
     token.chars().any(char::is_alphanumeric)
@@ -770,6 +884,50 @@ mod tests {
             "{original} → {corrected} learned"
         );
         out.rejected.first().map(|(gate, _)| *gate)
+    }
+
+    #[test]
+    fn spoken_acronym_passes_distance_and_phonetic() {
+        let words = |text: &str| normalized_words(text);
+        assert!(is_spoken_acronym(&words("Edge Mac"), "HMAC"));
+        assert!(is_spoken_acronym(&words("Ätsch Mäck"), "HMAC"));
+        assert!(is_spoken_acronym(&words("Es Ku El"), "SQL"));
+        assert!(is_spoken_acronym(&words("Ka Pe I"), "KPI"));
+        for profile in [Aggressiveness::Balanced, Aggressiveness::Conservative] {
+            let out = extract_anchored(
+                "Was ist eine Edge Mac?",
+                0.."Was ist eine Edge Mac?".len(),
+                "Was ist eine HMAC?",
+                &GateProfile::for_aggressiveness(profile),
+                PhoneticLang::German,
+                &[],
+            );
+            assert_eq!(gates(&out), vec![], "{profile:?}");
+            assert_eq!(out.candidates.len(), 1);
+            assert_eq!(out.candidates[0].misheard, "Edge Mac");
+            assert_eq!(out.candidates[0].intended, "HMAC");
+        }
+    }
+
+    #[test]
+    fn unrelated_or_partial_acronyms_stay_gated() {
+        let words = |text: &str| normalized_words(text);
+        // Not all-caps, or not what was said.
+        assert!(!is_spoken_acronym(&words("Edge Mac"), "Hmac"));
+        assert!(!is_spoken_acronym(&words("Kosten"), "KPI"));
+        assert!(!is_spoken_acronym(&words("Montag"), "HMAC"));
+        assert!(!is_spoken_acronym(&words("Datenbank"), "SQL"));
+        assert!(!is_spoken_acronym(&words("Schnittstelle"), "API"));
+        assert!(!is_spoken_acronym(&words("die"), "DE"));
+        assert!(!is_spoken_acronym(&words("es"), "ES"));
+        assert!(!is_spoken_acronym(&words("kaputt"), "KPI"));
+        // Intermediate keystroke states while typing the fix.
+        assert!(!is_spoken_acronym(&words("Edge Mac"), "HMA"));
+        assert!(!is_spoken_acronym(&words("Edge Mac"), "HMAX"));
+        assert_eq!(
+            rejected_by("meet in Munchen", "meet in BERLIN"),
+            Some(Gate::Distance)
+        );
     }
 
     fn gates(out: &Extraction) -> Vec<Gate> {

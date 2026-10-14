@@ -155,7 +155,10 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   from a common de/en word to an unknown word, unless the target is
   distinctive (inner capitals, an all-caps acronym, or mixed digits/letters).
   It also rejects any deletion-only or single-char-append edit of a common
-  word (`Werkstatt → Werk`), whatever the result. Edits diffed against a
+  word (`Werkstatt → Werk`), whatever the result. A spoken acronym (one
+  typed all-caps word of 2–6 letters whose en/de letter-name reading sounds
+  like the misheard side, e.g. `Edge Mac → HMAC`) skips `distance` and
+  `phonetic`. Edits diffed against a
   paste-only anchor (the paste was never found verbatim) use at most the
   Conservative distance bound and always need the phonetic match. The store
   refuses a candidate whose misheard side is the intended side of a known pair
