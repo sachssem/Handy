@@ -77,6 +77,7 @@ PROBES=(
   # -- dictation journal + app context capture --
   "journal: module wired in|src-tauri/src/lib.rs|^(pub )?mod journal;"
   "journal: writer init|src-tauri/src/lib.rs|journal::init\\(app_handle\\)"
+  "journal: app log keeps 3 rotated files|src-tauri/src/lib.rs|RotationStrategy::KeepSome\\(3\\)"
   "journal: commands registered|src-tauri/src/lib.rs|journal::commands::change_dictation_journal_enabled_setting"
   "journal: settings fields|src-tauri/src/settings.rs|dictation_journal_enabled"
   "journal: dictation begin hook|src-tauri/src/actions.rs|crate::journal::begin_dictation"
