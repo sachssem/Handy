@@ -43,12 +43,13 @@ const DEFAULT_RECORDING_LIMIT: RecordingLimit = RecordingLimit {
 pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
     let model_id = model_id.to_ascii_lowercase();
 
-    // Qwen3-ASR truncates generation around the transcribe-cpp default
-    // output-token cap on long dictations; hand-measured at ~45s, pending a
-    // probe-limit confirmation once the model is downloaded again.
+    // Qwen3-ASR's decode budget scales with audio length (12 tokens/s), so it
+    // only truncates very dense speech; probe-limit (2026-10-15, Q5_K_M and
+    // Q8_0, 12-case rotations) found no truncation through 122 s and extra
+    // words appear by ~240 s. 90 s keeps a margin to both.
     if model_id.contains("qwen3-asr") {
         return Some(RecordingLimit {
-            max_recording_ms: 45_000,
+            max_recording_ms: 90_000,
             warning_ms: 10_000,
         });
     }
@@ -164,7 +165,7 @@ mod recording_limit_tests {
     fn qwen3_asr_models_have_conservative_recording_limit() {
         let limit = recording_limit_for_model_id("handy-computer/Qwen3-ASR-0.6B-gguf").unwrap();
 
-        assert_eq!(limit.max_recording_ms, 45_000);
+        assert_eq!(limit.max_recording_ms, 90_000);
         assert_eq!(limit.warning_ms, 10_000);
     }
 

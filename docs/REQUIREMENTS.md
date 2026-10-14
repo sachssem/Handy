@@ -68,7 +68,7 @@ die Baseline unter Noise, ohne klare Sprache zu verschlechtern (`--denoise`-Flag
 bleibt im Bench-Harness für künftige Kandidaten wie GTCRN).
 
 **Recording-Limit-Probe (`handy-bench probe-limit`):** manche Modelle brechen ihre
-Ausgabe ab langer Audiodauer ab (Qwen3-ASR ~45 s am transcribe-cpp-Token-Cap). Der
+Ausgabe ab langer Audiodauer ab (transcribe-cpp-Token-Cap; bei Qwen3-ASR skaliert er mit 12 Token/s Audio, greift also erst bei sehr dichter Sprache). Mit nur 3 Cases bricht der Probe ab ~80 s am Repetition-Guard ab — für lange Längen `--cases` mit ≥12 verschiedenen Cases angeben. Der
 Probe verkettet 2–3 Corpus-Samples im Round-Robin zu immer längerem Audio, misst pro
 Länge das Wortzahl-Verhältnis und findet per Verdopplungs- plus Feinsuche die reale
 Decke. Beispiel: `handy-bench probe-limit --models qwen=...gguf --max-secs 120`. Er
@@ -81,7 +81,7 @@ Gemessene Ergebnisse (Probe-Lauf 2026-07-12, auto-Language, Threshold 0.70):
 | Modell          | Ergebnis                                             | Limit-Eintrag              |
 | --------------- | ---------------------------------------------------- | -------------------------- |
 | Parakeet TDT v3 | gesund bis 360 s (Ratio 0.91–1.00, keine Truncation) | genereller Default         |
-| Qwen3-ASR 1.7B  | ~45 s (Hand-Messung; Modell z. Zt. nicht lokal)      | 45 s, per Probe bestätigen |
+| Qwen3-ASR 1.7B  | Probe 2026-10-15 (Q5_K_M + Q8_0, 12-Case-Rotationen): keine Truncation bis 122 s, ab ~240 s Zusatzwörter | 90 s |
 
 Modelle ohne gemessenen Eintrag bekommen einen generellen Default von **5 min**
 (`DEFAULT_RECORDING_LIMIT`) — weit über jeder realen Diktatlänge, aber ein Netz

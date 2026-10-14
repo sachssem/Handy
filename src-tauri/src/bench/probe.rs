@@ -2,7 +2,7 @@
 //! voice-control).
 //!
 //! Some speech models truncate their output beyond a certain audio duration
-//! (e.g. Qwen3-ASR hits transcribe-cpp's output-token cap around ~45 s). The app
+//! (transcribe-cpp caps output tokens; dense speech can hit it). The app
 //! auto-stops recordings via the per-model table in
 //! `managers::model::recording_limit_for_model_id`, but those ceilings are
 //! hand-guessed. `probe-limit` measures the real ceiling per model so a
