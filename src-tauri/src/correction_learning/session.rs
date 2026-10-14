@@ -262,12 +262,13 @@ enum Decision {
     Continue,
 }
 
-/// Content-free notes the driver logs at debug level.
+/// Notes the driver logs at debug level (content-free) and tallies into the
+/// journal (which also keeps the rejected pairs' text).
 #[derive(Debug, PartialEq)]
 enum Note {
     Anchored { exact: bool },
     Unrelated,
-    Rejected(Vec<Gate>),
+    Rejected(Vec<(Gate, Candidate)>),
     Reformulation(usize),
     Oversized,
     Pending(usize),
@@ -575,7 +576,7 @@ mod imp {
     use crate::correction_learning::differ::{Candidate, GateProfile, PhoneticLang};
     use crate::correction_learning::last_transcription_language;
     use crate::correction_learning::store::{self, CorrectionStatus, Observation};
-    use crate::journal::{LearningPair, LearningRecord};
+    use crate::journal::{LearningPair, LearningRecord, RejectedPair};
     use crate::settings::{self, AppSettings, PasteMethod};
     use log::{debug, info};
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -832,6 +833,10 @@ mod imp {
         }
     }
 
+    /// Cap on distinct rejected pairs kept per journal record; intermediate
+    /// keystroke states (`HM`, `HMA`, `HMAC`) each count as one.
+    const MAX_JOURNAL_REJECTED: usize = 20;
+
     fn text_hash(text: &str) -> u64 {
         use std::hash::{Hash, Hasher};
         let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -846,12 +851,23 @@ mod imp {
                 journal.anchored = Some(if *exact { "exact" } else { "paste_only" }.to_string())
             }
             Note::Unrelated => journal.unrelated += 1,
-            Note::Rejected(gates) => {
-                for gate in gates {
+            Note::Rejected(rejections) => {
+                for (gate, candidate) in rejections {
                     *journal
                         .gate_rejections
                         .entry(gate.name().to_string())
                         .or_default() += 1;
+                    let pair = RejectedPair {
+                        gate: gate.name().to_string(),
+                        misheard: candidate.misheard.clone(),
+                        intended: candidate.intended.clone(),
+                    };
+                    // Every read re-diffs the field, so the same pair recurs.
+                    if journal.rejected.len() < MAX_JOURNAL_REJECTED
+                        && !journal.rejected.contains(&pair)
+                    {
+                        journal.rejected.push(pair);
+                    }
                 }
             }
             Note::Reformulation(_) => journal.reformulations += 1,
@@ -877,8 +893,8 @@ mod imp {
                 "learn: session {} field turned unrelated to the paste",
                 generation
             ),
-            Note::Rejected(gates) => {
-                let names: Vec<&str> = gates.iter().map(|gate| gate.name()).collect();
+            Note::Rejected(rejections) => {
+                let names: Vec<&str> = rejections.iter().map(|(gate, _)| gate.name()).collect();
                 debug!(
                     "learn: session {} candidate(s) rejected by gate(s) {}",
                     generation,
@@ -1220,10 +1236,11 @@ mod tests {
             Decision::Continue
         );
         assert!(h.state.pending.is_empty());
-        assert!(h
-            .state
-            .notes
-            .contains(&Note::Rejected(vec![differ::Gate::LikelyTypo])));
+        assert!(h.state.notes.iter().any(|note| matches!(
+            note,
+            Note::Rejected(rejections)
+                if rejections.iter().map(|(gate, _)| *gate).eq([differ::Gate::LikelyTypo])
+        )));
         assert_eq!(
             h.text("Einkaufsliste: Mlch Eier Brot", 1_000),
             Decision::Continue

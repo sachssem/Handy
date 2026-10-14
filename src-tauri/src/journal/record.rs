@@ -338,6 +338,14 @@ pub struct LearningPair {
     pub pair_id: Option<String>,
 }
 
+/// A substitution the learner's gates rejected.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RejectedPair {
+    pub gate: String,
+    pub misheard: String,
+    pub intended: String,
+}
+
 /// Post-paste correction-learning session outcome.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct LearningRecord {
@@ -360,6 +368,9 @@ pub struct LearningRecord {
     pub unrelated: u32,
     /// Candidate rejections per gate name.
     pub gate_rejections: BTreeMap<String, u32>,
+    /// Distinct rejected substitutions (capped), so a missed suggestion can be
+    /// traced to the gate that blocked it.
+    pub rejected: Vec<RejectedPair>,
     pub reformulations: u32,
     pub oversized: u32,
     /// Times a (new) candidate set became pending.

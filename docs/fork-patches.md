@@ -312,7 +312,8 @@ line), join rules and example queries: [`docs/journal.md`](journal.md).
   detection + evidence, allowlist guard decision/fallback/result, the text after
   every pipeline stage, LLM, paste method/ms, WAV name, auto-stop, outcome),
   `context` (app context captured at recording start), `learning` (post-paste
-  session outcome: reads, edits, gate rejections by gate, committed pairs),
+  session outcome: reads, edits, gate rejections by gate, rejected pairs with
+  their gate, committed pairs),
   `overlay` (webview show latencies reported via the journal's
   `journal_overlay_stage` command). All keyed by the dictation id (epoch ms of
   the press).

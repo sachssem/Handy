@@ -346,6 +346,10 @@ fn redact_learning(record: &mut LearningRecord, reason: Option<&str>) {
             pair.misheard.clear();
             pair.intended.clear();
         }
+        for pair in &mut record.rejected {
+            pair.misheard.clear();
+            pair.intended.clear();
+        }
     }
 }
 
@@ -663,6 +667,11 @@ mod tests {
                     intended: "secret intended".into(),
                     outcome: "suggested".into(),
                     pair_id: Some("pair-7".into()),
+                }],
+                rejected: vec![super::super::record::RejectedPair {
+                    gate: "distance".into(),
+                    misheard: "secret rejected".into(),
+                    intended: "secret target".into(),
                 }],
                 ..Default::default()
             };

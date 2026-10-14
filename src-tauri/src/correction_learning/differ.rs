@@ -193,8 +193,9 @@ const DIFF_TIMEOUT: Duration = Duration::from_millis(50);
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Extraction {
     pub candidates: Vec<Candidate>,
-    /// The gate that rejected each gated-out substitution, in document order.
-    pub rejected: Vec<Gate>,
+    /// Each gated-out substitution with the gate that rejected it, in
+    /// document order.
+    pub rejected: Vec<(Gate, Candidate)>,
     /// Change runs inside the pasted span.
     pub runs: usize,
     /// More than [`MAX_RUNS`] runs: treated as a reformulation.
@@ -275,7 +276,7 @@ pub fn extract_anchored(
         }
         match gate(&candidate, profile, lang) {
             Ok(()) => out.candidates.push(candidate),
-            Err(gate) => out.rejected.push(gate),
+            Err(gate) => out.rejected.push((gate, candidate)),
         }
     }
     out
@@ -768,7 +769,11 @@ mod tests {
             out.candidates.is_empty(),
             "{original} → {corrected} learned"
         );
-        out.rejected.first().copied()
+        out.rejected.first().map(|(gate, _)| *gate)
+    }
+
+    fn gates(out: &Extraction) -> Vec<Gate> {
+        out.rejected.iter().map(|(gate, _)| *gate).collect()
     }
 
     fn pair(misheard: &str, intended: &str) -> Option<(String, String)> {
@@ -840,7 +845,7 @@ mod tests {
             &[],
         );
         assert!(out.candidates.is_empty());
-        assert_eq!(out.rejected, vec![Gate::Phonetic]);
+        assert_eq!(gates(&out), vec![Gate::Phonetic]);
     }
 
     #[test]
@@ -855,7 +860,7 @@ mod tests {
             &[],
         );
         assert!(out.candidates.is_empty());
-        assert_eq!(out.rejected, vec![Gate::LikelyTypo; 3]);
+        assert_eq!(gates(&out), vec![Gate::LikelyTypo; 3]);
         assert!(!out.reformulation);
     }
 

@@ -44,7 +44,8 @@ pub use dictation::{
     with_scope, without_record, DictationGuard, ExternalDictation, AUTO_STOP_TRIGGER,
 };
 pub use record::{
-    AllowlistResult, AsrFacts, LearningPair, LearningRecord, SelfCorrectionFacts, Stage, StartPath,
+    AllowlistResult, AsrFacts, LearningPair, LearningRecord, RejectedPair, SelfCorrectionFacts,
+    Stage, StartPath,
 };
 
 use record::{Entry, Event};

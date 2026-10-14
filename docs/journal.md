@@ -93,7 +93,8 @@ The post-paste correction-learning session: `session` (matches the
 `learn: session N` debug log lines), `app`, `lang`, `window_secs`,
 `observer`, `skipped` (why no session ran), `anchored` (`exact` \|
 `paste_only`), `reads`, `edits_observed`, `unrelated`, `gate_rejections`
-(`{gate: count}`), `reformulations`, `oversized`, `pending_sets`,
+(`{gate: count}`), `rejected` (`[{gate, misheard, intended}]`, distinct pairs,
+capped at 20 — intermediate keystroke states included), `reformulations`, `oversized`, `pending_sets`,
 `pending_dropped`, `end_reason`, `committed` (`[{misheard, intended, outcome,
 pair_id}]`, outcome as in the store: `suggested`, `promoted`, `re-observed`,
 `reverted+blocked`, `blocked`, `manual kept`, `inverse of manual`,
