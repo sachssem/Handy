@@ -786,9 +786,20 @@ fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u
         limit_ms: limit.max_recording_ms,
         warning_ms: limit.warning_ms.min(limit.max_recording_ms),
     };
-    if let Err(err) = app.emit_to("recording_overlay", "recording-limit", event) {
-        debug!("Failed to emit recording limit event: {err}");
-    }
+    // fork(voice-control): emit on the main thread, queued behind the
+    // `show-overlay` emit (also main-thread). Emitted from here directly it
+    // could reach the webview first, and the show handler's reset of the
+    // previous session's limit would then wipe this session's countdown.
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        match handle.emit_to("recording_overlay", "recording-limit", event) {
+            Ok(()) => debug!(
+                "recording-limit sent: limit_ms={} deadline_epoch_ms={deadline_epoch_ms}",
+                limit.max_recording_ms
+            ),
+            Err(err) => debug!("Failed to emit recording limit event: {err}"),
+        }
+    });
 
     let tx = tx.clone();
     thread::spawn(move || {
