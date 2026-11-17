@@ -147,6 +147,14 @@ PROBES=(
   "model-warmup: load hook|src-tauri/src/managers/transcription.rs|self\.warm_up_engine\(\)\?;"
   "model-warmup: journal hook|src-tauri/src/managers/transcription.rs|journal::record_model_load"
 
+  # -- T3 Code transcription socket --
+  "transcribe-socket: module declared|src-tauri/src/lib.rs|^mod transcribe_socket;"
+  "transcribe-socket: started in app setup|src-tauri/src/lib.rs|transcribe_socket::start\\(&app_handle\\)"
+  "transcribe-socket: batch runs take turns|src-tauri/src/managers/transcription.rs|BATCH_TURN\.lock\(\)"
+  "transcribe-socket: taken engine counts as loaded|src-tauri/src/managers/transcription.rs|BATCH_LEASE\.load\("
+  "transcribe-socket: load wait|src-tauri/src/managers/transcription.rs|pub fn wait_for_model_load"
+  "transcribe-socket: load journaled on the request|src-tauri/src/managers/transcription.rs|journal::with_scope\(journal_scope"
+
   # -- benchmark harness (bench/) --
   "bench: module wired in|src-tauri/src/lib.rs|^(pub )?mod bench;"
   "bench: binary entry point|src-tauri/src/bin/handy-bench.rs|handy_app_lib::bench::run"

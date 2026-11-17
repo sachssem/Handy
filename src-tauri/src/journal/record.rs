@@ -45,6 +45,8 @@ pub enum Outcome {
     Cancelled,
     /// Transcription failed.
     Error,
+    /// The text was returned to the app that requested it (`source`).
+    Delivered,
     /// The microphone could not be opened.
     StartFailed,
     /// Never stopped: cancelled while recording, or superseded. Emitted when
@@ -256,6 +258,10 @@ pub struct DictationRecord {
     /// Dictation id: epoch ms of the press, strictly increasing. Joins
     /// `context`, `learning` and `overlay` events.
     pub id: u64,
+    /// The app that requested the transcription (`t3`); absent for Handy's
+    /// own dictations.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     pub binding: String,
     pub post_process: bool,
     /// Press (`TranscribeAction::start`) epoch ms.

@@ -46,6 +46,9 @@ mod signal_handle;
 // fork(voice-control): spoken trigger phrase → expansion text.
 mod snippets;
 mod text_rules;
+// fork(voice-control): local socket that serves T3 Code's transcriptions.
+#[cfg(unix)]
+mod transcribe_socket;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -1091,6 +1094,11 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // fork(voice-control): serve T3 Code's transcriptions with the
+            // loaded model (app mode only; the headless path returned above).
+            #[cfg(unix)]
+            transcribe_socket::start(&app_handle);
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates

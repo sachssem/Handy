@@ -45,6 +45,7 @@ Conventions used throughout:
 | [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
 | [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                      |
 | [model warm-up after load](#model-warm-up-after-load)                                    | perf    | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
+| [T3 Code transcription socket](#t3-code-transcription-socket)                            | feature | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
 | [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
 
@@ -809,6 +810,72 @@ warm-up itself 164–382 ms.
   git grep -n -i "warm" upstream/main -- src-tauri/src/managers/transcription.rs
   ```
   If so, drop this feature.
+
+## T3 Code transcription socket
+
+T3 Code (a separate app on the same Mac) transcribes composer dictations
+through the running Handy, so the model is loaded once instead of a second
+copy in `handy --transcribe-file`. The app binds a Unix socket at
+`<app data dir>/transcribe.sock` (macOS `~/Library/Application
+Support/com.pais.handy/transcribe.sock`, portable `Data/`), mode 0600,
+replacing a stale socket file. Only in app mode and only on Unix; a bind
+failure logs a warning and the app starts normally.
+
+Protocol (T3's client depends on it; keep it fixed): one request per
+connection, one JSON line each way (request ≤ 64 KiB), then close.
+
+- `{"op":"prepare"}` → `{"ok":true,"model":"<id>","load_ms":<n>}`. Loads the
+  selected model through `initiate_model_load` (the press path: pending
+  reload, warm-up, loading flag) and waits; `load_ms` 0 when it was loaded.
+- `{"op":"transcribe","wav":"/abs/path.wav"}` → `{"ok":true,"text":…,
+"model":…,"load_ms":…,"transcribe_ms":…,"audio_secs":…}`. 16 kHz mono
+  16-bit PCM only (as `--transcribe-file`), then `TranscriptionManager::
+transcribe`: custom words, fillers, snippets, text rules, learned
+  corrections. No LLM post-processing, self-correction, app style, paste or
+  history entry.
+- Any failure, bad JSON, unknown op or bad WAV → `{"ok":false,"error":…}`.
+
+**Engine sharing.** `transcribe()` takes the engine out of its mutex for the
+run, so before this feature a second concurrent call failed ("Model failed to
+load after auto-load attempt") and `is_model_loaded()` read false, which made
+a press during a run reload the model. Batch runs now take turns
+(`BATCH_TURN`, held for the whole `transcribe()`), and a taken engine counts
+as loaded (`BATCH_LEASE`). Neither the load thread nor the stream worker take
+the turn, so no lock cycle. A live-streaming Handy dictation holds the engine
+for its whole recording; a socket request during it gets `ok:false` (the
+client falls back), and a press during a socket run falls back from live
+preview to batch for that dictation.
+
+**Journal.** Each `transcribe` is its own `dictation` record with
+`source: "t3"` and outcome `delivered`
+([journal](journal.md)). Its records live outside the open list
+(`ExternalDictation`): never "current", never abandoned by a press, and the
+id-less hooks (text stages, `asr`, `asr_bias`, snippet protection, model load)
+reach it through a thread-local scope (`journal::with_scope`). Its ids share
+the rising sequence but leave `last_dictation_id` (Handy's learning and output
+stages) alone. Text is kept (T3's composer is a known non-secure target).
+While the journal is on, the WAV is copied to `recordings/` as
+`t3-<unix secs>.wav` (`wav_file` / `wav_saved`), apart from Handy's own
+`handy-*.wav`. History cleanup never sees these copies, so the journal writer
+prunes them past `dictation_journal_retention_days` together with its day
+files (startup, day rollover, retention change).
+
+- **New files:** `src-tauri/src/transcribe_socket.rs` (with its tests). Fork-owned
+  changes in `journal/` (`ExternalDictation`, `with_scope`, `without_record`,
+  `source`, `Outcome::Delivered`).
+- **Upstream files touched:** `managers/transcription.rs` (`BATCH_TURN` /
+  `BatchLease` in `transcribe`, `BATCH_LEASE` in `is_model_loaded`,
+  `wait_for_model_load`, journal scope capture in `initiate_model_load`),
+  `lib.rs` (`mod transcribe_socket;`, `transcribe_socket::start` after
+  `initialize_core_logic`).
+- **Probe:** `transcribe-socket: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream serve transcriptions to other processes or
+  serialize `transcribe()`?
+  ```bash
+  git grep -nE "UnixListener|transcribe\.sock|BATCH_TURN" upstream/main -- src-tauri/src
+  ```
+  If upstream serializes batch runs itself, drop the `BATCH_*` grafts and keep
+  the socket.
 
 ## benchmark harness
 

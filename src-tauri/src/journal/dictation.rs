@@ -11,6 +11,12 @@
 //! finishes it. All hooks are cheap (a mutex and, for text, one clone) and do
 //! nothing when no dictation is active (e.g. the bench harness,
 //! `--transcribe-file`) or the journal is disabled.
+//!
+//! Transcriptions requested by another app ([`ExternalDictation`], e.g. T3
+//! Code over `transcribe_socket`) run next to Handy's own dictations. Their
+//! records live outside the open list, so they are never "current" for Handy
+//! and a press never abandons them; their thread runs the pipeline inside
+//! [`with_scope`], which routes the id-less hooks to the external record.
 
 use super::record::{
     AllowlistAction, AllowlistGuard, AllowlistResult, AsrFacts, DictationRecord, Event,
@@ -19,14 +25,22 @@ use super::record::{
 };
 use super::{emit, is_enabled, now_ms};
 use crate::dictation_context::DictationContext;
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 static RECORDS: Mutex<Records> = Mutex::new(Records::new());
-/// Id of the most recently begun dictation (0 = none yet).
+/// Id of the most recently begun Handy dictation (0 = none yet).
 static LAST_ID: AtomicU64 = AtomicU64::new(0);
+/// Last id handed out, Handy or external (keeps all ids unique and rising).
+static ID_SEQ: AtomicU64 = AtomicU64::new(0);
+
+thread_local! {
+    /// Record the id-less hooks on this thread write into ([`with_scope`]).
+    static SCOPE: Cell<Option<u64>> = const { Cell::new(None) };
+}
 
 /// `stop_trigger` of the recording-limit auto-stop (the transcription
 /// coordinator stops with it instead of a shortcut string).
@@ -42,6 +56,8 @@ const MAX_OPEN: usize = 4;
 /// The open dictation records, oldest first; the last one is current.
 struct Records {
     open: Vec<Open>,
+    /// Open [`ExternalDictation`] records; never current, never abandoned.
+    external: Vec<DictationRecord>,
     /// Original decisions survive finalization until the learning session ends.
     learning_redactions: VecDeque<(u64, Option<&'static str>)>,
 }
@@ -56,6 +72,7 @@ impl Records {
     const fn new() -> Self {
         Self {
             open: Vec::new(),
+            external: Vec::new(),
             learning_redactions: VecDeque::new(),
         }
     }
@@ -86,8 +103,9 @@ impl Records {
     fn by_id(&mut self, id: u64) -> Option<&mut DictationRecord> {
         self.open
             .iter_mut()
-            .find(|o| o.record.id == id)
             .map(|o| &mut o.record)
+            .chain(self.external.iter_mut())
+            .find(|r| r.id == id)
     }
 
     /// Open `record` as current. Returns the records it abandons: every
@@ -113,6 +131,9 @@ impl Records {
     }
 
     fn take(&mut self, id: u64) -> Option<DictationRecord> {
+        if let Some(idx) = self.external.iter().position(|r| r.id == id) {
+            return Some(self.external.remove(idx));
+        }
         let idx = self.open.iter().position(|o| o.record.id == id)?;
         Some(self.open.remove(idx).record)
     }
@@ -122,13 +143,16 @@ fn records() -> MutexGuard<'static, Records> {
     RECORDS.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// Fill the current record. A no-op while the journal is disabled, so no
-/// fact or text is copied for nothing.
+/// Fill the current record (this thread's [`with_scope`] record, if any). A
+/// no-op while the journal is disabled, so no fact or text is copied for
+/// nothing.
 fn with_current(f: impl FnOnce(&mut DictationRecord)) {
     if !is_enabled() {
         return;
     }
-    if let Some(record) = records().current() {
+    if let Some(id) = scope_id() {
+        with_id(id, f);
+    } else if let Some(record) = records().current() {
         f(record);
     }
 }
@@ -144,15 +168,41 @@ fn with_id(id: u64, f: impl FnOnce(&mut DictationRecord)) {
 }
 
 pub fn current_id() -> Option<u64> {
-    records().current().map(|r| r.id)
+    scope_id().or_else(|| records().current().map(|r| r.id))
+}
+
+/// The record this thread's id-less hooks write into, when scoped.
+pub fn scope_id() -> Option<u64> {
+    SCOPE.with(Cell::get)
+}
+
+/// Run `f` with this thread's id-less hooks ([`current_id`],
+/// [`last_dictation_id`], text stages, engine facts) addressing record `id`.
+/// `None` runs `f` unscoped. A thread that does work for a scoped caller
+/// captures [`scope_id`] and passes it on.
+pub fn with_scope<R>(id: Option<u64>, f: impl FnOnce() -> R) -> R {
+    struct Restore(Option<u64>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            SCOPE.with(|s| s.set(self.0));
+        }
+    }
+    let _restore = Restore(SCOPE.with(|s| s.replace(id)));
+    f()
+}
+
+/// Run `f` with this thread's id-less hooks journaling nothing (no record
+/// has id 0).
+pub fn without_record<R>(f: impl FnOnce() -> R) -> R {
+    with_scope(Some(0), f)
 }
 
 /// Next id: the press's epoch ms, bumped to stay strictly increasing.
 fn next_id(now: u64) -> u64 {
-    let mut prev = LAST_ID.load(Ordering::SeqCst);
+    let mut prev = ID_SEQ.load(Ordering::SeqCst);
     loop {
         let id = now.max(prev + 1);
-        match LAST_ID.compare_exchange(prev, id, Ordering::SeqCst, Ordering::SeqCst) {
+        match ID_SEQ.compare_exchange(prev, id, Ordering::SeqCst, Ordering::SeqCst) {
             Ok(_) => return id,
             Err(actual) => prev = actual,
         }
@@ -165,6 +215,7 @@ fn next_id(now: u64) -> u64 {
 pub fn begin_dictation(binding: &str, post_process: bool) -> u64 {
     let now = now_ms();
     let id = next_id(now);
+    LAST_ID.fetch_max(id, Ordering::SeqCst);
     let record = DictationRecord {
         id,
         binding: binding.to_string(),
@@ -182,8 +233,11 @@ pub fn begin_dictation(binding: &str, post_process: bool) -> u64 {
 }
 
 /// Id of the most recently begun dictation (the one whose paste a learning
-/// session observes).
+/// session observes), or this thread's [`with_scope`] record.
 pub fn last_dictation_id() -> Option<u64> {
+    if let Some(id) = scope_id() {
+        return Some(id);
+    }
     match LAST_ID.load(Ordering::SeqCst) {
         0 => None,
         id => Some(id),
@@ -347,7 +401,11 @@ fn finalize_and_emit(mut record: DictationRecord, now: u64) {
     record.end_ms = Some(now);
     let context = crate::dictation_context::get(record.id);
     let secure_input = record.secure_input || context.as_ref().is_some_and(|c| c.secure_input);
-    let reason = redaction_reason(context.as_deref(), secure_input, cfg!(target_os = "macos"));
+    // An external caller's text goes to its own, known non-secure field.
+    let reason = match record.source {
+        Some(_) => None,
+        None => redaction_reason(context.as_deref(), secure_input, cfg!(target_os = "macos")),
+    };
     records().remember_redaction(record.id, reason);
     if let Some(reason) = reason {
         record.redact_text(reason);
@@ -502,6 +560,64 @@ impl Drop for DictationGuard {
         };
         let cancelled = (self.is_cancelled)();
         finish(id, |r| outcome_of(r, cancelled));
+    }
+}
+
+/// A transcription another app requested over `transcribe_socket`: its own
+/// record (`source` set), never Handy's current one. Run the pipeline inside
+/// [`scope`](Self::scope); dropping the guard finishes and emits the record.
+pub struct ExternalDictation {
+    id: u64,
+}
+
+impl ExternalDictation {
+    pub fn begin(source: &str) -> Self {
+        let now = now_ms();
+        let id = next_id(now);
+        records().external.push(DictationRecord {
+            id,
+            source: Some(source.to_string()),
+            start_ms: now,
+            ..Default::default()
+        });
+        Self { id }
+    }
+
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    pub fn scope<R>(&self, f: impl FnOnce() -> R) -> R {
+        with_scope(Some(self.id), f)
+    }
+
+    pub fn recorded(&self, audio_secs: f64, wav_file: Option<&str>, wav_saved: Option<bool>) {
+        with_id(self.id, |r| {
+            r.retained_audio_secs = Some(audio_secs);
+            r.wav_file = wav_file.map(str::to_string);
+            r.wav_saved = wav_saved;
+        });
+    }
+
+    /// The transcription returned `text`, which is what the caller receives.
+    pub fn transcribed(&self, elapsed: Duration, text: &str) {
+        with_id(self.id, |r| {
+            r.transcription_ms = Some(elapsed.as_millis() as u64);
+            r.text.final_text = Some(text.to_string());
+        });
+    }
+
+    pub fn failed(&self, error: &str) {
+        with_id(self.id, |r| r.error = Some(error.to_string()));
+    }
+}
+
+impl Drop for ExternalDictation {
+    fn drop(&mut self) {
+        finish(self.id, |r| match outcome_of(r, false) {
+            Outcome::NotPasted => Outcome::Delivered,
+            outcome => outcome,
+        });
     }
 }
 
@@ -699,6 +815,35 @@ mod tests {
         // This test owns local records; do not finalize a global record on drop.
         guard.id = None;
         assert_eq!(guard.id(), None);
+    }
+
+    #[test]
+    fn an_external_record_is_never_current_and_never_abandoned() {
+        let mut records = Records::new();
+        records.begin(record(1));
+        records.external.push(record(2));
+        assert_eq!(records.current().map(|r| r.id), Some(1));
+        assert_eq!(ids(&records.begin(record(3))), [1]);
+        assert_eq!(records.current().map(|r| r.id), Some(3));
+        assert_eq!(records.guard_newest(), Some(3));
+        assert!(records.by_id(2).is_some());
+        assert_eq!(records.take(2).map(|r| r.id), Some(2));
+        assert_eq!(records.current().map(|r| r.id), Some(3));
+    }
+
+    #[test]
+    fn a_scope_routes_id_less_hooks_to_the_external_record() {
+        let last = LAST_ID.load(Ordering::SeqCst);
+        let external = ExternalDictation::begin("t3");
+        assert_eq!(LAST_ID.load(Ordering::SeqCst), last, "Handy's last id kept");
+        assert_eq!(scope_id(), None);
+        external.scope(|| {
+            assert_eq!(current_id(), Some(external.id()));
+            assert_eq!(last_dictation_id(), Some(external.id()));
+            without_record(|| assert_eq!(scope_id(), Some(0)));
+            assert_eq!(scope_id(), Some(external.id()));
+        });
+        assert_eq!(scope_id(), None);
     }
 
     #[test]

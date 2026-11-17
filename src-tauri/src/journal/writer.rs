@@ -35,11 +35,22 @@ pub(crate) struct JournalWriter {
 }
 
 impl JournalWriter {
-    pub fn spawn(dir: PathBuf, retention_days: u32, max_bytes: u64) -> Self {
+    /// `t3_wav_dir`: the recordings dir whose `t3-*.wav` copies share the
+    /// journal's retention.
+    pub fn spawn(
+        dir: PathBuf,
+        retention_days: u32,
+        max_bytes: u64,
+        t3_wav_dir: Option<PathBuf>,
+    ) -> Self {
         let (tx, rx) = mpsc::sync_channel(CHANNEL_CAPACITY);
         let spawned = std::thread::Builder::new()
             .name("dictation-journal".into())
-            .spawn(move || run(rx, DayFiles::new(dir, retention_days, max_bytes)));
+            .spawn(move || {
+                let mut files = DayFiles::new(dir, retention_days, max_bytes);
+                files.t3_wav_dir = t3_wav_dir;
+                run(rx, files)
+            });
         if let Err(err) = spawned {
             // The receiver dropped with the closure: every send fails fast.
             warn!("journal: writer thread failed to start: {}", err);
@@ -122,6 +133,20 @@ pub(crate) fn file_name(day: NaiveDate) -> String {
     format!("{}.jsonl", day.format("%Y-%m-%d"))
 }
 
+/// Recordings-dir name of a WAV copied for a `transcribe_socket` request.
+pub(crate) fn t3_wav_name(unix_secs: i64) -> String {
+    format!("t3-{unix_secs}.wav")
+}
+
+/// Whether `name` is a `t3-<unix secs>.wav` copy at least `retention_days`
+/// old. Handy's own `handy-*.wav` and every other file never match.
+fn t3_wav_expired(name: &str, now_secs: i64, retention_days: u32) -> bool {
+    name.strip_prefix("t3-")
+        .and_then(|rest| rest.strip_suffix(".wav"))
+        .and_then(|secs| secs.parse::<i64>().ok())
+        .is_some_and(|secs| now_secs - secs >= i64::from(retention_days) * 86_400)
+}
+
 /// The day a journal file name stands for; `None` for any foreign file.
 fn parse_file_day(name: &str) -> Option<NaiveDate> {
     let stem = name.strip_suffix(".jsonl")?;
@@ -136,6 +161,8 @@ pub(crate) struct DayFiles {
     dir: PathBuf,
     retention_days: u32,
     max_bytes: u64,
+    /// Recordings dir pruned of expired `t3-*.wav` copies alongside.
+    t3_wav_dir: Option<PathBuf>,
     day: Option<NaiveDate>,
     file: Option<File>,
     bytes: u64,
@@ -148,6 +175,7 @@ impl DayFiles {
             dir,
             retention_days: clamp_retention(retention_days),
             max_bytes,
+            t3_wav_dir: None,
             day: None,
             file: None,
             bytes: 0,
@@ -213,8 +241,12 @@ impl DayFiles {
     }
 
     /// Delete day files older than the retention window. Foreign files in the
-    /// directory are never touched.
+    /// directory are never touched. Also prunes expired `t3-*.wav` copies.
     pub fn prune(&self, today: NaiveDate) -> usize {
+        if let Some(dir) = &self.t3_wav_dir {
+            let now_secs = (super::now_ms() / 1000) as i64;
+            prune_t3_wavs(dir, now_secs, self.retention_days);
+        }
         prune_dir(&self.dir, today, self.retention_days)
     }
 }
@@ -239,6 +271,27 @@ pub(crate) fn prune_dir(dir: &Path, today: NaiveDate, retention_days: u32) -> us
         debug!("journal: pruned {} day file(s) past retention", removed);
     }
     removed
+}
+
+fn prune_t3_wavs(dir: &Path, now_secs: i64, retention_days: u32) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    let removed = entries
+        .flatten()
+        .filter(|e| {
+            e.file_name()
+                .to_str()
+                .is_some_and(|name| t3_wav_expired(name, now_secs, retention_days))
+        })
+        .filter(|e| fs::remove_file(e.path()).is_ok())
+        .count();
+    if removed > 0 {
+        debug!(
+            "journal: pruned {} t3 WAV copy(ies) past retention",
+            removed
+        );
+    }
 }
 
 #[cfg(test)]
@@ -355,7 +408,7 @@ mod tests {
     #[test]
     fn writer_serializes_entries_as_versioned_jsonl() {
         let tmp = tempfile::tempdir().unwrap();
-        let writer = JournalWriter::spawn(tmp.path().to_path_buf(), 90, MAX_BYTES_PER_DAY);
+        let writer = JournalWriter::spawn(tmp.path().to_path_buf(), 90, MAX_BYTES_PER_DAY, None);
         let ts = crate::journal::now_ms();
         assert!(writer.send(overlay_entry(ts)));
         assert!(writer.flush(Duration::from_secs(5)));
@@ -374,7 +427,7 @@ mod tests {
         // A regular file where the directory should be: every create/open fails.
         let blocked = tmp.path().join("journal");
         fs::write(&blocked, "not a directory").unwrap();
-        let writer = JournalWriter::spawn(blocked.clone(), 90, MAX_BYTES_PER_DAY);
+        let writer = JournalWriter::spawn(blocked.clone(), 90, MAX_BYTES_PER_DAY, None);
         let started = Instant::now();
         for i in 0..5_000 {
             writer.send(overlay_entry(crate::journal::now_ms() + i));
@@ -387,6 +440,37 @@ mod tests {
         // The writer thread survived every failure and still answers.
         assert!(writer.flush(Duration::from_secs(5)));
         assert!(blocked.is_file());
+    }
+
+    #[test]
+    fn only_expired_t3_wav_copies_are_pruned() {
+        let now = 1_000 * 86_400;
+        let day = 86_400;
+        assert_eq!(t3_wav_name(now), format!("t3-{now}.wav"));
+        assert!(t3_wav_expired(&t3_wav_name(now - 90 * day), now, 90));
+        assert!(t3_wav_expired(&t3_wav_name(now - 91 * day), now, 90));
+        assert!(!t3_wav_expired(&t3_wav_name(now - 90 * day + 1), now, 90));
+        assert!(!t3_wav_expired(&t3_wav_name(now), now, 90));
+        for foreign in [
+            format!("handy-{}.wav", now - 400 * day),
+            format!("t3-{}.wav.tmp", now - 400 * day),
+            "t3-old.wav".to_string(),
+            format!("t3-{}.jsonl", now - 400 * day),
+        ] {
+            assert!(!t3_wav_expired(&foreign, now, 90), "{foreign}");
+        }
+
+        let tmp = tempfile::tempdir().unwrap();
+        let old = t3_wav_name(now - 100 * day);
+        let fresh = t3_wav_name(now - day);
+        let handy = format!("handy-{}.wav", now - 100 * day);
+        for name in [&old, &fresh, &handy] {
+            fs::write(tmp.path().join(name), b"").unwrap();
+        }
+        prune_t3_wavs(tmp.path(), now, 90);
+        assert!(!tmp.path().join(&old).exists());
+        assert!(tmp.path().join(&fresh).exists());
+        assert!(tmp.path().join(&handy).exists());
     }
 
     #[test]

@@ -40,6 +40,29 @@ use transcribe_rs::{
 const STREAM_PERF_LOG_INTERVAL: Duration = Duration::from_secs(5);
 const STREAM_FINALIZE_REPLY_TIMEOUT: Duration = Duration::from_secs(30);
 
+// fork(voice-control): `transcribe_socket` requests and Handy's own dictations
+// share one engine. Batch runs take turns instead of failing on an engine
+// another run took out, and that engine still counts as loaded, so a press
+// during a socket run does not reload the model.
+static BATCH_TURN: Mutex<()> = Mutex::new(());
+static BATCH_LEASE: AtomicBool = AtomicBool::new(false);
+
+// fork(voice-control): marks the engine as taken by a batch run (see above).
+struct BatchLease;
+
+impl BatchLease {
+    fn take() -> Self {
+        BATCH_LEASE.store(true, Ordering::Release);
+        Self
+    }
+}
+
+impl Drop for BatchLease {
+    fn drop(&mut self) {
+        BATCH_LEASE.store(false, Ordering::Release);
+    }
+}
+
 fn panic_payload_message(payload: &(dyn std::any::Any + Send)) -> String {
     if let Some(message) = payload.downcast_ref::<&str>() {
         (*message).to_string()
@@ -385,7 +408,22 @@ impl TranscriptionManager {
     pub fn is_model_loaded(&self) -> bool {
         // The engine may be leased out to the streaming worker (taken out of
         // the mutex). It's still loaded, just in use, so report true.
-        self.lock_engine().is_some() || self.active_engine_lease.load(Ordering::Acquire) != 0
+        self.lock_engine().is_some()
+            || self.active_engine_lease.load(Ordering::Acquire) != 0
+            // fork(voice-control): or taken by a batch run (`BatchLease`).
+            || BATCH_LEASE.load(Ordering::Acquire)
+    }
+
+    /// fork(voice-control): block until no model load is in flight (used by
+    /// `transcribe_socket` after `initiate_model_load`).
+    pub fn wait_for_model_load(&self) {
+        let mut is_loading = self.is_loading.lock().unwrap_or_else(|e| e.into_inner());
+        while *is_loading {
+            is_loading = self
+                .loading_condvar
+                .wait(is_loading)
+                .unwrap_or_else(|e| e.into_inner());
+        }
     }
 
     /// Accelerator changes should not disturb the current transcription. Mark
@@ -919,6 +957,9 @@ impl TranscriptionManager {
 
         *is_loading = true;
         let self_clone = self.clone();
+        // fork(voice-control): a load a socket request kicked off is journaled
+        // on that request's record, not on Handy's current dictation.
+        let journal_scope = crate::journal::scope_id();
         thread::spawn(move || {
             if reload_pending {
                 self_clone
@@ -933,10 +974,12 @@ impl TranscriptionManager {
                 error!("Failed to load model: {}", e);
             } else {
                 // fork(voice-control): attach to the dictation that triggered it.
-                crate::journal::record_model_load(
-                    load_started.elapsed(),
-                    crate::model_warmup::take_last_ms(),
-                );
+                crate::journal::with_scope(journal_scope, || {
+                    crate::journal::record_model_load(
+                        load_started.elapsed(),
+                        crate::model_warmup::take_last_ms(),
+                    )
+                });
             }
             let mut is_loading = self_clone.is_loading.lock().unwrap();
             *is_loading = false;
@@ -1378,6 +1421,9 @@ impl TranscriptionManager {
             ));
         }
 
+        // fork(voice-control): one batch run at a time (see `BATCH_TURN`).
+        let _turn = BATCH_TURN.lock().unwrap_or_else(|e| e.into_inner());
+
         // Update last activity timestamp
         self.touch_activity();
 
@@ -1459,6 +1505,9 @@ impl TranscriptionManager {
                     ));
                 }
             };
+
+            // fork(voice-control): the taken engine still counts as loaded.
+            let _lease = BatchLease::take();
 
             // Release the lock before transcribing — no mutex held during the engine call
             drop(engine_guard);

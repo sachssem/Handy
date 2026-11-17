@@ -27,18 +27,21 @@
 //! `transcription_coordinator.rs` ([`AUTO_STOP_TRIGGER`]), `overlay.rs` +
 //! `RecordingOverlay.tsx` (overlay breadcrumbs via
 //! [`commands::journal_overlay_stage`]), `correction_learning` (learning
-//! record).
+//! record). `transcribe_socket` journals T3 Code's requests as
+//! [`ExternalDictation`] records (`source: "t3"`).
 
 pub(crate) mod commands;
 mod dictation;
 pub(crate) mod record;
 mod writer;
 
+pub(crate) use writer::t3_wav_name;
+
 pub use dictation::{
     begin_dictation, current_id, last_dictation_id, mark_mic_ready, record_allowlist_guard,
     record_allowlist_result, record_asr, record_asr_bias, record_learning, record_model_load,
-    record_self_correction, record_start_path, record_text_stage, start_failed, DictationGuard,
-    AUTO_STOP_TRIGGER,
+    record_self_correction, record_start_path, record_text_stage, scope_id, start_failed,
+    with_scope, without_record, DictationGuard, ExternalDictation, AUTO_STOP_TRIGGER,
 };
 pub use record::{
     AllowlistResult, AsrFacts, LearningPair, LearningRecord, SelfCorrectionFacts, Stage, StartPath,
@@ -89,11 +92,15 @@ pub fn init(app: &tauri::AppHandle) {
         return;
     };
     let _ = DIR.set(dir.clone());
+    let t3_wav_dir = crate::portable::app_data_dir(app)
+        .ok()
+        .map(|dir| dir.join("recordings"));
     let _ = WRITER.get_or_init(|| {
         JournalWriter::spawn(
             dir,
             settings.dictation_journal_retention_days,
             writer::MAX_BYTES_PER_DAY,
+            t3_wav_dir,
         )
     });
 }
