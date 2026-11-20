@@ -5,7 +5,7 @@ piece is still needed** after an upstream update. It is the fork's memory: witho
 it, an upstream sync is a guessing game about which hooks matter and whether
 upstream has since shipped an equivalent.
 
-- **When you sync upstream** (`scripts/sync-upstream.sh`): if a rebase conflict
+- **When you sync upstream** (`scripts/sync-upstream.sh`): if a merge conflict
   touches one of these features, run that feature's **Upstream check** _before_
   resolving. If upstream now does the same thing, **drop the feature** instead of
   adapting it (remove its files, its probe in `scripts/fork-check.sh`, and its

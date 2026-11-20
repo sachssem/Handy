@@ -12,7 +12,7 @@
 # Run it:
 #   - at the end of any task that touched an upstream-owned file, and
 #   - before every release build (scripts/build-signed-dmg.sh runs it for you), and
-#   - after every `scripts/sync-upstream.sh` rebase, before pushing.
+#   - after every `scripts/sync-upstream.sh` run, before pushing.
 #
 # When you add a new fork feature: add its probe(s) below AND a row in
 # docs/fork-patches.md. A feature with no probe is a feature that can vanish on
