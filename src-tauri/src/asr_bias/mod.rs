@@ -5,6 +5,7 @@ use crate::dictation_context::DictationContext;
 use crate::engine_supervisor::{EngineError, LoadedInfo};
 use crate::settings::{self, AppSettings};
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use transcribe_cpp::{RunExtension, RunOptions};
 
@@ -39,14 +40,15 @@ pub fn build(settings: &AppSettings, dictation_id: Option<u64>) -> AsrBias {
 /// upstream's vocabulary is left as is.
 ///
 /// Records whether `model_id` accepts any bias for the settings UI
-/// ([`get_asr_bias_support`]).
+/// ([`get_asr_bias_support`]). Returns the setup's [`RunBias`]: the options
+/// as they were before biasing, for the unbiased retry.
 pub fn apply(
     settings: &AppSettings,
     dictation_id: Option<u64>,
     model_id: &str,
     model: &LoadedInfo,
     options: &mut RunOptions,
-) -> bool {
+) -> RunBias {
     let vocabulary_ok = model.supports_vocabulary;
     let prompt_ok = model.supports_context_prompt;
     record_support(model_id, vocabulary_ok || prompt_ok);
@@ -55,6 +57,7 @@ pub fn apply(
     } else {
         AsrBias::default()
     };
+    let before = options.clone();
     let applied = merge(bias, vocabulary_ok, prompt_ok, options);
     let prompt_chars = options.prompt.as_deref().map_or(0, |p| p.chars().count());
     log::debug!(
@@ -63,7 +66,31 @@ pub fn apply(
         prompt_chars
     );
     crate::journal::record_asr_bias(dictation_id, options.vocabulary.len(), prompt_chars);
-    applied
+    RunBias {
+        unbiased: applied.then_some(before),
+        rejected: AtomicBool::new(false),
+    }
+}
+
+/// One run setup's bias state: the options as they were before biasing
+/// (upstream's own vocabulary), and whether the engine rejected the bias. Once
+/// rejected, every later run of the setup (its chunks) sends the unbiased
+/// options, and post-processing reads what was sent from here.
+#[derive(Debug, Default)]
+pub struct RunBias {
+    unbiased: Option<RunOptions>,
+    rejected: AtomicBool,
+}
+
+impl RunBias {
+    /// The options a run of the setup sends: `biased` (the setup's options)
+    /// unless the engine rejected the bias.
+    pub fn sent<'a>(&'a self, biased: &'a RunOptions) -> &'a RunOptions {
+        match &self.unbiased {
+            Some(unbiased) if self.rejected.load(Ordering::Acquire) => unbiased,
+            _ => biased,
+        }
+    }
 }
 
 /// Fold `bias` into `options`; returns whether anything was applied.
@@ -105,33 +132,32 @@ fn merge(
     true
 }
 
-/// One engine run with `options`; when the engine rejects them as an invalid
-/// argument (a bias/extension clash, a NUL or token literal that slipped
-/// through) and they carry a vocabulary or prompt, retry once without them.
-/// Returns the result and the options the model actually got (for upstream's
+/// One engine run of a setup whose options are `options`; when the engine
+/// rejects the fork's bias as an invalid argument (a NUL or token literal that
+/// slipped through) the run is retried once with the options as they were
+/// before biasing, and the setup remembers that ([`RunBias::sent`]). Returns
+/// the result and the options the model actually got (for upstream's
 /// `echoes_vocabulary` guard).
 pub fn run_with_unbiased_retry<T>(
     options: &RunOptions,
+    bias: &RunBias,
     pcm: Vec<f32>,
     mut run: impl FnMut(Vec<f32>, RunOptions) -> Result<T, EngineError>,
 ) -> (Result<T, EngineError>, RunOptions) {
-    let biased = !options.vocabulary.is_empty() || options.prompt.is_some();
-    if !biased {
-        return (run(pcm, options.clone()), options.clone());
-    }
+    let first = bias.sent(options).clone();
+    let unbiased = match &bias.unbiased {
+        Some(unbiased) if !bias.rejected.load(Ordering::Acquire) => unbiased,
+        _ => return (run(pcm, first.clone()), first),
+    };
     let retry_pcm = pcm.clone();
-    match run(pcm, options.clone()) {
+    match run(pcm, first.clone()) {
         Err(err) if is_bias_rejection(&err) => {
             log::warn!("asr-bias: biased run rejected ({err}); retrying without bias");
             crate::journal::record_asr_bias(crate::journal::current_id(), 0, 0);
-            let unbiased = RunOptions {
-                vocabulary: Vec::new(),
-                prompt: None,
-                ..options.clone()
-            };
-            (run(retry_pcm, unbiased.clone()), unbiased)
+            bias.rejected.store(true, Ordering::Release);
+            (run(retry_pcm, unbiased.clone()), unbiased.clone())
         }
-        result => (result, options.clone()),
+        result => (result, first),
     }
 }
 
@@ -455,31 +481,61 @@ mod tests {
         assert_eq!(options.vocabulary, ["Rust"]);
     }
 
-    #[test]
-    fn rejected_biased_run_retries_once_without_bias() {
+    fn biased_setup() -> (RunOptions, RunBias) {
         let biased = RunOptions {
-            vocabulary: vec!["Rust".into()],
+            vocabulary: vec!["Rust".into(), "learned".into()],
             prompt: Some("App: X.".into()),
             ..Default::default()
         };
+        let bias = RunBias {
+            unbiased: Some(RunOptions {
+                vocabulary: vec!["Rust".into()],
+                ..Default::default()
+            }),
+            rejected: AtomicBool::new(false),
+        };
+        (biased, bias)
+    }
+
+    #[test]
+    fn rejected_biased_run_retries_once_with_the_pre_bias_options() {
+        let (biased, bias) = biased_setup();
         let mut seen = Vec::new();
-        let (result, sent) = run_with_unbiased_retry(&biased, vec![0.0; 4], |pcm, o| {
+        let (result, sent) = run_with_unbiased_retry(&biased, &bias, vec![0.0; 4], |pcm, o| {
             assert_eq!(pcm.len(), 4);
             seen.push(o.vocabulary.len());
-            if o.vocabulary.is_empty() {
+            if o.prompt.is_none() {
                 Ok("text")
             } else {
                 Err(EngineError::Failed("invalid argument: clash".into()))
             }
         });
         assert_eq!(result.ok(), Some("text"));
-        assert_eq!(seen, [1, 0]);
-        assert!(sent.vocabulary.is_empty() && sent.prompt.is_none());
+        assert_eq!(seen, [2, 1]);
+        // Upstream's own vocabulary (the custom words) survives the retry,
+        // and the setup now reports it as what was sent.
+        assert_eq!(sent.vocabulary, ["Rust"]);
+        assert!(sent.prompt.is_none());
+        assert_eq!(bias.sent(&biased).vocabulary, ["Rust"]);
 
-        // Other errors, or nothing to fall back to, are returned unchanged.
+        // Later runs of the setup (its chunks) go straight to the pre-bias
+        // options.
+        let mut calls = 0;
+        let (_, sent) = run_with_unbiased_retry(&biased, &bias, Vec::new(), |_, o| {
+            calls += 1;
+            assert!(o.prompt.is_none());
+            Ok(())
+        });
+        assert_eq!(calls, 1);
+        assert_eq!(sent.vocabulary, ["Rust"]);
+    }
+
+    #[test]
+    fn other_errors_or_no_bias_are_returned_unchanged() {
+        let (biased, bias) = biased_setup();
         let mut calls = 0;
         let (result, sent): (Result<(), _>, _) =
-            run_with_unbiased_retry(&biased, Vec::new(), |_, _| {
+            run_with_unbiased_retry(&biased, &bias, Vec::new(), |_, _| {
                 calls += 1;
                 Err(EngineError::Failed("input too long: long".into()))
             });
@@ -487,16 +543,18 @@ mod tests {
         assert_eq!(sent, biased);
         let mut calls = 0;
         let (result, _): (Result<(), _>, _) =
-            run_with_unbiased_retry(&RunOptions::default(), Vec::new(), |_, _| {
-                calls += 1;
-                Err(EngineError::Failed("invalid argument: bad".into()))
-            });
-        assert!(result.is_err() && calls == 1);
-        let mut calls = 0;
-        let (result, _): (Result<(), _>, _) =
-            run_with_unbiased_retry(&biased, Vec::new(), |_, _| {
+            run_with_unbiased_retry(&biased, &bias, Vec::new(), |_, _| {
                 calls += 1;
                 Err(EngineError::Cancelled)
+            });
+        assert!(result.is_err() && calls == 1);
+        assert_eq!(bias.sent(&biased), &biased);
+        // A setup the fork did not bias has nothing to retry with.
+        let mut calls = 0;
+        let (result, _): (Result<(), _>, _) =
+            run_with_unbiased_retry(&biased, &RunBias::default(), Vec::new(), |_, _| {
+                calls += 1;
+                Err(EngineError::Failed("invalid argument: bad".into()))
             });
         assert!(result.is_err() && calls == 1);
     }

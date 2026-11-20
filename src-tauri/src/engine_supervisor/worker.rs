@@ -117,15 +117,8 @@ pub fn run() -> i32 {
                     if inject_fault("run", info.on_gpu) {
                         injected_backend_error()
                     } else {
-                        match session.run(&pcm, &options) {
-                            Ok(transcript) => Response::Transcript(transcript),
-                            // fork(voice-control): a run that hit the output
-                            // budget keeps what it decoded.
-                            Err(e) => match truncated_partial(e) {
-                                Ok(partial) => Response::Transcript(partial),
-                                Err(e) => run_error(e),
-                            },
-                        }
+                        // fork(voice-control): see `run_response`.
+                        run_response(session.run(&pcm, &options))
                     }
                 }
                 None => not_loaded(),
@@ -270,6 +263,19 @@ fn not_loaded() -> Response {
 /// failed graph compute) can leave this process's backend unusable for
 /// every later run, so it gets its own response and the parent replaces
 /// the worker.
+/// fork(voice-control): a run's reply. One that hit the output budget keeps
+/// what it decoded, flagged as truncated so the supervisor can still refuse it
+/// (`EngineSupervisor::reject_truncated_runs`).
+fn run_response(result: transcribe_cpp::Result<transcribe_cpp::Transcript>) -> Response {
+    match result {
+        Ok(transcript) => Response::Transcript(transcript),
+        Err(e) => match truncated_partial(e) {
+            Ok(partial) => Response::Truncated(partial),
+            Err(e) => run_error(e),
+        },
+    }
+}
+
 /// fork(voice-control): the partial transcript of a run that hit the output
 /// token cap, when it decoded any text; otherwise the error back.
 fn truncated_partial(
@@ -540,5 +546,37 @@ fn take_stdout_for_protocol() -> io::Result<File> {
             return Err(io::Error::last_os_error());
         }
         Ok(File::from_raw_handle(handle as _))
+    }
+}
+
+// fork(voice-control): a truncated run is flagged in the reply, not passed off
+// as a complete transcript.
+#[cfg(test)]
+mod fork_tests {
+    use super::*;
+
+    #[test]
+    fn truncated_run_replies_with_its_flagged_partial() {
+        let partial = transcribe_cpp::Transcript {
+            text: "partial words".to_string(),
+            ..Default::default()
+        };
+        let truncated = transcribe_cpp::Error::OutputTruncated {
+            message: "budget".to_string(),
+            partial: Some(Box::new(partial.clone())),
+        };
+        match run_response(Err(truncated)) {
+            Response::Truncated(got) => assert_eq!(got, partial),
+            other => panic!("unexpected reply {other:?}"),
+        }
+        assert!(matches!(
+            run_response(Ok(partial.clone())),
+            Response::Transcript(_)
+        ));
+        let empty = transcribe_cpp::Error::OutputTruncated {
+            message: "budget".to_string(),
+            partial: Some(Box::default()),
+        };
+        assert!(matches!(run_response(Err(empty)), Response::Error(_)));
     }
 }

@@ -153,6 +153,9 @@ fn paste_last_transcript(app: &AppHandle) {
             let notice = match crate::utils::paste(text, ah.clone()) {
                 Ok(crate::utils::PasteOutcome::Pasted) => {
                     info!("paste-last: re-pasted last transcript ({} chars)", chars);
+                    // A notice ends when its source next succeeds, e.g. the
+                    // failed paste this re-paste makes up for.
+                    crate::notices::clear(&ah, NoticeSource::Dictation);
                     None
                 }
                 Ok(crate::utils::PasteOutcome::Blocked) => Some(NoticeCode::PasteBlockedElevated),

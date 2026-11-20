@@ -19,18 +19,23 @@
 //! a run that detection pinned to a language carries a hint and is never
 //! guarded here.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
+
 use log::{info, warn};
 use tauri::Emitter;
 
 use super::{
-    echoes_vocabulary, resolve_gpu_device, run_setup, select_transcribe_backend,
-    transcribe_cpp_run_plan, transcribe_gpu_disabled_for_host, BatchContext, RunOutcome,
+    echoes_vocabulary, join_chunks, resolve_gpu_device, run_setup, select_transcribe_backend,
+    transcribe_cpp_run_plan, transcribe_gpu_disabled_for_host, BatchContext, RunOutcome, RunSetup,
     TranscriptionManager,
 };
-use crate::engine_supervisor::{DeviceSelector, EngineSupervisor, LoadSpec};
+use crate::engine_supervisor::{CancelMark, DeviceSelector, EngineSupervisor, LoadSpec};
 use crate::language_detection::{LanguageDecision, LanguageSource};
 use crate::settings::AppSettings;
-use transcribe_cpp::Backend;
+use transcribe_cpp::{Backend, Transcript};
 
 /// Whether the guard may need the recording again (so the caller keeps a copy
 /// of the audio).
@@ -43,14 +48,56 @@ pub(super) fn wants_audio(settings: &AppSettings) -> bool {
 pub(super) fn guard(
     tm: &TranscriptionManager,
     settings: &AppSettings,
-    mut outcome: RunOutcome,
+    outcome: RunOutcome,
     audio: Vec<f32>,
 ) -> RunOutcome {
+    check(tm, settings, outcome, audio).0
+}
+
+/// [`guard`] for a background job's chunk transcripts (history retry, file
+/// transcription): the joined text is checked; a replacement becomes the
+/// job's one transcript.
+pub(super) fn guard_chunks(
+    tm: &TranscriptionManager,
+    settings: &AppSettings,
+    transcripts: Vec<Transcript>,
+    setup: RunSetup,
+    audio: &[f32],
+) -> (Vec<Transcript>, RunSetup) {
+    if !wants_audio(settings) || setup.applied_language_hint.is_some() {
+        return (transcripts, setup);
+    }
+    let (text, model_detected_language) = join_chunks(transcripts.clone());
+    let outcome = RunOutcome {
+        setup,
+        text,
+        model_detected_language,
+    };
+    match check(tm, settings, outcome, audio.to_vec()) {
+        (kept, true) => {
+            let transcript = Transcript {
+                text: kept.text,
+                language: kept.model_detected_language,
+                ..Default::default()
+            };
+            (vec![transcript], kept.setup)
+        }
+        (kept, false) => (transcripts, kept.setup),
+    }
+}
+
+/// [`guard`], plus whether the outcome was replaced.
+fn check(
+    tm: &TranscriptionManager,
+    settings: &AppSettings,
+    mut outcome: RunOutcome,
+    audio: Vec<f32>,
+) -> (RunOutcome, bool) {
     let allowlist = &settings.language_allowlist;
     // Only "auto": a run the model was told a language for is in bounds by
     // construction.
     if allowlist.is_empty() || outcome.setup.applied_language_hint.is_some() {
-        return outcome;
+        return (outcome, false);
     }
     let mismatch = match outcome.model_detected_language.as_deref() {
         Some(detected) => {
@@ -64,7 +111,7 @@ pub(super) fn guard(
             .map(|script| format!("dominant {script} script")),
     };
     let Some(reason) = mismatch else {
-        return outcome;
+        return (outcome, false);
     };
 
     let active_model = tm
@@ -91,7 +138,9 @@ pub(super) fn guard(
         );
         // Announce the second pass so the overlay can explain the latency.
         let _ = tm.app_handle.emit("fallback-transcription", ());
-        if let Some(text) = run_fallback(tm, fallback_model, audio, settings) {
+        let rescued = run_fallback(tm, fallback_model, audio, settings);
+        let replaced = rescued.is_some();
+        if let Some(text) = rescued {
             // The fallback model produced this text, so the primary run's
             // language evidence no longer applies; text-based detection
             // decides.
@@ -109,12 +158,12 @@ pub(super) fn guard(
                 None,
             );
         }
-        return outcome;
+        return (outcome, replaced);
     }
 
     let retry_lang = allowlist[0].clone();
     let Some(info) = tm.engine.loaded() else {
-        return outcome;
+        return (outcome, false);
     };
     // The shared plan forwards the pin only when the model advertises it;
     // otherwise the retry would auto-detect again and reproduce the result.
@@ -133,7 +182,7 @@ pub(super) fn guard(
             crate::journal::AllowlistResult::PinUnsupported,
             None,
         );
-        return outcome;
+        return (outcome, false);
     }
     info!(
         "Language allowlist guard: {} outside {:?}, re-running pinned to '{}'",
@@ -165,7 +214,7 @@ pub(super) fn guard(
                 crate::journal::AllowlistResult::PinRetryOk,
                 Some(&retried.text),
             );
-            retried
+            (retried, true)
         }
         Err(e) => {
             warn!(
@@ -176,7 +225,7 @@ pub(super) fn guard(
                 crate::journal::AllowlistResult::PinRetryFailed,
                 None,
             );
-            outcome
+            (outcome, false)
         }
     }
 }
@@ -189,16 +238,32 @@ fn pinned(language: &str) -> LanguageDecision {
     }
 }
 
+/// The fallback model's language: with several allowlisted languages it runs
+/// on its own detection (a Qwen3-ASR fallback's LID is what rescues these
+/// utterances), with exactly one it may be pinned to it.
+fn fallback_language(allowlist: &[String]) -> LanguageDecision {
+    match allowlist {
+        [only] => pinned(only),
+        _ => LanguageDecision {
+            language: None,
+            source: LanguageSource::Model,
+        },
+    }
+}
+
 /// Transcribe `audio` once with `fallback_model` in its own, throwaway
 /// transcription worker, and return its text only when it is in bounds. The
 /// worker (a second model in memory, briefly) exits when the scoped engine is
 /// dropped; the guard fires rarely, so the active model is never swapped out.
+/// A user cancel on the main engine is forwarded to the scoped one, and any
+/// failure (a truncated run included) keeps the primary transcript.
 fn run_fallback(
     tm: &TranscriptionManager,
     fallback_model: &str,
     audio: Vec<f32>,
     settings: &AppSettings,
 ) -> Option<String> {
+    let cancel_mark = tm.engine.cancel_mark();
     let path = match tm.model_manager.get_model_path(fallback_model) {
         Ok(path) => path,
         Err(e) => {
@@ -220,32 +285,51 @@ fn run_fallback(
         ),
     };
     let engine = EngineSupervisor::new(!transcribe_gpu_disabled_for_host());
-    let info = match engine.load(LoadSpec {
-        path,
-        backend,
-        device,
-    }) {
-        Ok(info) => info,
-        Err(e) => {
-            warn!(
-                "Language allowlist guard: fallback model '{}' failed to load ({}); keeping original detection",
-                fallback_model, e
-            );
+    engine.reject_truncated_runs();
+    // Taken before the load, so a forwarded cancel stops the run even if it
+    // lands between the checks below and the run.
+    let scoped_mark = engine.cancel_mark();
+    let forward = CancelForward::start(tm.engine.clone(), cancel_mark, engine.clone());
+    let result = (|| {
+        let info = match engine.load(LoadSpec {
+            path,
+            backend,
+            device,
+        }) {
+            Ok(info) => info,
+            Err(e) => {
+                warn!(
+                    "Language allowlist guard: fallback model '{}' failed to load ({}); keeping original detection",
+                    fallback_model, e
+                );
+                return None;
+            }
+        };
+        if tm.engine.cancelled_since(cancel_mark) {
+            info!("Language allowlist guard: cancelled; skipping the fallback model");
             return None;
         }
-    };
-    // The fallback's own settings view, so its run setup (vocabulary, bias
-    // support) is keyed to the fallback model, not the selected one.
-    let mut fallback_settings = settings.clone();
-    fallback_settings.selected_model = fallback_model.to_string();
-    let setup = run_setup(
-        &info,
-        &fallback_settings,
-        pinned(&settings.language_allowlist[0]),
-    );
-    let result = engine.transcribe(audio, setup.run_options.clone());
+        // The fallback's own settings view, so its run setup (vocabulary, bias
+        // support) is keyed to the fallback model, not the selected one.
+        let mut fallback_settings = settings.clone();
+        fallback_settings.selected_model = fallback_model.to_string();
+        let setup = run_setup(
+            &info,
+            &fallback_settings,
+            fallback_language(&settings.language_allowlist),
+        );
+        let (result, sent) = crate::asr_bias::run_with_unbiased_retry(
+            &setup.run_options,
+            &setup.bias,
+            audio,
+            |pcm, options| engine.transcribe_since(scoped_mark, pcm, options),
+        );
+        Some((result, sent))
+    })();
+    forward.stop();
     // Dropping the last handle ends the scoped worker off this thread.
     drop(engine);
+    let (result, sent) = result?;
 
     let transcript = match result {
         Ok(transcript) => transcript,
@@ -257,7 +341,7 @@ fn run_fallback(
             return None;
         }
     };
-    if echoes_vocabulary(&transcript.text, &setup.run_options.vocabulary) {
+    if echoes_vocabulary(&transcript.text, &sent.vocabulary) {
         warn!(
             "Language allowlist guard: fallback model '{}' returned the custom words; keeping original detection",
             fallback_model
@@ -280,6 +364,45 @@ fn run_fallback(
             fallback_model
         );
         None
+    }
+}
+
+/// Forwards a cancel of the main engine (since `mark`) to the scoped fallback
+/// engine while the fallback loads and runs.
+struct CancelForward {
+    done: Arc<AtomicBool>,
+    watcher: Option<thread::JoinHandle<()>>,
+}
+
+impl CancelForward {
+    const POLL: Duration = Duration::from_millis(50);
+
+    fn start(main: EngineSupervisor, mark: CancelMark, scoped: EngineSupervisor) -> Self {
+        let done = Arc::new(AtomicBool::new(false));
+        let watcher = {
+            let done = Arc::clone(&done);
+            thread::Builder::new()
+                .name("allowlist-cancel".into())
+                .spawn(move || {
+                    while !done.load(Ordering::Acquire) {
+                        if main.cancelled_since(mark) {
+                            scoped.cancel();
+                            return;
+                        }
+                        thread::sleep(Self::POLL);
+                    }
+                })
+                .inspect_err(|e| warn!("Language allowlist guard: no cancel forwarding ({e})"))
+                .ok()
+        };
+        Self { done, watcher }
+    }
+
+    fn stop(mut self) {
+        self.done.store(true, Ordering::Release);
+        if let Some(watcher) = self.watcher.take() {
+            let _ = watcher.join();
+        }
     }
 }
 
@@ -428,6 +551,17 @@ mod tests {
 
     fn languages(codes: &[&str]) -> Vec<String> {
         codes.iter().map(|code| (*code).to_string()).collect()
+    }
+
+    #[test]
+    fn fallback_runs_on_its_own_detection_unless_one_language_is_allowed() {
+        let auto = fallback_language(&languages(&["de", "en"]));
+        assert_eq!(auto.language, None);
+        assert_eq!(auto.source, LanguageSource::Model);
+        assert_eq!(
+            fallback_language(&languages(&["de"])).language.as_deref(),
+            Some("de")
+        );
     }
 
     #[test]

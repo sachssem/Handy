@@ -211,6 +211,9 @@ enum Command {
 /// State readable without going through the queue.
 #[derive(Default)]
 struct Shared {
+    /// fork(voice-control): fail truncated runs instead of returning their
+    /// partial transcript (see [`EngineSupervisor::reject_truncated_runs`]).
+    reject_truncated: AtomicBool,
     /// Whether this host may use a GPU at all. When not, every worker is
     /// CPU-only, device probes included.
     gpu_allowed: bool,
@@ -473,6 +476,18 @@ impl EngineSupervisor {
     /// it. Bypasses the queue. The worker doing the work is killed, so the
     /// next use starts a fresh one and reloads the model. Model loads are
     /// never cancelled.
+    /// fork(voice-control): from now on a run that hits the output token
+    /// budget fails instead of returning its partial transcript (the language
+    /// allowlist's fallback model, which then keeps the primary transcript).
+    pub fn reject_truncated_runs(&self) {
+        self.shared.reject_truncated.store(true, Ordering::Release);
+    }
+
+    /// fork(voice-control): whether [`cancel`](Self::cancel) ran since `mark`.
+    pub fn cancelled_since(&self, mark: CancelMark) -> bool {
+        self.shared.cancelled_since(mark.0)
+    }
+
     pub fn cancel(&self) {
         self.shared.cancel_epoch.fetch_add(1, Ordering::SeqCst);
         // Taking the call tells the owner its worker was killed.
@@ -554,6 +569,18 @@ impl Drop for StreamHandle {
             self.closed.store(true, Ordering::Release);
             let _ = self.commands.send(Command::StreamReset { id: self.id });
         }
+    }
+}
+
+/// fork(voice-control): a truncated run's partial transcript, unless the
+/// supervisor rejects truncated runs.
+fn accept_truncated(shared: &Shared, transcript: Transcript) -> Result<Transcript, EngineError> {
+    if shared.reject_truncated.load(Ordering::Acquire) {
+        Err(EngineError::Failed(
+            "output truncated before end-of-stream".to_string(),
+        ))
+    } else {
+        Ok(transcript)
     }
 }
 
@@ -934,6 +961,11 @@ impl Owner {
                 Ok(Response::Transcript(transcript)) => {
                     self.run_succeeded();
                     return Ok(transcript);
+                }
+                // fork(voice-control): a truncated run's partial transcript.
+                Ok(Response::Truncated(transcript)) => {
+                    self.run_succeeded();
+                    return accept_truncated(&self.shared, transcript);
                 }
                 Ok(other) => return Err(unexpected(&other).into()),
                 Err(failure) if failure.worker_lost() => {
@@ -1551,6 +1583,26 @@ mod unit_tests {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // fork(voice-control): a truncated run's partial transcript is kept,
+    // unless the supervisor rejects truncated runs (the allowlist fallback).
+    #[test]
+    fn truncated_runs_are_kept_unless_rejected() {
+        let shared = Shared::default();
+        let partial = Transcript {
+            text: "partial".to_string(),
+            ..Default::default()
+        };
+        assert_eq!(
+            accept_truncated(&shared, partial.clone()).ok(),
+            Some(partial.clone())
+        );
+        shared.reject_truncated.store(true, Ordering::Release);
+        assert!(matches!(
+            accept_truncated(&shared, partial),
+            Err(EngineError::Failed(_))
+        ));
+    }
 
     fn env_path(name: &str) -> PathBuf {
         PathBuf::from(std::env::var_os(name).unwrap_or_else(|| panic!("set {name}")))

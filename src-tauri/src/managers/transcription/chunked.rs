@@ -147,12 +147,15 @@ impl<'a> ChunkedDecode<'a> {
                 return;
             }
             // The first chunk picks the language for every chunk.
-            let run_options = self.setup.resolve(self.tm, &chunk).run_options.clone();
+            let setup = self.setup.resolve(self.tm, &chunk);
+            let run_options = setup.run_options.clone();
+            // fork(voice-control): the setup's ASR bias state.
+            let bias = std::sync::Arc::clone(&setup.bias);
             let audio_secs = chunk.len() as f64 / 16_000.0;
             let started = Instant::now();
             match self
                 .tm
-                .run_batch(self.mark, chunk, &run_options, &self.model_id)
+                .run_batch(self.mark, chunk, &run_options, &bias, &self.model_id)
             {
                 Ok(transcript) => {
                     self.transcripts.push(transcript);

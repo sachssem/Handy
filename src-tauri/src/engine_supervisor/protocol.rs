@@ -73,6 +73,9 @@ pub enum Response {
     },
     Loaded(LoadedInfo),
     Transcript(Transcript),
+    /// fork(voice-control): the partial transcript of a run that hit the
+    /// output token budget (`OutputTruncated`).
+    Truncated(Transcript),
     Fed {
         update: StreamUpdate,
         /// Present only when the committed or tentative text changed.

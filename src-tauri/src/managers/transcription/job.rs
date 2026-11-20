@@ -40,6 +40,9 @@ impl TranscriptionManager {
         audio: Vec<f32>,
         control: &dyn ChunkControl,
     ) -> Result<Option<Transcription>> {
+        // fork(voice-control): a job belongs to no dictation, so the journal's
+        // id-less hooks (text stages, snippets, ASR-bias context) skip it.
+        let _no_journal = crate::journal::no_record_scope();
         let started = Instant::now();
         let total = audio.len();
         if total == 0 {
@@ -87,7 +90,15 @@ impl TranscriptionManager {
                     // A fresh mark per chunk: a dictation's cancel stops only
                     // the chunk it caught, which is then tried again.
                     let mark = self.engine.cancel_mark();
-                    match self.run_batch(mark, chunk.clone(), &setup.run_options, &active_model) {
+                    // fork(voice-control): + the setup's ASR bias state.
+                    let bias = &setup.bias;
+                    match self.run_batch(
+                        mark,
+                        chunk.clone(),
+                        &setup.run_options,
+                        bias,
+                        &active_model,
+                    ) {
                         Ok(transcript) => break transcript,
                         Err(EngineError::Cancelled) if attempts < MAX_CHUNK_ATTEMPTS => {
                             warn!("A background chunk was cancelled; trying it again");
@@ -105,6 +116,9 @@ impl TranscriptionManager {
         }
 
         debug!("Transcribed {} chunks in the background", transcripts.len());
+        // fork(voice-control): language-allowlist guard (see `allowlist`).
+        let (transcripts, setup) =
+            super::allowlist::guard_chunks(self, &settings, transcripts, setup, &audio);
         let language = setup.spoken_language(agreed_language(&transcripts).as_deref());
         let paragraphs: Vec<String> = transcripts
             .into_iter()

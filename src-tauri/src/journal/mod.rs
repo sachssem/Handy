@@ -38,10 +38,11 @@ mod writer;
 pub(crate) use writer::t3_wav_name;
 
 pub use dictation::{
-    begin_dictation, current_id, last_dictation_id, mark_mic_ready, record_allowlist_guard,
-    record_allowlist_result, record_asr, record_asr_bias, record_learning, record_model_load,
-    record_self_correction, record_start_path, record_text_stage, scope_id, start_failed,
-    with_scope, without_record, DictationGuard, ExternalDictation, AUTO_STOP_TRIGGER,
+    begin_dictation, current_id, last_dictation_id, mark_mic_ready, no_record_scope,
+    record_allowlist_guard, record_allowlist_result, record_asr, record_asr_bias, record_learning,
+    record_model_load, record_self_correction, record_start_path, record_text_stage,
+    records_nothing, scope_id, start_failed, with_scope, without_record, DictationGuard,
+    ExternalDictation, AUTO_STOP_TRIGGER,
 };
 pub use record::{
     AllowlistResult, AsrFacts, LearningPair, LearningRecord, RejectedPair, SelfCorrectionFacts,

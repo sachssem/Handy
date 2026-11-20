@@ -106,6 +106,8 @@ PROBES=(
   "asr-bias: frontend command|src/bindings.ts|changeAsrContextBiasingSetting"
   "asr-bias: apply hook (every run setup: live, batch, pin retry, fallback)|src-tauri/src/managers/transcription.rs|crate::asr_bias::apply\("
   "asr-bias: unbiased retry on batch runs|src-tauri/src/managers/transcription.rs|crate::asr_bias::run_with_unbiased_retry\("
+  "asr-bias: setup keeps its pre-bias options|src-tauri/src/managers/transcription.rs|bias: Arc<crate::asr_bias::RunBias>,"
+  "asr-bias: skip-fuzzy follows the vocabulary sent|src-tauri/src/managers/transcription.rs|self\.bias\.sent\(&self\.run_options\)"
   "asr-bias: allowlist runs reuse the run setup|src-tauri/src/managers/transcription/allowlist.rs|run_setup\(&info, settings, pinned"
   "asr-bias: context prompt capability carried|src-tauri/src/engine_supervisor/protocol.rs|pub supports_context_prompt: bool"
   "asr-bias: worker reports context prompt support|src-tauri/src/engine_supervisor/worker.rs|supports_context_prompt: model\.supports\(Feature::ContextPrompt\)"
@@ -117,6 +119,15 @@ PROBES=(
   "language-allowlist: token script threshold|src-tauri/src/managers/transcription/allowlist.rs|MIN_TOKEN_LETTERS: usize = 3"
   "language-allowlist: fallback script predicate|src-tauri/src/managers/transcription/allowlist.rs|if script_outside_allowlist.*text, allowlist.*is_some"
   "transcribe-cpp: truncated run keeps its partial transcript|src-tauri/src/engine_supervisor/worker.rs|match truncated_partial\(e\)"
+  "transcribe-cpp: truncated reply is flagged|src-tauri/src/engine_supervisor/worker.rs|Ok\(partial\) => Response::Truncated\(partial\)"
+  "transcribe-cpp: supervisor accepts or rejects truncated runs|src-tauri/src/engine_supervisor/supervisor.rs|return accept_truncated\(&self\.shared, transcript\)"
+  "language-allowlist: fallback rejects truncated runs|src-tauri/src/managers/transcription/allowlist.rs|engine\.reject_truncated_runs\(\)"
+  "language-allowlist: fallback gets the user's cancel|src-tauri/src/managers/transcription/allowlist.rs|CancelForward::start\("
+  "language-allowlist: fallback retries unbiased|src-tauri/src/managers/transcription/allowlist.rs|crate::asr_bias::run_with_unbiased_retry\("
+  "language-allowlist: fallback auto with several languages|src-tauri/src/managers/transcription/allowlist.rs|fallback_language\(&settings\.language_allowlist\)"
+  "language-allowlist: job path guard|src-tauri/src/managers/transcription/job.rs|super::allowlist::guard_chunks\("
+  "journal: jobs journal nothing|src-tauri/src/managers/transcription/job.rs|crate::journal::no_record_scope\(\)"
+  "snippets: wordless check precedes the fork stages|src-tauri/src/managers/transcription.rs|if !normalized\.chars\(\)\.any\(char::is_alphanumeric\)"
 
   # -- snippets / self-correction LLM pass / per-app styles --
   "snippets: module wired in|src-tauri/src/lib.rs|^mod snippets;"
@@ -148,6 +159,7 @@ PROBES=(
   "paste-last: action registered|src-tauri/src/actions.rs|Arc::new\(crate::paste_last::PasteLastTranscriptAction\)"
   "paste-last: module declared|src-tauri/src/lib.rs|^mod paste_last;"
   "paste-last: auto-repeat guard|src-tauri/src/paste_last.rs|const REPASTE_COOLDOWN"
+  "paste-last: success clears the dictation notice|src-tauri/src/paste_last.rs|crate::notices::clear\(&ah, NoticeSource::Dictation\)"
   "paste-last: shared text selection|src-tauri/src/tray.rs|pub\(crate\) fn last_transcript_text"
   "paste-last: idle gate tray getter|src-tauri/src/tray.rs|pub\(crate\) fn current_tray_state"
   "paste-last: settings row|src/components/settings/general/GeneralSettings.tsx|shortcutId=\"paste_last_transcript\""
@@ -193,6 +205,9 @@ MARKER_FILES=(
   "src-tauri/src/audio_toolkit/audio/sink.rs"
   "src-tauri/src/engine_supervisor/protocol.rs"
   "src-tauri/src/engine_supervisor/worker.rs"
+  "src-tauri/src/engine_supervisor/supervisor.rs"
+  "src-tauri/src/managers/transcription/job.rs"
+  "src-tauri/src/managers/transcription/chunked.rs"
   "src/overlay/RecordingOverlay.css"
 )
 

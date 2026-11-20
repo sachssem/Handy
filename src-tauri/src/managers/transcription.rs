@@ -1261,7 +1261,8 @@ impl TranscriptionManager {
                 .map_err(engine_error)?,
                 BatchDecode::Whole => {
                     let transcript = self
-                        .run_batch(mark, audio, &setup.run_options, &active_model)
+                        // fork(voice-control): + the setup's ASR bias state.
+                        .run_batch(mark, audio, &setup.run_options, &setup.bias, &active_model)
                         .map_err(engine_error)?;
                     (vec![transcript], setup)
                 }
@@ -1282,13 +1283,15 @@ impl TranscriptionManager {
         mark: CancelMark,
         pcm: Vec<f32>,
         run_options: &RunOptions,
+        // fork(voice-control): the setup's ASR bias state (see `asr_bias`).
+        bias: &crate::asr_bias::RunBias,
         active_model: &str,
     ) -> Result<Transcript, EngineError> {
         self.touch_activity();
-        // fork(voice-control): retried once without the ASR bias if the
-        // engine rejects it; `sent` is what the model got.
+        // fork(voice-control): retried once with the pre-bias options if the
+        // engine rejects the bias; `sent` is what the model got.
         let (result, sent) =
-            crate::asr_bias::run_with_unbiased_retry(run_options, pcm, |pcm, options| {
+            crate::asr_bias::run_with_unbiased_retry(run_options, bias, pcm, |pcm, options| {
                 self.engine.transcribe_since(mark, pcm, options)
             });
         result
@@ -1361,12 +1364,16 @@ struct RunSetup {
     languages: Vec<String>,
     applied_language_hint: Option<String>,
     output_was_translated: bool,
+    // fork(voice-control): the pre-bias options and whether the engine
+    // rejected the ASR bias (shared by the setup's runs).
+    bias: Arc<crate::asr_bias::RunBias>,
 }
 
 impl RunSetup {
     /// Custom words went to the model as vocabulary; skip fuzzy correction.
     fn custom_words_prompted(&self) -> bool {
-        !self.run_options.vocabulary.is_empty()
+        // fork(voice-control): the vocabulary the runs actually sent.
+        !self.bias.sent(&self.run_options).vocabulary.is_empty()
     }
 
     /// The language the runs were in. When the model decided, the language
@@ -1458,7 +1465,7 @@ fn run_setup(info: &LoadedInfo, settings: &AppSettings, language: LanguageDecisi
     // fork(voice-control): custom words + learned corrections as vocabulary
     // and the app context as prompt, on capable models (every run of the
     // transcription, live and batch, is set up here).
-    crate::asr_bias::apply(
+    let bias = crate::asr_bias::apply(
         settings,
         crate::journal::current_id(),
         &settings.selected_model,
@@ -1479,6 +1486,7 @@ fn run_setup(info: &LoadedInfo, settings: &AppSettings, language: LanguageDecisi
         languages,
         applied_language_hint,
         output_was_translated,
+        bias: Arc::new(bias), // fork(voice-control)
     }
 }
 
@@ -1833,6 +1841,12 @@ pub(crate) fn post_process_transcription_text(
         );
 
         let normalized = normalize_transcription_output(&without_fillers);
+        // Short, wordless clips often come back as just "." or "?".
+        // fork(voice-control): judged before the fork stages below, so a
+        // snippet or rule whose output has no letters (`🙂`) still pastes.
+        if !normalized.chars().any(char::is_alphanumeric) {
+            return String::new();
+        }
 
         // fork(voice-control): snippets — a delimited trigger phrase becomes a
         // placeholder, so text rules / learned corrections never touch its
@@ -1866,13 +1880,7 @@ pub(crate) fn post_process_transcription_text(
             record_text_stage(Stage::TextRules, &snippets.restore(&ruled));
             record_text_stage(Stage::Learned, &learned);
         }
-        let text = learned;
-        // Short, wordless clips often come back as just "." or "?".
-        if text.chars().any(char::is_alphanumeric) {
-            text
-        } else {
-            String::new()
-        }
+        learned
     })
 }
 
@@ -2567,6 +2575,39 @@ mod tests {
             &supported,
         );
         assert_eq!(corrected, "i use Handy every day");
+    }
+
+    #[test]
+    fn snippet_output_without_letters_still_pastes() {
+        // fork(voice-control): upstream's wordless-clip check judges the text
+        // before the fork stages, never a snippet's expansion.
+        let settings = AppSettings {
+            snippets: vec![crate::snippets::Snippet {
+                id: "smiley".to_string(),
+                trigger: "smiley".to_string(),
+                expansion: "🙂".to_string(),
+                enabled: true,
+            }],
+            ..Default::default()
+        };
+        let evidence = OutputLanguageEvidence::UserSelected("en".to_string());
+        let supported = languages(&["en"]);
+        let out = post_process_transcription_text(
+            "Smiley.".to_string(),
+            &settings,
+            false,
+            &evidence,
+            &supported,
+        );
+        assert_eq!(out, "🙂");
+        let wordless = post_process_transcription_text(
+            ".".to_string(),
+            &settings,
+            false,
+            &evidence,
+            &supported,
+        );
+        assert!(wordless.is_empty());
     }
 
     #[test]

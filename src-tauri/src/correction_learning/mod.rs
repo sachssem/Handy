@@ -152,8 +152,11 @@ pub fn apply_learned(
     supported_languages: &[String],
 ) -> String {
     let lang = resolve_language(text, output_language, supported_languages);
-    if let Ok(mut last) = LAST_LANGUAGE.lock() {
-        last.clone_from(&lang);
+    // Background work (a file job) must not retag the next paste's session.
+    if !crate::journal::records_nothing() {
+        if let Ok(mut last) = LAST_LANGUAGE.lock() {
+            last.clone_from(&lang);
+        }
     }
     if !settings.learn_corrections_enabled {
         return text.to_string();

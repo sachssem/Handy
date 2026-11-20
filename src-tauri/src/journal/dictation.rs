@@ -197,6 +197,27 @@ pub fn without_record<R>(f: impl FnOnce() -> R) -> R {
     with_scope(Some(0), f)
 }
 
+/// [`without_record`] for the rest of the caller's scope: this thread's
+/// id-less hooks journal nothing (and see no dictation's context) until the
+/// returned guard drops. For background work such as a file job.
+pub fn no_record_scope() -> NoRecordScope {
+    NoRecordScope(SCOPE.with(|s| s.replace(Some(0))))
+}
+
+/// Restores the previous scope on drop (see [`no_record_scope`]).
+pub struct NoRecordScope(Option<u64>);
+
+impl Drop for NoRecordScope {
+    fn drop(&mut self) {
+        SCOPE.with(|s| s.set(self.0));
+    }
+}
+
+/// Whether this thread's work belongs to no dictation ([`without_record`]).
+pub fn records_nothing() -> bool {
+    scope_id() == Some(0)
+}
+
 /// Next id: the press's epoch ms, bumped to stay strictly increasing.
 fn next_id(now: u64) -> u64 {
     let mut prev = ID_SEQ.load(Ordering::SeqCst);
@@ -859,6 +880,12 @@ mod tests {
             assert_eq!(current_id(), Some(external.id()));
             assert_eq!(last_dictation_id(), Some(external.id()));
             without_record(|| assert_eq!(scope_id(), Some(0)));
+            {
+                let _scope = no_record_scope();
+                assert!(records_nothing());
+                assert_eq!(current_id(), Some(0));
+            }
+            assert!(!records_nothing());
             assert_eq!(scope_id(), Some(external.id()));
         });
         assert_eq!(scope_id(), None);

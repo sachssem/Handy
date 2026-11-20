@@ -281,7 +281,18 @@ outcome, and only when the run had no language hint (a run upstream's
 detection pinned is in bounds by construction). The pinned retry reuses
 upstream's `run_setup` + `transcribe_cpp` (so long audio is chunked as usual);
 the fallback model runs in its own throwaway `EngineSupervisor` (a second
-worker process, dropped after the run). Qwen3-ASR accepts language hints in
+worker process, dropped after the run). As before the port, the fallback runs
+on its own detection when the allowlist has several languages (a Qwen3-ASR
+fallback's LID is what rescues these utterances) and is pinned only to a
+single allowlisted language; it retries unbiased on a rejected ASR bias, a
+truncated run counts as a failure (the scoped supervisor
+`reject_truncated_runs`), and the user's cancel on the main engine is
+forwarded to it (`CancelForward`, also checked after the load). Background
+jobs (history "Retry", file transcription: `transcribe_in_chunks` in
+`transcription/job.rs`) get the same guard on their joined chunk text
+(`allowlist::guard_chunks`); a replaced result becomes the job's single
+paragraph, and its pinned retry does not yield to dictation chunk by chunk
+as the job's own runs do. Qwen3-ASR accepts language hints in
 transcribe-cpp 0.4.2, so the fork's `arch_rejects_language_hint` workaround is
 gone; upstream's advertised-language filter decides alone.
 
@@ -297,7 +308,10 @@ tokens) and can escalate to another model.
   fallback model run, `script_outside_allowlist` / `fallback_output_in_bounds`
   token checks, tests).
 - **Upstream files touched:** `managers/transcription.rs` (`mod allowlist;`,
-  the audio copy and the one `allowlist::guard(..)` call in `complete`), `shortcut/mod.rs`
+  the audio copy and the one `allowlist::guard(..)` call in `complete`),
+  `transcription/job.rs` (one `allowlist::guard_chunks(..)` call),
+  `engine_supervisor/{protocol,worker,supervisor}.rs` (truncated replies are
+  flagged `Response::Truncated`; `reject_truncated_runs`, `cancelled_since`), `shortcut/mod.rs`
   (`change_language_allowlist_setting`, fallback-model setter), `settings.rs`
   (`language_allowlist`, `language_allowlist_fallback_model`), `lib.rs`
   (command registrations), `general/ModelSettingsCard.tsx` (mounts
@@ -447,7 +461,8 @@ enabled}>`; granular `add_snippet`, `update_snippet`, `remove_snippet`
   below).
 - **Upstream files touched:** `managers/transcription.rs` (`snippets::shield`
   before `apply_text_rules`, `snippets.restore` after `apply_learned`, journal
-  stage), `settings.rs` (`snippets`), `lib.rs` (`mod snippets;`, commands),
+  stage; upstream's "wordless clip → empty" check runs on the text before
+  these stages, so an expansion without letters such as `🙂` still pastes), `settings.rs` (`snippets`), `lib.rs` (`mod snippets;`, commands),
   `stores/settingsStore.ts`, `AdvancedSettings.tsx` (mounts `SmartFormatting`),
   `bindings.ts`.
 - **Probe:** `snippets: *` in `scripts/fork-check.sh`.
@@ -808,7 +823,8 @@ pasted verbatim through `utils::paste` on its own thread (like upstream's
 non-blocking dictation paste), so paste method, delays, clipboard restore,
 trailing space and auto-submit match a dictation paste; a failed or blocked
 paste raises upstream's `PasteFailed` / `PasteBlockedElevated` notice without
-taking the overlay. Fires on press,
+taking the overlay, and a successful one clears the dictation notice (a notice
+ends when its source next succeeds). Fires on press,
 only while idle (not recording / transcribing), once until release and at least
 600 ms apart to suppress auto-repeat; no history → no-op with a debug
 log. Ends a running correction-learning session before pasting and opens none,
@@ -891,7 +907,10 @@ transcribe`: custom words, fillers, snippets, text rules, learned
 request on one worker and a busy model still reads as loaded, so the fork's
 `BATCH_TURN` / `BATCH_LEASE` grafts are gone. A batch run ends an open live
 stream in the supervisor, so a socket request while a Handy dictation streams
-(`is_streaming()`) gets `ok:false` (the client falls back).
+(`is_streaming()`) gets `ok:false` (the client falls back). A stream that
+starts right after that check is ended by the socket run, and the dictation
+falls back to batch. A Handy cancel (`engine.cancel()`) also ends a socket
+request that is running or queued; T3 gets `ok:false`.
 
 **Journal.** Each `transcribe` is its own `dictation` record with
 `source: "t3"` and outcome `delivered`
@@ -1005,7 +1024,13 @@ case-insensitively, limited to 40 Unicode characters each and 40 terms total.
 Overlong terms are omitted. With biasing off, upstream's vocabulary is left as
 is. Upstream's `echoes_vocabulary` guard checks the vocabulary actually sent,
 and upstream's rule "custom words went to the model as vocabulary; skip fuzzy
-correction" holds for the fork's list too.
+correction" follows the vocabulary actually sent. A rejected bias is retried
+with the options as they were before biasing (upstream's vocabulary); the
+setup remembers the rejection (`RunSetup::bias`, `asr_bias::RunBias`), so its
+later chunks send those options too and post-processing judges by them.
+Background jobs run without a journal record (`journal::no_record_scope` in
+`transcription/job.rs`), so they never get a dictation's context prompt and
+their text stages, snippet state and language never land on a dictation.
 
 - **New files:** `src-tauri/src/asr_bias/mod.rs` (builder, capability gates,
   `run_with_unbiased_retry`, settings + support commands, tests),
@@ -1014,8 +1039,11 @@ correction" holds for the fork's list too.
   command block), `settings.rs` (`asr_context_biasing_enabled` in the fork
   block, default true for fresh and existing stores), `bindings.ts`,
   `managers/transcription.rs` (`asr_bias::apply(..)` in upstream's
-  `run_setup`, which every run uses; `asr_bias::run_with_unbiased_retry(..)`
-  in `run_batch`: one unbiased retry when the worker reports an invalid
+  `run_setup`, which every run uses, its `RunBias` kept on `RunSetup` and
+  read by `custom_words_prompted`; `asr_bias::run_with_unbiased_retry(..)`
+  in `run_batch`, with the setup's bias passed by its callers in
+  `transcription.rs`, `transcription/chunked.rs` and `transcription/job.rs`:
+  one retry with the pre-bias options when the worker reports an invalid
   argument / NUL rejection), `engine_supervisor/protocol.rs` +
   `worker.rs` (`LoadedInfo::supports_context_prompt` from
   `Feature::ContextPrompt`; the worker protocol already carries the whole
