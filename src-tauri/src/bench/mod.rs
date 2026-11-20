@@ -94,6 +94,17 @@ struct RunArgs {
     /// Output directory for the timestamped JSON + markdown reports.
     #[arg(long, default_value = "bench/results")]
     out: PathBuf,
+    /// Replay a dictation's vocabulary: comma-separated terms that replace the
+    /// settings' custom words (the journal's `asr_bias` line has the count,
+    /// custom words + learned corrections are the source).
+    #[arg(long, value_delimiter = ',')]
+    vocab: Option<Vec<String>>,
+    /// Replay a dictation's context prompt (sent with every run).
+    #[arg(long)]
+    prompt: Option<String>,
+    /// Run the app's post-load warm-up inference before the first case.
+    #[arg(long)]
+    warmup: bool,
 }
 
 #[derive(Parser, Debug)]
@@ -160,7 +171,10 @@ fn run_bench(args: RunArgs) -> Result<()> {
         .collect::<Result<_>>()?;
 
     let corpus = Corpus::load(&args.corpus)?;
-    let base_settings = load_settings(&args.settings)?;
+    let mut base_settings = load_settings(&args.settings)?;
+    if let Some(vocab) = &args.vocab {
+        base_settings.custom_words = vocab.clone();
+    }
     let language = if args.language.eq_ignore_ascii_case("auto") {
         None
     } else {
@@ -189,6 +203,10 @@ fn run_bench(args: RunArgs) -> Result<()> {
         println!("Loading model `{}` ({:?})...", spec.name, spec.kind);
         let mut model = LoadedModel::load(spec)
             .with_context(|| format!("failed to load model `{}`", spec.name))?;
+        model.set_prompt(args.prompt.clone());
+        if args.warmup {
+            model.warm_up();
+        }
 
         for case in &corpus.manifest.cases {
             if case.status == corpus::CaseStatus::PendingTruth

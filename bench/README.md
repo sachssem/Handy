@@ -33,6 +33,11 @@ cargo run --bin handy-bench -- run \
 The report is printed to the terminal and written to
 `bench/results/bench-<timestamp>.{json,md}`.
 
+To replay a real dictation, `run` takes what the app's ASR biasing and warm-up
+add: `--vocab "Term A,Term B"` replaces the settings' custom words as the
+vocabulary, `--prompt "Text before cursor: …"` sends a context prompt with
+every run, and `--warmup` runs the app's post-load warm-up inference first.
+
 ## Real-dictation regression gate
 
 Run from the repository root (the manifest/audio paths are relative to it):

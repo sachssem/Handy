@@ -138,6 +138,8 @@ pub struct LoadedModel {
     languages: Vec<String>,
     supports_translate: bool,
     supports_vocabulary: bool,
+    /// Context prompt sent with every run (`--prompt`), to replay a dictation.
+    prompt: Option<String>,
 }
 
 /// One bench transcription: the text and whether the custom words went to the
@@ -187,9 +189,23 @@ impl LoadedModel {
                     languages: caps.languages,
                     supports_translate: caps.supports_translate,
                     supports_vocabulary,
+                    prompt: None,
                 })
             }
         }
+    }
+
+    /// Send `prompt` as the context prompt of every following run, as the
+    /// app's ASR biasing does with the text before the caret.
+    pub fn set_prompt(&mut self, prompt: Option<String>) {
+        self.prompt = prompt;
+    }
+
+    /// Run the app's post-load warm-up inference (silence, default options).
+    /// The first real run after a load otherwise differs from the app's.
+    pub fn warm_up(&mut self) {
+        let session = &mut self.session;
+        crate::model_warmup::run(|silence| session.run(&silence, &RunOptions::default()));
     }
 
     /// Transcribe 16 kHz mono audio. `language` is a code (e.g. `"de"`) or `None`
@@ -218,6 +234,7 @@ impl LoadedModel {
             language: plan.language,
             target_language: plan.target_language,
             vocabulary,
+            prompt: self.prompt.clone(),
             ..Default::default()
         };
         let vocabulary_sent = !run_options.vocabulary.is_empty();
