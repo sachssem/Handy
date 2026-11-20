@@ -225,6 +225,10 @@ fn context_prompt(context: &DictationContext) -> Option<String> {
             }
         }
     }
+    // App and window name alone are no dictation context. Qwen3-ASR then
+    // sometimes writes them into the transcript ("… Window: T3 Code (Beta).
+    // Prüfe das mal …"), so a prompt needs field text to continue from.
+    let mut has_text = false;
     // Defense in depth: capture already refuses to read secure-field text.
     if !context.secure {
         if let Some(text) = context.text_before_caret.as_deref() {
@@ -233,10 +237,11 @@ fn context_prompt(context: &DictationContext) -> Option<String> {
             let tail = compact(&tail, MAX_TEXT_CHARS);
             if !tail.is_empty() {
                 parts.push(format!("Text before cursor: {tail}"));
+                has_text = true;
             }
         }
     }
-    (!parts.is_empty()).then(|| parts.join(" "))
+    has_text.then(|| parts.join(" "))
 }
 
 #[tauri::command]
@@ -337,7 +342,18 @@ mod tests {
             app_name: Some("Editor".into()),
             ..Default::default()
         };
-        assert_eq!(context_prompt(&context).as_deref(), Some("App: Editor."));
+        assert!(context_prompt(&context).is_none());
+    }
+
+    #[test]
+    fn app_and_window_without_field_text_send_no_prompt() {
+        let context = DictationContext {
+            app_name: Some("T3 Code (Beta)".into()),
+            window_title: Some("T3 Code (Beta)".into()),
+            text_before_caret: Some("  \n".into()),
+            ..Default::default()
+        };
+        assert!(context_prompt(&context).is_none());
     }
 
     #[test]
@@ -492,11 +508,12 @@ mod tests {
         assert_eq!(sanitize("keep < | > and a<|b"), "keep < | > and ab");
         let context = DictationContext {
             window_title: Some("Chat <|startoftranscript|>\0Room".into()),
+            text_before_caret: Some("Hi".into()),
             ..Default::default()
         };
         assert_eq!(
             context_prompt(&context).as_deref(),
-            Some("Window: Chat Room.")
+            Some("Window: Chat Room. Text before cursor: Hi")
         );
         assert_eq!(
             vocabulary(&["<|en|>".into(), "Ru\0st".into()], &[]),
