@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Son İşlem Kısayolu",
             "description": "İsteğe bağlı: Transkripsiyonunuza her zaman yapay zekâ ile son işlem uygulayan özel bir kısayol tuşu."
+          },
+          "paste_last_transcript": {
+            "name": "Son dökümü yapıştır",
+            "description": "En son dökümünüzü yeniden yapıştırır. Ayarlı olduğu sürece bu kombinasyon tüm sistemde kullanılır — başka bir uygulamanın ihtiyacı varsa değiştirin (ör. terminallerde veya Vim'de Ctrl+V)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Dil ara...",
         "noResults": "Dil bulunamadı",
         "auto": "Otomatik",
+        "allowlist": {
+          "title": "Otomatik algılamayı şununla sınırla…",
+          "description": "Otomatik seçiliyken yalnızca bu diller korunur. Bu listenin dışında algılanan bir dil, ilk (birincil) dile sabitlenerek yeniden yazıya dökülür.",
+          "primary": "Birincil",
+          "primaryTag": "{{language}} (birincil)",
+          "makePrimary": "Birincil yap",
+          "summaryAll": "Tüm diller",
+          "fallbackModel": {
+            "label": "Yedek model",
+            "none": "Yok",
+            "description": "Liste dışı algılamalar, birincil dilde yeniden denemek yerine bu modelle yeniden yazıya dökülür."
+          }
+        },
         "autoUnavailable": {
           "title": "Otomatik devre dışı",
           "oneLanguage": "Dillerinizden yalnızca biri bu modelle çalışıyor",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Otomatik için ayrı bir indirme gerekiyor",
         "detectorMissing": "Bu model hangi dili konuştuğunuzu anlayamıyor. Otomatik'in bunu anlamak için küçük bir dil algılayıcıya ihtiyacı var",
         "stopDetectorDownload": "Dil algılayıcının indirilmesini durdur"
+      },
+      "asrBiasing": {
+        "label": "Kelime dağarcığını ve uygulama bağlamını kullan",
+        "description": "Adları ve terimleri iyileştirmek için özel kelimeleri, öğrenilen düzeltmeleri ve hedef uygulamanın bağlamını tanıyıcıya iletir.",
+        "unsupported": "Seçili model kelime dağarcığını ve uygulama bağlamını yok sayar; özel kelimeler yine de sonradan düzeltme olarak uygulanır."
       },
       "preferredLanguages": {
         "title": "Tercih Edilen Diller",
@@ -471,7 +493,10 @@
         "output": "Çıktı",
         "transcription": "Transkripsiyon",
         "history": "Geçmiş",
-        "experimental": "Deneysel"
+        "experimental": "Deneysel",
+        "textRules": "Metin Kuralları",
+        "learnedCorrections": "Öğrenilen Düzeltmeler",
+        "smartFormatting": "Akıllı biçimlendirme"
       },
       "experimentalToggle": {
         "label": "Deneysel Özellikler",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Transkripsiyonlar Arasında Mikrofonu Açık Tut",
         "description": "Kayıt durdurulduktan sonra mikrofon akışını 30 saniye açık tutar, ardışık transkripsiyonlarda gecikmeyi azaltır. Etkinken Bluetooth ses kalitesini düşürebilir."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Uzun kayıtları otomatik olarak durdur",
+        "description": "Seçilen model güvenli dikte sınırına ulaşmadan önce kaydı durdurur. Son saniyelerde geri sayım halkası görünür."
+      },
+      "dictationJournal": {
+        "title": "Dikte günlüğü",
+        "description": "Kaliteyi daha sonra analiz edebilmek için her diktenin (süreler, model, her işleme adımından sonraki metin, hedef uygulama) yerel, günlük bir kaydını tutar. Bu cihazda kalır; {{days}} günden eski dosyalar silinir.",
+        "folderTitle": "Günlük klasörü",
+        "folderDescription": "Günlük dosyalarının saklandığı yer",
+        "retentionTitle": "Saklama süresi",
+        "retentionDescription": "Bundan eski günlük dosyalar silinir",
+        "retentionOption": "{{days}} gün"
       },
       "airpodsMode": {
         "label": "AirPods Modu",
@@ -590,6 +628,130 @@
         "remove": "{{word}} Kaldır",
         "duplicate": "\"{{word}}\" zaten mevcut"
       },
+      "textRules": {
+        "title": "Sesli komutları dönüştür",
+        "description": "Konuşulan noktalama ve biçimlendirme komutlarını (Almanca ve İngilizce) yapay zeka turu olmadan anında sembollere dönüştürür. İsteğe bağlı yapay zeka son işlemeden önce çalışır.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Sayıları Rakama Çevir",
+          "description": "Konuşulan sayıları rakamlara dönüştürür, ör. \"five hundred thirty nine\" → \"539\". Küçük tek başına sayılar yazıyla bırakılır."
+        },
+        "builtins": {
+          "title": "Yerleşik Komutlar",
+          "description": "Bireysel yerleşik komutları etkinleştirin veya devre dışı bırakın. Normal konuşmada yanlış tetikleniyorsa birini devre dışı bırakın (ör. \"Punkt\").",
+          "summary": "{{active}}/{{total}} etkin",
+          "loading": "Yerleşik komutlar yükleniyor…",
+          "loadError": "Yerleşik komutlar yüklenemedi.",
+          "retry": "Yeniden dene"
+        },
+        "custom": {
+          "title": "Özel Kurallar",
+          "description": "Kendi tetikleyici-değiştirme kurallarınızı ekleyin. Özel kurallar aynı tetikleyiciye sahip yerleşik kuralları geçersiz kılar.",
+          "triggerPlaceholder": "Tetikleyici",
+          "replacementPlaceholder": "Değiştirme",
+          "add": "Ekle",
+          "remove": "{{trigger}} Kaldır",
+          "duplicate": "\"{{trigger}}\" zaten mevcut",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Virgül gibi",
+          "attach_right": "Açılış parantezi gibi",
+          "glue": "Kelimeleri birleştirir",
+          "standalone": "Tek başına"
+        },
+        "spacingHint": {
+          "attach_left": "Öncesinde boşluk yok, sonrasında bir: kelime, kelime",
+          "attach_right": "Öncesinde bir boşluk, sonrasında yok: kelime (kelime",
+          "glue": "Çevresinde boşluk yok: voice-control",
+          "standalone": "Olduğu gibi eklenir, çevredeki boşluklar kaldırılır: satır sonları"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Kişisel sözlük",
+        "description": "Tanıyıcının sürekli yanlış anladığı kelimeleri — isimler, terimler, özel karakterler — isteğe bağlı yapay zekâ son işlemesinden önce her transkripsiyonda değiştirir. macOS'ta Handy düzenlemelerinizden de öğrenir: yapıştırdıktan hemen sonra bir kelimeyi düzeltin, Handy bu düzeltmeyi önersin. Kapatmak ikisini de duraklatır.",
+        "learnFromEdits": {
+          "title": "Düzeltmelerimden öğren",
+          "description": "Yapıştırmadan sonra alanı izler ve elle yaptığınız düzeltmeleri önerir. Kapalıyken yeni bir şey öğrenilmez, sözlük uygulanmaya devam eder."
+        },
+        "suggestions": {
+          "title": "Öneriler",
+          "description": "Handy'nin düzenlemelerinizde fark ettiği düzeltmeler. Bundan sonra uygulanması için birini kabul edin; tekrar tekrar yaptığınız bir düzeltme otomatik olarak eklenir. Kalıcı olarak engellemek için Asla'yı seçin.",
+          "accept": "Kabul et",
+          "dismiss": "Asla"
+        },
+        "dictionary": {
+          "title": "Sözlük",
+          "filterPlaceholder": "Filtrele…",
+          "noMatches": "Eşleşen giriş yok."
+        },
+        "blocked": {
+          "title": "Engellenenler",
+          "description": "Reddettiğiniz veya geri aldığınız düzeltmeler. Engeli kaldırmadığınız sürece Handy bunları yeniden öğrenmez.",
+          "unblock": "Engeli kaldır"
+        },
+        "options": {
+          "title": "Öğrenme seçenekleri"
+        },
+        "aggressiveness": {
+          "title": "Öğrenme agresifliği",
+          "description": "Bir düzenlemenin gerçek bir yanlış duyma olarak ne kadar kolay kabul edileceği. Daha gevşek seviyeler daha çok öğrenir ancak sözlüğü bozma riski taşır.",
+          "conservative": {
+            "label": "Muhafazakâr",
+            "description": "Yalnızca çok yakın, benzer sesli düzeltmeler öğrenilir. Yanlış girişlere karşı en güvenlisi."
+          },
+          "balanced": {
+            "label": "Dengeli",
+            "description": "Orta derecede farklı düzeltmeleri kabul eder; fonetik yalnızca yol göstericidir."
+          },
+          "aggressive": {
+            "label": "Agresif",
+            "description": "Gevşek ilişkili düzeltmeleri bile kabul eder ve ses benzerliğini kontrol etmez. Gündelik kelimeler arasındaki değişiklikler yine de asla öğrenilmez. Hatalı girişler için en yüksek risk."
+          }
+        },
+        "window": {
+          "title": "Öğrenme penceresi",
+          "description": "Yapıştırdıktan sonra Handy'nin alanı manuel düzeltme için ne kadar süre izleyeceği.",
+          "seconds": "saniye"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Otomatik",
+          "manual": "Manuel"
+        },
+        "count": "{{count}}× görüldü",
+        "langBadge": "Şu dil için öğrenildi: {{lang}}",
+        "platformHint": "Otomatik öğrenme yalnızca macOS'ta çalışır. Aşağıdan düzeltmeleri elle ekleyebilirsiniz ve bunlar her platformda uygulanır.",
+        "add": {
+          "misheardPlaceholder": "Yanlış duyulan",
+          "intendedPlaceholder": "Düzeltilmiş",
+          "button": "Ekle"
+        },
+        "enable": "{{misheard}} etkinleştir",
+        "remove": "{{misheard}} kaldır",
+        "empty": "Henüz düzeltme yok. Tanıyıcının sürekli yanlış duyduğu bir kelime ekleyin — bir isim veya teknik terim gibi — düzeltmesi gelecekteki her transkripsiyona uygulanacaktır.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Kısayol: Kabul et",
+            "description": "Öğrenilen düzeltme bildirimindeki öneriyi kabul eder. Yalnızca bildirim görünürken etkindir."
+          },
+          "dismiss": {
+            "title": "Kısayol: Geri Al",
+            "description": "Yeni öğrenilmiş bir düzeltmeyi geri alır (Geri Al). Yalnızca bildirim öğrenilmiş bir düzeltme gösterirken etkindir; Ctrl+Esc hiçbir şeyi değiştirmeden bildirimi kapatır."
+          },
+          "errors": {
+            "needsModifier": "En az bir değiştirici tuş kullanın (Control, Option, Shift veya Command).",
+            "invalid": "Bu tuş kombinasyonu kısayol olarak kullanılamaz.",
+            "conflict": "Bu kombinasyon zaten başka bir Handy kısayolu tarafından kullanılıyor.",
+            "conflictWith": "Bu kombinasyon zaten “{{name}}” tarafından kullanılıyor.",
+            "save": "Kısayol kaydedilemedi: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Hem yanlış duyulan kelimeyi hem de düzeltmesini girin.",
+          "generic": "Değişiklik kaydedilemedi. Lütfen tekrar deneyin."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Ses Etkinliği Algılama",
         "description": "Kayıtlardaki sessizliği filtreler. Akış destekli modeller daha uzun bir VAD kuyruğu kullanır; VAD devre dışı bırakıldığında ham ses kaydedilir."
@@ -624,6 +786,55 @@
           "simplified": "Basitleştirilmiş",
           "traditionalTw": "Geleneksel (Tayvan)",
           "traditionalHk": "Geleneksel (Hong Kong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Kendini düzeltme",
+          "description": "Dolgu sözcüklerini (\"uh\", \"um\", \"ıı\"), kekelemeleri ve tekrarlanan sözcükleri, ayrıca kendinizi düzeltirken geri aldığınız kısımları (\"no wait\", \"I mean\", \"hayır, dur\", \"yani\") bu cihazdaki Apple Intelligence ile kaldırır. Uzak bir hizmet olabilecek yapılandırılmış son işleme sağlayıcınız yalnızca son işleme etkinken kullanılır. Sözcükler yalnızca kaldırılır, asla yeniden yazılmaz; böyle duraksamalar içermeyen dikteler olduğu gibi yapıştırılır, model yavaşsa veya çok fazla değiştirirse özgün metin korunur."
+        },
+        "appStyles": {
+          "title": "Uygulama stilleri",
+          "description": "Metni dikte ettiğiniz uygulamaya uyarlar: sonunda nokta olmayan sohbet mesajları, terminal ve koda uygun çıktı, imleçten önceki metne uyan büyük/küçük harf ve boşluklar.",
+          "categories": {
+            "title": "Stiller",
+            "summary": "{{active}}/{{total}} etkin",
+            "chat": {
+              "label": "Sohbet uygulamaları",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: tek cümlelik bir mesajın sondaki noktası kalkar (? ve ! kalır)."
+            },
+            "terminal": {
+              "label": "Terminaller",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sonda nokta yok, baştaki işlev sözcüğü büyük harfle başlamaz."
+            },
+            "code": {
+              "label": "Kod düzenleyiciler",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: tek bir sözcük veya tanımlayıcının sondaki noktası kalkar."
+            },
+            "matchContext": {
+              "label": "Çevredeki metne uydur",
+              "hint": "Bir cümleye devam ederken baştaki işlev sözcüğü küçük harfle yazılır (\"and\", \"weil\"); imleç doğrudan bir sözcüğün ardındaysa boşluk eklenir."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Metin parçaları",
+          "description": "Metnini eklemek için bir tetikleyici ifadeyi tek başına (veya noktalama arasında) söyleyin, ör. \"adresim\". Büyük/küçük harf ve noktalama yok sayılır; eklenen metin diğer kurallarca asla değiştirilmez.",
+          "triggerPlaceholder": "Tetikleyici ifade, ör. adresim",
+          "expansionPlaceholder": "Eklenecek metin (birden çok satır olabilir)",
+          "add": "Ekle",
+          "save": "Kaydet",
+          "cancel": "İptal",
+          "edit": "Düzenle",
+          "remove": "{{trigger}} metin parçasını kaldır",
+          "enable": "{{trigger}} metin parçasını etkinleştir",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Tetikleyici en az bir alfanümerik sözcük içermelidir.",
+            "expansionRequired": "Eklenecek metni girin.",
+            "duplicateTrigger": "'{{trigger}}' için zaten bir metin parçası var.",
+            "commandFailed": "Metin parçası kaydedilemedi veya kaldırılamadı. Lütfen tekrar deneyin."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
-    "loadingModel": "Model yükleniyor..."
+    "fallbackModel": "Yedek model…",
+    "recordingLimitWarning": "Kayıt {{seconds}} saniye içinde otomatik olarak duracak",
+    "loadingModel": "Model yükleniyor...",
+    "recording": "Kaydediliyor…"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Geri Al",
+    "accept": "Kabul et",
+    "dismiss": "Kapat",
+    "more": "+{{count}} daha"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} 1 kısayolu engelliyor olabilir",

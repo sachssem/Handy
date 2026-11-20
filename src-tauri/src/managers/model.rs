@@ -22,6 +22,40 @@ use download::{
     HttpDownloadOutcome, RateMeter, DOWNLOAD_STALL_TIMEOUT, PROGRESS_THROTTLE, PROGRESS_TICK,
 };
 
+// fork(voice-control): recording-limit auto-stop — per-model recording ceiling
+// (consumed by `transcription_coordinator`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecordingLimit {
+    pub max_recording_ms: u64,
+    pub warning_ms: u64,
+}
+
+/// General ceiling for models without a measured entry below: 5 minutes is
+/// beyond any realistic dictation, yet keeps an unmeasured model's token cap
+/// from silently eating a long recording's tail. Measure real ceilings with
+/// `handy-bench probe-limit` (Parakeet TDT v3: healthy through 6 min).
+const DEFAULT_RECORDING_LIMIT: RecordingLimit = RecordingLimit {
+    max_recording_ms: 300_000,
+    warning_ms: 10_000,
+};
+
+pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
+    let model_id = model_id.to_ascii_lowercase();
+
+    // Qwen3-ASR's decode budget scales with audio length (12 tokens/s), so it
+    // only truncates very dense speech; probe-limit (2026-10-15, Q5_K_M and
+    // Q8_0, 12-case rotations) found no truncation through 122 s and extra
+    // words appear by ~240 s. 90 s keeps a margin to both.
+    if model_id.contains("qwen3-asr") {
+        return Some(RecordingLimit {
+            max_recording_ms: 90_000,
+            warning_ms: 10_000,
+        });
+    }
+
+    Some(DEFAULT_RECORDING_LIMIT)
+}
+
 /// Where a model comes from and how Handy obtains it — the routing discriminant
 /// for downloading and on-disk resolution.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -102,6 +136,28 @@ fn canonicalize_supported_languages(languages: Vec<String>) -> Vec<String> {
     }
 
     canonical
+}
+
+// fork(voice-control): recording-limit auto-stop.
+#[cfg(test)]
+mod recording_limit_tests {
+    use super::recording_limit_for_model_id;
+
+    #[test]
+    fn qwen3_asr_models_have_conservative_recording_limit() {
+        let limit = recording_limit_for_model_id("handy-computer/Qwen3-ASR-0.6B-gguf").unwrap();
+
+        assert_eq!(limit.max_recording_ms, 90_000);
+        assert_eq!(limit.warning_ms, 10_000);
+    }
+
+    #[test]
+    fn unmeasured_models_get_the_general_default_limit() {
+        let limit = recording_limit_for_model_id("handy-computer/parakeet-v3").unwrap();
+
+        assert_eq!(limit.max_recording_ms, 300_000);
+        assert_eq!(limit.warning_ms, 10_000);
+    }
 }
 
 /// One downloadable quantization of a catalog model. (Its sha256, the trust

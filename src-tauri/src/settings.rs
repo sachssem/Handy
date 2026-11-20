@@ -1,3 +1,5 @@
+use crate::correction_learning::{Aggressiveness, LearnedCorrection};
+use crate::text_rules::TextRule;
 use crate::utils;
 use log::{debug, warn};
 use serde::de::{self, Visitor};
@@ -459,6 +461,21 @@ pub struct AppSettings {
     /// picked during onboarding. Empty until then.
     #[serde(default)]
     pub spoken_languages: Vec<String>,
+    /// fork(voice-control): ISO codes the auto-detect guard is allowed to keep.
+    /// Empty (the default) leaves upstream auto-detect untouched. Only consulted
+    /// when the effective language is "auto"; the first entry is the language a
+    /// rejected detection is re-pinned to. See the guard in
+    /// `managers/transcription.rs`.
+    #[serde(default)]
+    pub language_allowlist: Vec<String>,
+    /// fork(voice-control): optional model id the allowlist guard escalates to
+    /// when an "auto" detection lands out of bounds. When set, downloaded, and
+    /// different from the active model, the guard re-transcribes the same audio
+    /// with it (skipping the same-engine pin-retry) and keeps the result only if
+    /// it is in bounds. `None` (the default) keeps the pin-retry behavior. See the
+    /// guard in `managers/transcription.rs`.
+    #[serde(default)]
+    pub language_allowlist_fallback_model: Option<String>,
     #[serde(default = "default_overlay_position")]
     pub overlay_position: OverlayPosition,
     #[serde(default = "default_debug_mode")]
@@ -567,11 +584,91 @@ pub struct AppSettings {
     /// [`AppSettings::language_detection_window_samples`], which clamps it.
     #[serde(default = "default_language_detection_window_secs")]
     pub language_detection_window_secs: u32,
+    #[serde(default = "default_auto_stop_recording_on_limit")]
+    pub auto_stop_recording_on_limit: bool,
     /// Which recording overlay to show: None / Minimal / Live. Streaming mode is
     /// not gated on this — that follows model capability. Migrated from the old
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    // fork(voice-control): deterministic text-rules layer (see `text_rules`).
+    #[serde(default)]
+    pub text_rules_enabled: bool,
+    #[serde(default)]
+    pub text_rules_itn_enabled: bool,
+    #[serde(default)]
+    pub text_rules_custom: Vec<TextRule>,
+    #[serde(default)]
+    pub text_rules_disabled_builtins: Vec<String>,
+    // fork(voice-control): auto-learned corrections (see `correction_learning`).
+    // The retired `learn_corrections_log_only` trial switch is ignored on read
+    // (suggestions replaced it) and dropped on the next write.
+    #[serde(default)]
+    pub learn_corrections_enabled: bool,
+    /// Whether the post-paste watcher learns from the user's edits. Off keeps
+    /// the dictionary (manual and already learned pairs) applying.
+    #[serde(default = "default_true")]
+    pub learn_from_edits_enabled: bool,
+    /// How permissive the learning gates are. Defaults to the safest level.
+    #[serde(default)]
+    pub learn_corrections_aggressiveness: Aggressiveness,
+    /// How long (seconds) the post-paste learning window stays open. Clamped to a
+    /// sane range in the session.
+    #[serde(default = "default_learn_corrections_window_secs")]
+    pub learn_corrections_window_secs: u32,
+    // fork(voice-control): learned-toast shortcuts, registered only while the
+    // toast is visible (see `correction_learning::toast_shortcuts`).
+    #[serde(default = "default_learned_toast_accept_shortcut")]
+    pub learned_toast_accept_shortcut: String,
+    #[serde(default = "default_learned_toast_dismiss_shortcut")]
+    pub learned_toast_dismiss_shortcut: String,
+    /// Legacy home of the learned pairs, read once to migrate them into the
+    /// correction-learning store (which owns them since) and then emptied.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub learned_corrections: Vec<LearnedCorrection>,
+    // fork(voice-control): local dictation journal (see `journal`).
+    #[serde(default = "default_true")]
+    pub dictation_journal_enabled: bool,
+    /// Days a journal day file is kept (clamped to 1–365).
+    #[serde(default = "default_dictation_journal_retention_days")]
+    pub dictation_journal_retention_days: u32,
+    // fork(voice-control): trigger-gated self-correction LLM pass, per-app
+    // styles and snippets (see `self_correction`, `app_styles`, `snippets`).
+    #[serde(default = "default_true")]
+    pub self_correction_llm_enabled: bool,
+    #[serde(default = "default_true")]
+    pub app_styles_enabled: bool,
+    #[serde(default)]
+    pub app_styles_categories: crate::app_styles::AppStyleCategories,
+    #[serde(default)]
+    pub snippets: Vec<crate::snippets::Snippet>,
+    // fork(voice-control): capability-gated ASR vocabulary + app context
+    // (see `asr_bias`); existing stores opt in.
+    #[serde(default = "default_true")]
+    pub asr_context_biasing_enabled: bool,
+}
+
+fn default_learn_corrections_window_secs() -> u32 {
+    45
+}
+
+// fork(voice-control): learned-toast shortcut defaults.
+fn default_learned_toast_accept_shortcut() -> String {
+    crate::correction_learning::toast_shortcuts::DEFAULT_ACCEPT.to_string()
+}
+
+fn default_learned_toast_dismiss_shortcut() -> String {
+    crate::correction_learning::toast_shortcuts::DEFAULT_DISMISS.to_string()
+}
+
+// fork(voice-control): dictation journal retention.
+fn default_dictation_journal_retention_days() -> u32 {
+    90
+}
+
+// fork(voice-control): serde default for the fork's default-on switches.
+pub(crate) fn default_true() -> bool {
+    true
 }
 
 fn default_model() -> String {
@@ -658,6 +755,10 @@ fn default_chinese_script() -> ChineseScript {
             .map(String::as_str),
     )
     .unwrap_or_default()
+}
+
+fn default_auto_stop_recording_on_limit() -> bool {
+    true
 }
 
 fn default_debug_mode() -> bool {
@@ -1007,6 +1108,11 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    // fork(voice-control): re-paste the last transcript (see `paste_last`).
+    bindings.insert(
+        crate::paste_last::BINDING_ID.to_string(),
+        crate::paste_last::default_binding(),
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -1031,6 +1137,8 @@ pub fn get_default_settings() -> AppSettings {
         selected_output_device: None,
         translate_to_english: false,
         selected_language: "auto".to_string(),
+        language_allowlist: Vec::new(),
+        language_allowlist_fallback_model: None,
         overlay_position: default_overlay_position(),
         debug_mode: false,
         log_level: default_log_level(),
@@ -1075,7 +1183,27 @@ pub fn get_default_settings() -> AppSettings {
         long_form_chunking: default_long_form_chunking(),
         language_detection: LanguageDetectionMode::default(),
         language_detection_window_secs: default_language_detection_window_secs(),
+        auto_stop_recording_on_limit: default_auto_stop_recording_on_limit(),
         overlay_style: default_overlay_style(),
+        text_rules_enabled: false,
+        text_rules_itn_enabled: false,
+        text_rules_custom: Vec::new(),
+        text_rules_disabled_builtins: Vec::new(),
+        learn_corrections_enabled: false,
+        learn_from_edits_enabled: default_true(),
+        learn_corrections_aggressiveness: Aggressiveness::default(),
+        learn_corrections_window_secs: default_learn_corrections_window_secs(),
+        learned_toast_accept_shortcut: default_learned_toast_accept_shortcut(),
+        learned_toast_dismiss_shortcut: default_learned_toast_dismiss_shortcut(),
+        learned_corrections: Vec::new(),
+        dictation_journal_enabled: default_true(),
+        dictation_journal_retention_days: default_dictation_journal_retention_days(),
+        // fork(voice-control): self-correction, app styles, snippets.
+        self_correction_llm_enabled: default_true(),
+        app_styles_enabled: default_true(),
+        app_styles_categories: crate::app_styles::AppStyleCategories::default(),
+        snippets: Vec::new(),
+        asr_context_biasing_enabled: default_true(),
     }
 }
 
@@ -1464,12 +1592,21 @@ fn self_update_possible() -> bool {
 fn self_update_possible() -> bool {
     true
 }
+// fork(voice-control): see `update_checks_forced_disabled`.
+const FORK_NEVER_SELF_UPDATES: bool = true;
 
 /// Update checks are forced off (without touching the persisted setting) when
 /// `HANDY_DISABLE_UPDATER` is set — e.g. by the Nix package, since self-update
 /// can't work against an immutable /nix/store install — or when this build
 /// cannot install its own update (see `linux_self_update_possible`).
 pub fn update_checks_forced_disabled() -> bool {
+    // fork(voice-control): the fork build never self-updates — upstream's
+    // updater would replace this app with an official (non-fork) release.
+    // Forcing this flag routes through every existing gate (tray, settings
+    // toggle, `is_update_checks_locked` → frontend UpdateChecker).
+    if FORK_NEVER_SELF_UPDATES {
+        return true;
+    }
     use std::sync::OnceLock;
     static IS_UPDATER_DISABLED: OnceLock<bool> = OnceLock::new();
     *IS_UPDATER_DISABLED
@@ -1811,6 +1948,7 @@ mod tests {
         let settings = get_default_settings();
         assert!(!settings.auto_submit);
         assert_eq!(settings.auto_submit_key, AutoSubmitKey::Enter);
+        assert!(settings.auto_stop_recording_on_limit);
         assert_eq!(
             settings.settings_schema_version,
             CURRENT_SETTINGS_SCHEMA_VERSION

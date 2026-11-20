@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Pintasan Pascaproses",
             "description": "Opsional: pintasan khusus yang selalu menerapkan pascaproses AI pada transkripsi Anda."
+          },
+          "paste_last_transcript": {
+            "name": "Tempel transkrip terakhir",
+            "description": "Menempelkan kembali transkripsi terbaru Anda. Kombinasi ini dipakai di seluruh sistem selama diatur — ubah jika aplikasi lain membutuhkannya (mis. Ctrl+V di terminal atau Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Cari bahasa...",
         "noResults": "Bahasa tidak ditemukan",
         "auto": "Otomatis",
+        "allowlist": {
+          "title": "Batasi deteksi otomatis ke…",
+          "description": "Saat Otomatis dipilih, hanya pertahankan bahasa-bahasa ini. Bahasa terdeteksi yang tidak ada dalam daftar ini akan ditranskripsikan ulang dalam bahasa utama.",
+          "primary": "Utama",
+          "primaryTag": "{{language}} (utama)",
+          "makePrimary": "Jadikan utama",
+          "summaryAll": "Semua bahasa",
+          "fallbackModel": {
+            "label": "Model cadangan",
+            "none": "Tidak ada",
+            "description": "Deteksi di luar daftar akan ditranskripsikan ulang dengan model ini, bukan dengan percobaan ulang dalam bahasa utama."
+          }
+        },
         "autoUnavailable": {
           "title": "Otomatis dinonaktifkan",
           "oneLanguage": "Hanya satu bahasa Anda yang berfungsi dengan model ini",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Otomatis memerlukan unduhan terpisah",
         "detectorMissing": "Model ini tidak dapat mengenali bahasa yang Anda ucapkan. Otomatis memerlukan pendeteksi bahasa kecil untuk mengenalinya",
         "stopDetectorDownload": "Hentikan unduhan pendeteksi bahasa"
+      },
+      "asrBiasing": {
+        "label": "Gunakan kosakata & konteks aplikasi",
+        "description": "Meneruskan kata khusus, koreksi yang dipelajari, dan konteks aplikasi tujuan ke pengenal untuk memperbaiki nama dan istilah.",
+        "unsupported": "Model yang dipilih mengabaikan kosakata dan konteks aplikasi; kata khusus tetap diterapkan sebagai koreksi setelahnya."
       },
       "preferredLanguages": {
         "title": "Bahasa Pilihan",
@@ -471,7 +493,10 @@
         "output": "Keluaran",
         "transcription": "Transkripsi",
         "history": "Riwayat",
-        "experimental": "Eksperimental"
+        "experimental": "Eksperimental",
+        "textRules": "Aturan Teks",
+        "learnedCorrections": "Koreksi yang Dipelajari",
+        "smartFormatting": "Pemformatan Cerdas"
       },
       "experimentalToggle": {
         "label": "Fitur Eksperimental",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Biarkan Mikrofon Tetap Aktif di Antara Transkripsi",
         "description": "Membiarkan aliran mikrofon tetap terbuka selama 30 detik setelah perekaman berhenti untuk mengurangi latensi pada transkripsi beruntun. Dapat menurunkan kualitas audio Bluetooth saat aktif."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Hentikan Rekaman Panjang Secara Otomatis",
+        "description": "Menghentikan perekaman sebelum model yang dipilih mencapai batas dikte amannya. Cincin hitung mundur muncul pada detik-detik terakhir."
+      },
+      "dictationJournal": {
+        "title": "Jurnal Dikte",
+        "description": "Menyimpan log lokal harian untuk setiap dikte (waktu, model, teks setelah setiap langkah pemrosesan, aplikasi tujuan) agar kualitasnya dapat dianalisis nanti. Tetap berada di perangkat ini; file yang lebih lama dari {{days}} hari akan dihapus.",
+        "folderTitle": "Folder Jurnal",
+        "folderDescription": "Lokasi penyimpanan file jurnal harian",
+        "retentionTitle": "Masa simpan jurnal",
+        "retentionDescription": "File harian yang lebih lama akan dihapus",
+        "retentionOption": "{{days}} hari"
       },
       "airpodsMode": {
         "label": "Mode AirPods",
@@ -590,6 +628,130 @@
         "remove": "Hapus {{word}}",
         "duplicate": "\"{{word}}\" sudah ada"
       },
+      "textRules": {
+        "title": "Ubah perintah lisan",
+        "description": "Ubah perintah tanda baca dan pemformatan lisan (bahasa Jerman dan Inggris) menjadi simbol secara instan, tanpa perlu memanggil AI. Dijalankan sebelum pascaproses AI opsional.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Angka ke Digit",
+          "description": "Ubah angka yang diucapkan menjadi digit, misalnya \"five hundred thirty nine\" → \"539\". Angka kecil yang berdiri sendiri tetap ditulis sebagai kata."
+        },
+        "builtins": {
+          "title": "Perintah Bawaan",
+          "description": "Aktifkan atau nonaktifkan perintah bawaan satu per satu. Nonaktifkan perintah yang salah terpicu dalam ucapan biasa (misalnya \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktif",
+          "loading": "Memuat perintah bawaan…",
+          "loadError": "Tidak dapat memuat perintah bawaan.",
+          "retry": "Coba lagi"
+        },
+        "custom": {
+          "title": "Aturan Kustom",
+          "description": "Tambahkan aturan pemicu-ke-pengganti Anda sendiri. Aturan kustom menggantikan aturan bawaan dengan pemicu yang sama.",
+          "triggerPlaceholder": "Pemicu",
+          "replacementPlaceholder": "Pengganti",
+          "add": "Tambah",
+          "remove": "Hapus {{trigger}}",
+          "duplicate": "\"{{trigger}}\" sudah ada",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Seperti koma",
+          "attach_right": "Seperti kurung buka",
+          "glue": "Menggabungkan kata",
+          "standalone": "Berdiri sendiri"
+        },
+        "spacingHint": {
+          "attach_left": "Tanpa spasi sebelum, satu spasi sesudah: kata, kata",
+          "attach_right": "Satu spasi sebelum, tanpa spasi sesudah: kata (kata",
+          "glue": "Tanpa spasi di sekitarnya: voice-control",
+          "standalone": "Disisipkan apa adanya, spasi di sekitarnya dihapus: baris baru"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Kamus pribadi",
+        "description": "Mengganti kata-kata yang terus salah dikenali — nama, istilah khusus, umlaut — di setiap transkripsi, sebelum pascaproses AI opsional. Di macOS, Handy juga belajar dari suntingan Anda: perbaiki sebuah kata tepat setelah menempel, dan Handy akan menyarankan perbaikan itu. Menonaktifkan ini akan menjeda keduanya.",
+        "learnFromEdits": {
+          "title": "Belajar dari koreksi saya",
+          "description": "Memantau kolom setelah menempel dan menyarankan perbaikan yang Anda buat secara manual. Jika mati, tidak ada yang baru dipelajari; kamus tetap diterapkan."
+        },
+        "suggestions": {
+          "title": "Saran",
+          "description": "Perbaikan yang diperhatikan Handy dari suntingan Anda. Terima salah satunya untuk menerapkannya mulai sekarang; perbaikan yang terus Anda lakukan akan ditambahkan secara otomatis. Pilih Jangan pernah untuk memblokirnya selamanya.",
+          "accept": "Terima",
+          "dismiss": "Jangan pernah"
+        },
+        "dictionary": {
+          "title": "Kamus",
+          "filterPlaceholder": "Saring…",
+          "noMatches": "Tidak ada entri yang cocok."
+        },
+        "blocked": {
+          "title": "Diblokir",
+          "description": "Perbaikan yang Anda tolak atau batalkan. Handy tidak akan mempelajarinya lagi kecuali Anda membuka blokirnya.",
+          "unblock": "Buka blokir"
+        },
+        "options": {
+          "title": "Opsi pembelajaran"
+        },
+        "aggressiveness": {
+          "title": "Tingkat agresivitas pembelajaran",
+          "description": "Seberapa mudah suatu suntingan diterima sebagai salah dengar yang sebenarnya. Tingkat yang lebih longgar mempelajari lebih banyak, tetapi berisiko merusak kamus.",
+          "conservative": {
+            "label": "Konservatif",
+            "description": "Hanya perbaikan yang sangat mirip dan terdengar serupa yang dipelajari. Paling aman terhadap entri yang salah."
+          },
+          "balanced": {
+            "label": "Seimbang",
+            "description": "Menerima perbaikan yang cukup berbeda; kemiripan bunyi hanya bersifat pertimbangan."
+          },
+          "aggressive": {
+            "label": "Agresif",
+            "description": "Menerima bahkan perbaikan yang hanya sedikit berkaitan dan tidak memeriksa kemiripan bunyi. Pertukaran kata sehari-hari tetap tidak pernah dipelajari. Risiko entri buruk paling tinggi."
+          }
+        },
+        "window": {
+          "title": "Jendela pembelajaran",
+          "description": "Berapa lama setelah menempel Handy memantau kolom untuk koreksi manual.",
+          "seconds": "detik"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Otomatis",
+          "manual": "Manual"
+        },
+        "count": "terlihat {{count}}×",
+        "langBadge": "Dipelajari untuk bahasa: {{lang}}",
+        "platformHint": "Pembelajaran otomatis hanya berjalan di macOS. Anda tetap dapat menambahkan koreksi secara manual di bawah, dan koreksi tersebut diterapkan di semua platform.",
+        "add": {
+          "misheardPlaceholder": "Salah dengar",
+          "intendedPlaceholder": "Dikoreksi",
+          "button": "Tambah"
+        },
+        "enable": "Aktifkan {{misheard}}",
+        "remove": "Hapus {{misheard}}",
+        "empty": "Belum ada koreksi. Tambahkan kata yang terus salah didengar oleh pengenal ucapan — seperti nama atau istilah teknis — dan perbaikannya akan diterapkan pada setiap transkripsi berikutnya.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Pintasan: Terima",
+            "description": "Menerima saran di notifikasi koreksi yang dipelajari. Hanya aktif selama notifikasi terlihat."
+          },
+          "dismiss": {
+            "title": "Pintasan: Urungkan",
+            "description": "Mengurungkan koreksi yang baru dipelajari (Urungkan). Hanya aktif selama notifikasi menampilkan koreksi yang dipelajari; Ctrl+Esc menutup notifikasi tanpa mengubah apa pun."
+          },
+          "errors": {
+            "needsModifier": "Gunakan setidaknya satu tombol pengubah (Control, Option, Shift, atau Command).",
+            "invalid": "Kombinasi tombol ini tidak dapat digunakan sebagai pintasan.",
+            "conflict": "Kombinasi ini sudah digunakan oleh pintasan Handy lain.",
+            "conflictWith": "Kombinasi ini sudah digunakan oleh “{{name}}”.",
+            "save": "Gagal menyimpan pintasan: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Masukkan kata yang salah dengar beserta koreksinya.",
+          "generic": "Perubahan tidak dapat disimpan. Silakan coba lagi."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Deteksi Aktivitas Suara",
         "description": "Saring keheningan dari rekaman. Model yang mendukung streaming menggunakan ekor VAD yang lebih panjang; menonaktifkan VAD akan merekam audio mentah."
@@ -624,6 +786,55 @@
           "simplified": "Sederhana",
           "traditionalTw": "Tradisional (Taiwan)",
           "traditionalHk": "Tradisional (Hong Kong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Koreksi Diri",
+          "description": "Menghapus kata pengisi (\"uh\", \"um\", \"eh\"), gagap dan kata yang berulang, serta bagian yang Anda tarik kembali saat mengoreksi diri (\"no wait\", \"I mean\", \"nein, warte\", \"Korrektur\"), dengan Apple Intelligence di perangkat ini. Penyedia pascaproses yang Anda konfigurasi, yang bisa berupa layanan jarak jauh, hanya digunakan jika pascaproses diaktifkan. Kata hanya dihapus, tidak pernah ditulis ulang; dikte tanpa keraguan semacam itu ditempel tanpa diubah, dan jika model lambat atau mengubah terlalu banyak, teks asli dipertahankan."
+        },
+        "appStyles": {
+          "title": "Gaya Aplikasi",
+          "description": "Menyesuaikan teks dengan aplikasi tempat Anda mendikte: pesan obrolan tanpa titik di akhir, keluaran yang ramah terminal dan kode, serta huruf besar/kecil dan spasi yang disesuaikan dengan teks sebelum kursor.",
+          "categories": {
+            "title": "Gaya",
+            "summary": "{{active}}/{{total}} aktif",
+            "chat": {
+              "label": "Aplikasi obrolan",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: pesan satu kalimat akan kehilangan titik di akhirnya (? dan ! tetap dipertahankan)."
+            },
+            "terminal": {
+              "label": "Terminal",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: tanpa titik di akhir, tanpa huruf kapital pada kata fungsi di awal."
+            },
+            "code": {
+              "label": "Editor kode",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: satu kata atau pengenal akan kehilangan titik di akhirnya."
+            },
+            "matchContext": {
+              "label": "Sesuaikan dengan teks sekitar",
+              "hint": "Saat melanjutkan kalimat, kata fungsi di awal ditulis dengan huruf kecil (\"and\", \"weil\"); spasi ditambahkan jika kursor berada tepat setelah sebuah kata."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Cuplikan",
+          "description": "Ucapkan frasa pemicu secara tersendiri (atau di antara tanda baca) untuk menyisipkan teksnya, misalnya \"alamat saya\". Pencocokan mengabaikan huruf besar/kecil dan tanda baca; teks yang disisipkan tidak pernah diubah oleh aturan lain.",
+          "triggerPlaceholder": "Frasa pemicu, misalnya alamat saya",
+          "expansionPlaceholder": "Teks yang akan disisipkan (boleh beberapa baris)",
+          "add": "Tambah",
+          "save": "Simpan",
+          "cancel": "Batal",
+          "edit": "Edit",
+          "remove": "Hapus cuplikan {{trigger}}",
+          "enable": "Aktifkan cuplikan {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Frasa pemicu harus berisi setidaknya satu kata alfanumerik.",
+            "expansionRequired": "Masukkan teks yang akan disisipkan.",
+            "duplicateTrigger": "Cuplikan untuk '{{trigger}}' sudah ada.",
+            "commandFailed": "Cuplikan tidak dapat disimpan atau dihapus. Silakan coba lagi."
+          }
         }
       }
     },
@@ -982,7 +1193,10 @@
   "overlay": {
     "transcribing": "Mentranskripsikan...",
     "processing": "Memproses...",
-    "loadingModel": "Memuat model..."
+    "fallbackModel": "Model cadangan…",
+    "recordingLimitWarning": "Perekaman berhenti otomatis dalam {{seconds}} detik",
+    "loadingModel": "Memuat model...",
+    "recording": "Merekam…"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} mungkin memblokir 1 pintasan",
@@ -994,5 +1208,12 @@
     "learnMore": "Cara memperbaiki",
     "recorderBlocked": "Pintasan tidak dapat direkam saat ini — macOS Secure Input memblokir peristiwa tombol. Selesaikan peringatan Secure Input terlebih dahulu.",
     "dismiss": "Tutup"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Urungkan",
+    "accept": "Terima",
+    "dismiss": "Tutup",
+    "more": "+{{count}} lainnya"
   }
 }

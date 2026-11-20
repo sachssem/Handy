@@ -8,7 +8,13 @@ license = "MIT"
 default-run = "handy"
 
 [profile.dev]
-incremental = true # Compile your binary in smaller steps.
+# fork(voice-control): avoid multi-GB incremental caches during local checks.
+# Release DMG builds are cleaned by scripts/build-signed-dmg.sh after success.
+incremental = false
+
+[profile.test]
+# Tests otherwise maintain a separate incremental cache alongside dev builds.
+incremental = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,6 +24,13 @@ incremental = true # Compile your binary in smaller steps.
 # This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "handy_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
+
+# fork(voice-control): headless voice-dictation benchmark harness. Thin wrapper
+# around `handy_app_lib::bench` so it can reuse the in-crate engine/text-rules
+# code without dragging in a Tauri AppHandle. See src/bench/ and bench/README.md.
+[[bin]]
+name = "handy-bench"
+path = "src/bin/handy-bench.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -70,6 +83,8 @@ reqwest = { version = "0.12", features = ["json", "stream", "gzip", "brotli", "d
 futures-util = "0.3"
 rustfft = "6.4.0"
 strsim = "0.11.0"
+# fork(voice-control): word-level correction diffing (see `correction_learning`).
+similar = { version = "2", features = ["unicode"] }
 natural = "0.5.0"
 regex = "1"
 # Text-based language ID (filler-word removal fallback); isolang bridges the
@@ -77,6 +92,7 @@ regex = "1"
 whatlang = "0.16"
 isolang = "2"
 chrono = "0.4"
+toml = "0.8" # fork(voice-control): bench-suite corpus manifest format
 rusqlite = { version = "0.37", features = ["bundled"] }
 sha2 = "0.10"
 libc = "0.2"
@@ -96,6 +112,7 @@ tauri-plugin-dialog = "2.6"
 hf-hub = { git = "https://github.com/cjpais/hf-hub", branch = "cancellable-downloads", features = [
   "tokio",
 ] }
+rphonetic = "3.0.6"
 
 [target.'cfg(unix)'.dependencies]
 signal-hook = "0.3"
@@ -175,6 +192,11 @@ objc2 = "0.6"
 objc2-foundation = "0.3"
 objc2-app-kit = "0.3"
 objc2-service-management = "0.3.2"
+# fork(voice-control): hand-rolled Accessibility FFI for the focused-field
+# reader (see `correction_learning::ax_reader`). objc2-app-kit (above) resolves
+# the frontmost app; core-foundation wraps the AX CFType values (libc comes
+# from the shared [dependencies]).
+core-foundation = "0.10"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # PRIMARY selection access for Shift+Insert paste (already in the tree via the clipboard plugin).

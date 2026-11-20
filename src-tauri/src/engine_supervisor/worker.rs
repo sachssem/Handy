@@ -119,7 +119,12 @@ pub fn run() -> i32 {
                     } else {
                         match session.run(&pcm, &options) {
                             Ok(transcript) => Response::Transcript(transcript),
-                            Err(e) => run_error(e),
+                            // fork(voice-control): a run that hit the output
+                            // budget keeps what it decoded.
+                            Err(e) => match truncated_partial(e) {
+                                Ok(partial) => Response::Transcript(partial),
+                                Err(e) => run_error(e),
+                            },
                         }
                     }
                 }
@@ -265,6 +270,26 @@ fn not_loaded() -> Response {
 /// failed graph compute) can leave this process's backend unusable for
 /// every later run, so it gets its own response and the parent replaces
 /// the worker.
+/// fork(voice-control): the partial transcript of a run that hit the output
+/// token cap, when it decoded any text; otherwise the error back.
+fn truncated_partial(
+    e: transcribe_cpp::Error,
+) -> Result<transcribe_cpp::Transcript, transcribe_cpp::Error> {
+    match e {
+        transcribe_cpp::Error::OutputTruncated {
+            partial: Some(partial),
+            ..
+        } if !partial.text.trim().is_empty() => {
+            warn!(
+                "transcribe-cpp output truncated; returning partial transcript ({} chars)",
+                partial.text.trim().len()
+            );
+            Ok(*partial)
+        }
+        e => Err(e),
+    }
+}
+
 fn run_error(e: transcribe_cpp::Error) -> Response {
     if e.kind() == ErrorKind::Backend {
         Response::BackendError(e.to_string())
@@ -347,6 +372,8 @@ fn load(
         supports_initial_prompt: model.supports(Feature::InitialPrompt),
         supports_long_form: model.supports(Feature::LongForm),
         supports_vocabulary: model.supports(Feature::Vocabulary),
+        // fork(voice-control): see `LoadedInfo::supports_context_prompt`.
+        supports_context_prompt: model.supports(Feature::ContextPrompt),
     };
     Ok((session, info))
 }

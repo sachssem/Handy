@@ -35,6 +35,10 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 use transcribe_cpp::{Backend, RunOptions, Task, Transcript};
 
+// fork(voice-control): language-allowlist guard (+ fallback model) and the
+// journal's engine facts.
+mod allowlist;
+mod asr_journal;
 mod chunked;
 mod job;
 mod live;
@@ -381,6 +385,18 @@ impl TranscriptionManager {
         self.engine.loaded().is_some()
     }
 
+    /// fork(voice-control): block until no model load is in flight (used by
+    /// `transcribe_socket` after `initiate_model_load`).
+    pub fn wait_for_model_load(&self) {
+        let mut is_loading = self.is_loading.lock().unwrap_or_else(|e| e.into_inner());
+        while *is_loading {
+            is_loading = self
+                .loading_condvar
+                .wait(is_loading)
+                .unwrap_or_else(|e| e.into_inner());
+        }
+    }
+
     /// Accelerator changes should not disturb the current transcription. Mark
     /// the cached engine stale; the next model-use path reloads it with the
     /// latest settings.
@@ -663,6 +679,12 @@ impl TranscriptionManager {
             *current_model = Some(model_id.to_string());
         }
 
+        // fork(voice-control): warm-up inference before reporting loaded (see
+        // `model_warmup`); callers hold the loading window, so a real
+        // transcription waits for it.
+        self.warm_up_engine(model_id)
+            .inspect_err(|e| emit_loading_failed(&e.to_string()))?;
+
         // Reset idle timer so the watcher doesn't immediately unload a just-loaded model
         self.touch_activity();
 
@@ -692,6 +714,30 @@ impl TranscriptionManager {
         Ok(())
     }
 
+    /// fork(voice-control): one throwaway inference on the just-loaded model
+    /// (see [`crate::model_warmup`]). A failed warm-up is ignored unless it
+    /// cost the engine its model (a worker that could not be restarted), which
+    /// fails the load.
+    fn warm_up_engine(&self, model_id: &str) -> Result<()> {
+        if !crate::model_warmup::enabled() {
+            return Ok(());
+        }
+        let warmed = crate::model_warmup::run(|silence| {
+            self.engine.transcribe(silence, RunOptions::default())
+        });
+        if warmed.is_none() && self.engine.loaded().is_none() {
+            {
+                let mut current_model = self.current_model_id.lock().unwrap();
+                *current_model = None;
+            }
+            return Err(anyhow::anyhow!(
+                "Model warm-up inference lost the model '{}'; it will reload on next attempt",
+                model_id
+            ));
+        }
+        Ok(())
+    }
+
     /// Starts loading the model in the background unless it's loaded or
     /// loading, and returns whether it did. Only a dictation sets
     /// `raise_notice`: file jobs and Settings report their own failures.
@@ -708,6 +754,9 @@ impl TranscriptionManager {
 
         *is_loading = true;
         let self_clone = self.clone();
+        // fork(voice-control): a load a socket request kicked off is journaled
+        // on that request's record, not on Handy's current dictation.
+        let journal_scope = crate::journal::scope_id();
         thread::spawn(move || {
             if reload_pending {
                 self_clone
@@ -715,11 +764,22 @@ impl TranscriptionManager {
                     .store(false, Ordering::Release);
             }
             let settings = get_settings(&self_clone.app_handle);
+            // fork(voice-control): journal the press-path load + warm-up.
+            let _ = crate::model_warmup::take_last_ms();
+            let load_started = Instant::now();
             if let Err(e) = self_clone.load_model(&settings.selected_model) {
                 error!("Failed to load model {}: {}", settings.selected_model, e);
                 if raise_notice {
                     self_clone.raise_model_load_failed(&settings.selected_model, &e);
                 }
+            } else {
+                // fork(voice-control): attach to the dictation that triggered it.
+                crate::journal::with_scope(journal_scope, || {
+                    crate::journal::record_model_load(
+                        load_started.elapsed(),
+                        crate::model_warmup::take_last_ms(),
+                    )
+                });
             }
             let mut is_loading = self_clone.is_loading.lock().unwrap();
             *is_loading = false;
@@ -1015,11 +1075,21 @@ impl TranscriptionManager {
             });
         }
 
+        // fork(voice-control): the allowlist guard may re-run the audio.
+        let guard_audio =
+            allowlist::wants_audio(&get_settings(&self.app_handle)).then(|| audio.clone());
         let outcome = match live {
             Some(outcome) => outcome,
             None => self.decode_batch(audio)?,
         };
         let settings = get_settings(&self.app_handle);
+        // fork(voice-control): allowlist guard for "auto" detection, then
+        // journal the engine run.
+        let outcome = match guard_audio {
+            Some(audio) => allowlist::guard(self, &settings, outcome, audio),
+            None => outcome,
+        };
+        asr_journal::record(self, &settings, &outcome, started, audio_len);
         let language = outcome
             .setup
             .spoken_language(outcome.model_detected_language.as_deref());
@@ -1215,15 +1285,20 @@ impl TranscriptionManager {
         active_model: &str,
     ) -> Result<Transcript, EngineError> {
         self.touch_activity();
-        self.engine
-            .transcribe_since(mark, pcm, run_options.clone())
+        // fork(voice-control): retried once without the ASR bias if the
+        // engine rejects it; `sent` is what the model got.
+        let (result, sent) =
+            crate::asr_bias::run_with_unbiased_retry(run_options, pcm, |pcm, options| {
+                self.engine.transcribe_since(mark, pcm, options)
+            });
+        result
             .inspect_err(|e| {
                 if !matches!(e, EngineError::Cancelled) {
                     self.forget_model_if_engine_dropped(active_model, &e.to_string());
                 }
             })
             .map(|mut transcript| {
-                if echoes_vocabulary(&transcript.text, &run_options.vocabulary) {
+                if echoes_vocabulary(&transcript.text, &sent.vocabulary) {
                     info!("The model returned the custom words, not speech; dropping them");
                     transcript.text.clear();
                 }
@@ -1373,13 +1448,23 @@ fn run_setup(info: &LoadedInfo, settings: &AppSettings, language: LanguageDecisi
         language
     };
 
-    let run_options = RunOptions {
+    let mut run_options = RunOptions {
         task: run_plan.task,
         language: run_plan.language,
         target_language: run_plan.target_language,
         vocabulary: vocabulary_for_model(info.supports_vocabulary, &settings.custom_words),
         ..Default::default()
     };
+    // fork(voice-control): custom words + learned corrections as vocabulary
+    // and the app context as prompt, on capable models (every run of the
+    // transcription, live and batch, is set up here).
+    crate::asr_bias::apply(
+        settings,
+        crate::journal::current_id(),
+        &settings.selected_model,
+        info,
+        &mut run_options,
+    );
 
     debug!(
         "transcribe-cpp run: task={:?}, language={:?}, vocabulary_terms={}",
@@ -1649,15 +1734,17 @@ fn echoes_vocabulary(text: &str, vocabulary: &[String]) -> bool {
     found >= 3 && covered * 4 >= said.len() * 3
 }
 
-struct TranscribeCppRunPlan {
-    task: Task,
-    language: Option<String>,
-    target_language: Option<String>,
+// fork(voice-control): `pub(crate)` so the bench harness (src/bench/) uses the
+// exact production language/task gate.
+pub(crate) struct TranscribeCppRunPlan {
+    pub(crate) task: Task,
+    pub(crate) language: Option<String>,
+    pub(crate) target_language: Option<String>,
 }
 
 /// Build the transcribe-cpp language/task options shared by batch and live
 /// streaming paths.
-fn transcribe_cpp_run_plan(
+pub(crate) fn transcribe_cpp_run_plan(
     translate_to_english: bool,
     effective_language: &str,
     model_languages: &[String],
@@ -1685,7 +1772,9 @@ fn transcribe_cpp_run_plan(
     }
 }
 
-fn post_process_transcription_text(
+// fork(voice-control): `pub(crate)` so the bench harness (src/bench/) can run the
+// exact production post-transcription pipeline standalone.
+pub(crate) fn post_process_transcription_text(
     raw: String,
     settings: &AppSettings,
     custom_words_already_prompted: bool,
@@ -1693,6 +1782,9 @@ fn post_process_transcription_text(
     supported_languages: &[String],
 ) -> String {
     fail_open_text_transform(raw, |raw| {
+        // fork(voice-control): journal the raw engine text.
+        crate::journal::record_text_stage(crate::journal::Stage::Asr, &raw);
+
         // Last-resort language evidence: confidence-gated detection from the
         // transcribed text itself, constrained to the model's languages. Only
         // consulted when it can change the outcome (built-in gated fillers).
@@ -1721,11 +1813,14 @@ fn post_process_transcription_text(
         };
 
         let corrected = if !settings.custom_words.is_empty() && !custom_words_already_prompted {
-            apply_custom_words(
+            let corrected = apply_custom_words(
                 &raw,
                 &settings.custom_words,
                 settings.word_correction_threshold,
-            )
+            );
+            // fork(voice-control): journal
+            crate::journal::record_text_stage(crate::journal::Stage::CustomWords, &corrected);
+            corrected
         } else {
             raw
         };
@@ -1737,7 +1832,41 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        let text = normalize_transcription_output(&without_fillers);
+        let normalized = normalize_transcription_output(&without_fillers);
+
+        // fork(voice-control): snippets — a delimited trigger phrase becomes a
+        // placeholder, so text rules / learned corrections never touch its
+        // expansion; `restore` puts the expansion back after them.
+        let snippets = crate::snippets::shield(&normalized, &settings.snippets);
+
+        // fork(voice-control): deterministic text rules
+        let ruled = crate::text_rules::apply_text_rules(
+            &snippets.text,
+            settings,
+            output_language.language(),
+        );
+
+        // fork(voice-control): exact misheard→intended learned corrections
+        let learned = crate::correction_learning::apply_learned(
+            &ruled,
+            settings,
+            &output_language,
+            supported_languages,
+        );
+        let learned = snippets.restore(&learned); // fork(voice-control): snippets
+
+        // fork(voice-control): journal every stage's text.
+        if crate::journal::is_enabled() {
+            use crate::journal::{record_text_stage, Stage};
+            record_text_stage(Stage::Fillers, &without_fillers);
+            record_text_stage(Stage::Normalized, &normalized);
+            if snippets.fired() {
+                record_text_stage(Stage::Snippets, &snippets.restore(&snippets.text));
+            }
+            record_text_stage(Stage::TextRules, &snippets.restore(&ruled));
+            record_text_stage(Stage::Learned, &learned);
+        }
+        let text = learned;
         // Short, wordless clips often come back as just "." or "?".
         if text.chars().any(char::is_alphanumeric) {
             text

@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Klávesa pro následné zpracování",
             "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy použije AI následné zpracování na váš přepis."
+          },
+          "paste_last_transcript": {
+            "name": "Vložit poslední přepis",
+            "description": "Znovu vloží váš poslední přepis. Kombinace je obsazena v celém systému, dokud je nastavena — změňte ji, pokud ji potřebuje jiná aplikace (např. Ctrl+V v terminálech nebo Vimu)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Hledat jazyky...",
         "noResults": "Žádné jazyky nenalezeny",
         "auto": "Automaticky",
+        "allowlist": {
+          "title": "Omezit automatické rozpoznávání na…",
+          "description": "Když je vybráno Auto, ponechat pouze tyto jazyky. Rozpoznaný jazyk mimo tento seznam se přepíše znovu s pevně nastaveným prvním (hlavním) jazykem.",
+          "primary": "Hlavní",
+          "primaryTag": "{{language}} (primární)",
+          "makePrimary": "Nastavit jako primární",
+          "summaryAll": "Všechny jazyky",
+          "fallbackModel": {
+            "label": "Záložní model",
+            "none": "Žádný",
+            "description": "Rozpoznání mimo seznam se přepíší tímto modelem místo opakování s hlavním jazykem."
+          }
+        },
         "autoUnavailable": {
           "title": "Automaticky je vypnuto",
           "oneLanguage": "S tímto modelem funguje jen jeden z vašich jazyků",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Automaticky vyžaduje samostatné stažení",
         "detectorMissing": "Tento model nepozná, jakým jazykem mluvíte. Režim Automaticky potřebuje malý detektor jazyka, který to zjistí",
         "stopDetectorDownload": "Zastavit stahování detektoru jazyka"
+      },
+      "asrBiasing": {
+        "label": "Použít slovník a kontext aplikace",
+        "description": "Předává vlastní slova, naučené opravy a kontext cílové aplikace rozpoznávání, aby zlepšilo jména a termíny.",
+        "unsupported": "Vybraný model slovník a kontext aplikace ignoruje; vlastní slova se stále použijí jako dodatečné opravy."
       },
       "preferredLanguages": {
         "title": "Preferované jazyky",
@@ -471,7 +493,10 @@
         "output": "Výstup",
         "transcription": "Přepis",
         "history": "Historie",
-        "experimental": "Experimentální"
+        "experimental": "Experimentální",
+        "textRules": "Textová pravidla",
+        "learnedCorrections": "Naučené opravy",
+        "smartFormatting": "Chytré formátování"
       },
       "experimentalToggle": {
         "label": "Experimentální funkce",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Ponechat mikrofon zapnutý mezi přepisy",
         "description": "Ponechá stream mikrofonu otevřený po dobu 30 sekund po zastavení nahrávání, čímž se sníží latence při opakovaném přepisu. Může zhoršit kvalitu zvuku Bluetooth."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Automaticky zastavit dlouhé nahrávky",
+        "description": "Zastaví nahrávání dříve, než vybraný model dosáhne bezpečného limitu pro diktování. V posledních sekundách se zobrazí kruh s odpočtem."
+      },
+      "dictationJournal": {
+        "title": "Deník diktování",
+        "description": "Vede místní denní záznam každého diktování (časy, model, text po každém kroku zpracování, cílová aplikace), aby bylo možné kvalitu později analyzovat. Zůstává v tomto zařízení; soubory starší {{days}} dnů se mažou.",
+        "folderTitle": "Složka deníku",
+        "folderDescription": "Kde jsou uloženy denní soubory deníku",
+        "retentionTitle": "Doba uchování",
+        "retentionDescription": "Denní soubory starší než tato doba se mažou",
+        "retentionOption": "{{days}} dnů"
       },
       "airpodsMode": {
         "label": "Režim AirPods",
@@ -590,6 +628,130 @@
         "remove": "Odebrat {{word}}",
         "duplicate": "\"{{word}}\" již existuje"
       },
+      "textRules": {
+        "title": "Převádět mluvené příkazy",
+        "description": "Převádí vyslovené příkazy pro interpunkci a formátování (němčina a angličtina) okamžitě na symboly, bez zásahu AI. Spouští se před volitelným následným zpracováním pomocí AI.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Čísla na číslice",
+          "description": "Převod vyslovených čísel na číslice, např. \"five hundred thirty nine\" → \"539\". Malá samostatná čísla zůstávají vypsaná slovy."
+        },
+        "builtins": {
+          "title": "Vestavěné příkazy",
+          "description": "Povolte nebo zakažte jednotlivé vestavěné příkazy. Zakažte některý, pokud se chybně spouští v běžné řeči (např. \"Punkt\").",
+          "summary": "Aktivní: {{active}}/{{total}}",
+          "loading": "Načítání vestavěných příkazů…",
+          "loadError": "Vestavěné příkazy se nepodařilo načíst.",
+          "retry": "Zkusit znovu"
+        },
+        "custom": {
+          "title": "Vlastní pravidla",
+          "description": "Přidejte vlastní pravidla ze spouštěče na náhradu. Vlastní pravidla přepisují vestavěná se stejným spouštěčem.",
+          "triggerPlaceholder": "Spouštěč",
+          "replacementPlaceholder": "Náhrada",
+          "add": "Přidat",
+          "remove": "Odebrat {{trigger}}",
+          "duplicate": "\"{{trigger}}\" již existuje",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Jako čárka",
+          "attach_right": "Jako levá závorka",
+          "glue": "Spojuje slova",
+          "standalone": "Samostatně"
+        },
+        "spacingHint": {
+          "attach_left": "Bez mezery před, jedna za: slovo, slovo",
+          "attach_right": "Jedna mezera před, žádná za: slovo (slovo",
+          "glue": "Bez mezer kolem: voice-control",
+          "standalone": "Vloženo beze změny, okolní mezery odstraněny: zalomení řádků"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Osobní slovník",
+        "description": "Nahrazuje slova, která rozpoznávání opakovaně chybně zachytí — jména, odborné termíny, diakritiku — v každém přepisu, před volitelným AI zpracováním. V macOS se Handy navíc učí z vašich úprav: opravte slovo hned po vložení a Handy tuto opravu navrhne. Vypnutím pozastavíte obojí.",
+        "learnFromEdits": {
+          "title": "Učit se z mých oprav",
+          "description": "Po vložení sleduje pole a navrhuje opravy, které uděláte ručně. Vypnuto: nic nového se nenaučí, slovník se dál používá."
+        },
+        "suggestions": {
+          "title": "Návrhy",
+          "description": "Opravy, kterých si Handy všiml ve vašich úpravách. Přijměte některou, aby se od teď používala; oprava, kterou děláte opakovaně, se přidá automaticky. Volbou Nikdy ji trvale zablokujete.",
+          "accept": "Přijmout",
+          "dismiss": "Nikdy"
+        },
+        "dictionary": {
+          "title": "Slovník",
+          "filterPlaceholder": "Filtrovat…",
+          "noMatches": "Žádné odpovídající položky."
+        },
+        "blocked": {
+          "title": "Blokované",
+          "description": "Opravy, které jste zamítli nebo vrátili zpět. Handy se je znovu nenaučí, dokud je neodblokujete.",
+          "unblock": "Odblokovat"
+        },
+        "options": {
+          "title": "Možnosti učení"
+        },
+        "aggressiveness": {
+          "title": "Agresivita učení",
+          "description": "Jak ochotně je úprava přijata jako skutečné přeslechnutí. Volnější úrovně se naučí více, ale hrozí zanesení slovníku chybami.",
+          "conservative": {
+            "label": "Konzervativní",
+            "description": "Učí se jen velmi blízké, podobně znějící opravy. Nejbezpečnější proti chybným záznamům."
+          },
+          "balanced": {
+            "label": "Vyvážená",
+            "description": "Přijímá i středně odlišné opravy; fonetika je pouze orientační."
+          },
+          "aggressive": {
+            "label": "Agresivní",
+            "description": "Přijímá i volně související opravy a nekontroluje podobnost zvuku. Záměny běžných slov se ale nikdy nenaučí. Nejvyšší riziko chybných záznamů."
+          }
+        },
+        "window": {
+          "title": "Okno učení",
+          "description": "Jak dlouho po vložení Handy sleduje pole a čeká na ruční opravu.",
+          "seconds": "sekund"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Ručně"
+        },
+        "count": "viděno {{count}}×",
+        "langBadge": "Naučeno pro jazyk: {{lang}}",
+        "platformHint": "Automatické učení funguje pouze v systému macOS. Opravy můžete i tak přidat ručně níže a použijí se na každé platformě.",
+        "add": {
+          "misheardPlaceholder": "Špatně slyšeno",
+          "intendedPlaceholder": "Opraveno",
+          "button": "Přidat"
+        },
+        "enable": "Povolit {{misheard}}",
+        "remove": "Odebrat {{misheard}}",
+        "empty": "Zatím žádné opravy. Přidejte slovo, které rozpoznávač opakovaně špatně slyší — například jméno nebo odborný termín — a jeho oprava se použije na všechny budoucí přepisy.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Zkratka: Přijmout",
+            "description": "Přijme návrh v oznámení o naučené opravě. Aktivní jen, dokud je oznámení viditelné."
+          },
+          "dismiss": {
+            "title": "Zkratka: Zpět",
+            "description": "Vrátí právě naučenou opravu (Zpět). Aktivní jen, dokud oznámení ukazuje naučenou opravu; Ctrl+Esc oznámení zavře, aniž by cokoli změnil."
+          },
+          "errors": {
+            "needsModifier": "Použijte alespoň jednu modifikační klávesu (Control, Option, Shift nebo Command).",
+            "invalid": "Tuto kombinaci kláves nelze použít jako zkratku.",
+            "conflict": "Tuto kombinaci už používá jiná zkratka Handy.",
+            "conflictWith": "Tuto kombinaci už používá „{{name}}“.",
+            "save": "Zkratku se nepodařilo uložit: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Zadejte špatně rozpoznané slovo i jeho opravu.",
+          "generic": "Změnu se nepodařilo uložit. Zkuste to prosím znovu."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Detekce hlasové aktivity",
         "description": "Odfiltruje ticho z nahrávek. Modely podporující streaming používají delší doběh VAD; vypnutí VAD nahrává surový zvuk."
@@ -624,6 +786,55 @@
           "simplified": "Zjednodušené",
           "traditionalTw": "Tradiční (Tchaj-wan)",
           "traditionalHk": "Tradiční (Hongkong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Samoopravy",
+          "description": "Odstraňuje vycpávková slova (\"uh\", \"um\", „ehm“), zakoktání a opakovaná slova i části, které při opravě odvoláte (\"no wait\", \"I mean\", „ne, počkej“, „myslím“), pomocí Apple Intelligence v tomto zařízení. Nastavený poskytovatel následného zpracování, který může být vzdálenou službou, se použije jen při zapnutém následném zpracování. Slova se pouze odstraňují, nikdy nepřepisují; diktáty bez takového zaváhání se vloží beze změny, a je-li model pomalý nebo mění příliš, zůstane původní text."
+        },
+        "appStyles": {
+          "title": "Styly aplikací",
+          "description": "Přizpůsobí text aplikaci, do které diktujete: zprávy v chatu bez koncové tečky, výstup vhodný pro terminál a kód a velikost písmen a mezery podle textu před kurzorem.",
+          "categories": {
+            "title": "Styly",
+            "summary": "Aktivní: {{active}}/{{total}}",
+            "chat": {
+              "label": "Chatovací aplikace",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: jednověté zprávě odpadne koncová tečka (? a ! zůstanou)."
+            },
+            "terminal": {
+              "label": "Terminály",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: bez koncové tečky, bez velkého písmena u úvodního funkčního slova."
+            },
+            "code": {
+              "label": "Editory kódu",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: jednotlivému slovu nebo identifikátoru odpadne koncová tečka."
+            },
+            "matchContext": {
+              "label": "Přizpůsobit okolnímu textu",
+              "hint": "Při pokračování věty se úvodní funkční slovo píše malým písmenem (\"and\", \"weil\"); stojí-li kurzor těsně za slovem, přidá se mezera."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Textové úryvky",
+          "description": "Řekněte samotnou spouštěcí frázi (nebo mezi interpunkcí) a vloží se její text, např. \"moje adresa\". Velikost písmen a interpunkce se ignorují; vložený text nikdy nemění jiná pravidla.",
+          "triggerPlaceholder": "Spouštěcí fráze, např. moje adresa",
+          "expansionPlaceholder": "Text k vložení (povoleno více řádků)",
+          "add": "Přidat",
+          "save": "Uložit",
+          "cancel": "Zrušit",
+          "edit": "Upravit",
+          "remove": "Odebrat úryvek {{trigger}}",
+          "enable": "Povolit úryvek {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Spouštěcí fráze musí obsahovat alespoň jedno alfanumerické slovo.",
+            "expansionRequired": "Zadejte text k vložení.",
+            "duplicateTrigger": "Úryvek pro „{{trigger}}“ už existuje.",
+            "commandFailed": "Úryvek se nepodařilo uložit ani odebrat. Zkuste to prosím znovu."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
-    "loadingModel": "Načítání modelu..."
+    "fallbackModel": "Záložní model…",
+    "recordingLimitWarning": "Nahrávání se automaticky zastaví za {{seconds}} sekund",
+    "loadingModel": "Načítání modelu...",
+    "recording": "Nahrávání…"
+  },
+  "learnedToast": {
+    "pair": "„{{misheard}}“ → „{{intended}}“",
+    "undo": "Zpět",
+    "accept": "Přijmout",
+    "dismiss": "Zavřít",
+    "more": "+{{count}} další"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} může blokovat 1 zkratku",

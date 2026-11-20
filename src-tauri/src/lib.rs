@@ -1,33 +1,61 @@
 mod actions;
+// fork(voice-control): per-app output styles (see `app_styles`).
+mod app_styles;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
+// fork(voice-control): vocabulary + context bias for capable ASR models.
+mod asr_bias;
 mod audio_feedback;
 pub mod audio_toolkit;
 mod autostart;
+// fork(voice-control): headless benchmark harness. Only the `handy-bench` bin
+// entry point uses this; it stays in-crate so it can reach internal engine
+// loading / text-rules / settings code without a Tauri AppHandle.
+pub mod bench;
 mod catalog;
 mod chinese_script;
 pub mod cli;
 mod clipboard;
 mod commands;
+// fork(voice-control): auto-learned corrections (exact misheard→intended dict).
+mod correction_learning;
+// fork(voice-control): app context at dictation start + local dictation journal.
+mod dictation_context;
 pub mod engine_supervisor;
 mod helpers;
 mod input;
+// fork(voice-control): local dictation journal (see `journal`).
+mod journal;
 mod language_detection;
 mod languages;
 mod llm_client;
 mod managers;
 mod memory;
+// fork(voice-control): warm-up inference after a model load.
+mod model_warmup;
 mod notices;
+// fork(voice-control): self-correction pass + per-app style after the result.
+mod output_stages;
 mod overlay;
+// fork(voice-control): "Paste last transcript" hotkey action.
+mod paste_last;
 mod paste_tx;
 pub mod portable;
 #[cfg(target_os = "linux")]
 mod primary_selection;
 mod secure_input;
+// fork(voice-control): trigger-gated self-correction LLM pass.
+mod self_correction;
 mod settings;
 mod shortcut;
 mod signal_handle;
+// fork(voice-control): spoken trigger phrase → expansion text.
+mod snippets;
 mod system_languages;
+mod text_rules;
+// fork(voice-control): local socket that serves T3 Code's transcriptions.
+#[cfg(unix)]
+mod transcribe_socket;
 mod transcription_coordinator;
 mod transcription_hook;
 mod tray;
@@ -401,6 +429,13 @@ fn initialize_core_logic(app_handle: &AppHandle) {
 
     // Create the recording overlay window (hidden by default)
     utils::create_recording_overlay(app_handle);
+
+    // fork(voice-control): load the learned pairs, then create the toast window
+    // eagerly like the overlay (a lazily created panel is suspended by WebKit).
+    correction_learning::init(app_handle);
+    correction_learning::toast::init_learned_toast(app_handle);
+    // fork(voice-control): start the dictation journal writer (prunes old days).
+    journal::init(app_handle);
 }
 
 #[tauri::command]
@@ -701,6 +736,9 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_translate_to_english_setting,
             shortcut::change_selected_language_setting,
             shortcut::change_spoken_languages_setting,
+            // fork(voice-control): language allowlist guard.
+            shortcut::change_language_allowlist_setting,
+            shortcut::change_language_allowlist_fallback_model_setting,
             shortcut::change_overlay_position_setting,
             shortcut::change_overlay_style_setting,
             shortcut::change_debug_mode_setting,
@@ -733,6 +771,43 @@ pub fn run(cli_args: CliArgs) {
             shortcut::update_custom_words,
             shortcut::suspend_all_bindings,
             shortcut::resume_all_bindings,
+            shortcut::change_text_rules_enabled_setting,
+            shortcut::change_text_rules_itn_enabled_setting,
+            shortcut::update_text_rules_custom,
+            shortcut::update_text_rules_disabled_builtins,
+            shortcut::get_text_rules_builtins,
+            // fork(voice-control): learned-corrections commands.
+            correction_learning::commands::change_learn_corrections_enabled_setting,
+            correction_learning::commands::change_learn_from_edits_enabled_setting,
+            correction_learning::commands::change_learn_corrections_aggressiveness_setting,
+            correction_learning::commands::change_learn_corrections_window_secs_setting,
+            correction_learning::commands::get_learned_corrections,
+            correction_learning::commands::add_learned_correction,
+            correction_learning::commands::accept_learned_correction,
+            correction_learning::commands::reject_learned_corrections,
+            correction_learning::commands::remove_learned_correction,
+            correction_learning::commands::set_learned_correction_enabled,
+            correction_learning::commands::unblock_learned_correction,
+            correction_learning::toast::hide_learned_toast,
+            correction_learning::toast::take_pending_learned_toast,
+            correction_learning::toast::toast_stage,
+            correction_learning::toast_shortcuts::change_learned_toast_shortcut_setting,
+            // fork(voice-control): dictation journal commands.
+            journal::commands::change_dictation_journal_enabled_setting,
+            journal::commands::change_dictation_journal_retention_days_setting,
+            journal::commands::get_journal_dir_path,
+            journal::commands::open_journal_dir,
+            journal::commands::journal_overlay_stage,
+            // fork(voice-control): ASR biasing (vocabulary + app context).
+            asr_bias::change_asr_context_biasing_setting,
+            asr_bias::get_asr_bias_support,
+            // fork(voice-control): self-correction, app styles, snippets.
+            self_correction::commands::change_self_correction_llm_enabled_setting,
+            app_styles::commands::change_app_styles_enabled_setting,
+            app_styles::commands::change_app_styles_categories_setting,
+            snippets::commands::add_snippet,
+            snippets::commands::update_snippet,
+            snippets::commands::remove_snippet,
             shortcut::change_mute_while_recording_setting,
             shortcut::change_append_trailing_space_setting,
             shortcut::change_lazy_stream_close_setting,
@@ -741,6 +816,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_vad_backend_setting,
             shortcut::change_filler_word_removal_enabled_setting,
             shortcut::change_chinese_script_setting,
+            shortcut::change_auto_stop_recording_on_limit_setting,
             shortcut::change_app_language_setting,
             shortcut::change_update_checks_setting,
             shortcut::change_show_whats_new_on_update_setting,
@@ -831,6 +907,9 @@ pub fn run(cli_args: CliArgs) {
             transcription_coordinator::RecordingStateEvent,
             actions::TranscriptionCompleteEvent,
             notices::NoticesChanged,
+            // fork(voice-control): learned-correction toast + list-changed events.
+            correction_learning::LearnedCorrectionEvent,
+            correction_learning::LearnedCorrectionsChanged,
         ]);
 
     #[cfg(debug_assertions)] // <- Only export on non-release builds
@@ -855,8 +934,10 @@ pub fn run(cli_args: CliArgs) {
         .plugin(
             LogBuilder::new()
                 .level(log::LevelFilter::Trace) // Set to most verbose level globally
-                .max_file_size(500_000)
-                .rotation_strategy(RotationStrategy::KeepOne)
+                // fork(voice-control): keep ~6 MB of history (3 × 2 MB) instead of
+                // one 500 KB file, which trace level filled in ~3 hours.
+                .max_file_size(2_000_000)
+                .rotation_strategy(RotationStrategy::KeepSome(3))
                 .clear_targets()
                 .targets([
                     // Console output respects RUST_LOG environment variable. In
@@ -918,6 +999,10 @@ pub fn run(cli_args: CliArgs) {
                 signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
+            } else if args.iter().any(|a| a == "--debug-toast") {
+                // fork(voice-control): repeatable toast-display test without a
+                // dictation + manual-correction round trip.
+                correction_learning::toast::debug_show_learned_toast(app);
             } else {
                 // A second process was launched without remote-control flags
                 // (e.g. the binary run from a shell). On macOS, relaunching the
@@ -1103,6 +1188,11 @@ pub fn run(cli_args: CliArgs) {
             app.manage(TranscriptionCoordinator::new(app_handle.clone()));
 
             initialize_core_logic(&app_handle);
+
+            // fork(voice-control): serve T3 Code's transcriptions with the
+            // loaded model (app mode only; the headless path returned above).
+            #[cfg(unix)]
+            transcribe_socket::start(&app_handle);
 
             // Secure Input monitor (macOS): detects stuck secure input that
             // silently blocks keyed shortcuts, warns the user, and activates

@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "後処理のショートカット",
             "description": "文字起こしに常に AI 後処理を適用するキーボードショートカット。 (任意)"
+          },
+          "paste_last_transcript": {
+            "name": "最後の文字起こしを貼り付け",
+            "description": "最新の文字起こしをもう一度貼り付けます。設定中はこの組み合わせがシステム全体で使用されます。他のアプリで必要な場合は変更してください（例: ターミナルや Vim の Ctrl+V）。"
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "言語を検索…",
         "noResults": "言語が見つかりません",
         "auto": "自動",
+        "allowlist": {
+          "title": "自動検出を次の言語に限定…",
+          "description": "「自動」を選択している場合、これらの言語のみを保持します。リストにない言語が検出された場合は、最初の（プライマリ）言語に固定して再文字起こしします。",
+          "primary": "プライマリ",
+          "primaryTag": "{{language}}（プライマリ）",
+          "makePrimary": "プライマリにする",
+          "summaryAll": "すべての言語",
+          "fallbackModel": {
+            "label": "フォールバックモデル",
+            "none": "なし",
+            "description": "リスト外の検出は、プライマリ言語での再試行の代わりにこのモデルで再文字起こしされます。"
+          }
+        },
         "autoUnavailable": {
           "title": "自動は無効です",
           "oneLanguage": "このモデルで使えるのはあなたの言語のうち1つだけです",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "自動には別のダウンロードが必要です",
         "detectorMissing": "このモデルは話している言語を判別できません。自動では小さな言語検出を使って判別します",
         "stopDetectorDownload": "言語検出のダウンロードを停止"
+      },
+      "asrBiasing": {
+        "label": "語彙とアプリのコンテキストを使用",
+        "description": "カスタム単語、学習した修正、対象アプリのコンテキストを認識エンジンに渡し、名前や用語の精度を高めます。",
+        "unsupported": "選択中のモデルは語彙とアプリのコンテキストを無視します。カスタム単語は引き続き事後の修正として適用されます。"
       },
       "preferredLanguages": {
         "title": "使用する言語",
@@ -471,7 +493,10 @@
         "output": "出力",
         "transcription": "文字起こし",
         "history": "履歴",
-        "experimental": "実験的"
+        "experimental": "実験的",
+        "textRules": "テキストルール",
+        "learnedCorrections": "学習した修正",
+        "smartFormatting": "スマート整形"
       },
       "experimentalToggle": {
         "label": "実験的な機能",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "文字起こし間でマイクを有効にする",
         "description": "録音停止後マイクを30秒間有効なままにし、連続した文字起こしの遅延を軽減します。Bluetooth 音声品質に影響する場合があります。"
+      },
+      "recordingLimitAutoStop": {
+        "title": "長時間の録音を自動停止",
+        "description": "選択したモデルが安全なディクテーション上限に達する前に録音を停止します。最後の数秒間はカウントダウンリングが表示されます。"
+      },
+      "dictationJournal": {
+        "title": "ディクテーション記録",
+        "description": "各ディクテーション（所要時間、モデル、各処理段階後のテキスト、入力先アプリ）を日ごとにローカルへ記録し、後から品質を分析できるようにします。データはこのデバイスにのみ保存され、{{days}}日より古いファイルは削除されます。",
+        "folderTitle": "記録フォルダー",
+        "folderDescription": "日ごとの記録ファイルの保存場所",
+        "retentionTitle": "ジャーナルの保存期間",
+        "retentionDescription": "これより古い日別ファイルは削除されます",
+        "retentionOption": "{{days}}日"
       },
       "airpodsMode": {
         "label": "AirPods モード",
@@ -590,6 +628,130 @@
         "remove": "{{word}}を削除",
         "duplicate": "「{{word}}」は既に存在します"
       },
+      "textRules": {
+        "title": "音声コマンドを変換",
+        "description": "話した句読点や書式のコマンド（ドイツ語・英語）を、AIを介さずに即座に記号へ変換します。任意のAI後処理の前に実行されます。",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "数値を数字に変換",
+          "description": "話した数値を数字に変換します。例: \"five hundred thirty nine\" → \"539\"。小さな単独の数値は単語のまま残します。"
+        },
+        "builtins": {
+          "title": "組み込みコマンド",
+          "description": "個々の組み込みコマンドを有効または無効にします。通常の発話で誤動作する場合は無効にしてください（例: \"Punkt\"）。",
+          "summary": "{{active}}/{{total}} 有効",
+          "loading": "組み込みコマンドを読み込み中…",
+          "loadError": "組み込みコマンドを読み込めませんでした。",
+          "retry": "再試行"
+        },
+        "custom": {
+          "title": "カスタムルール",
+          "description": "独自のトリガーから置換へのルールを追加します。カスタムルールは同じトリガーの組み込みルールより優先されます。",
+          "triggerPlaceholder": "トリガー",
+          "replacementPlaceholder": "置換",
+          "add": "追加",
+          "remove": "{{trigger}}を削除",
+          "duplicate": "「{{trigger}}」は既に存在します",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "読点のように",
+          "attach_right": "開き括弧のように",
+          "glue": "単語をつなぐ",
+          "standalone": "単独"
+        },
+        "spacingHint": {
+          "attach_left": "前にスペースなし、後に1つ: word, word",
+          "attach_right": "前にスペース1つ、後になし: word (word",
+          "glue": "前後にスペースなし: voice-control",
+          "standalone": "そのまま挿入し、前後のスペースを削除: 改行"
+        }
+      },
+      "learnedCorrections": {
+        "title": "個人辞書",
+        "description": "認識が何度も間違える単語（名前、専門用語など）を、オプションのAI後処理の前にすべての文字起こしで置き換えます。macOSでは、Handyは編集内容からも学習します。貼り付け直後に単語を修正すると、その修正を提案します。オフにすると両方が停止します。",
+        "learnFromEdits": {
+          "title": "自分の修正から学習",
+          "description": "貼り付け後にフィールドを監視し、手動で行った修正を提案します。オフにすると新たな学習は行われず、辞書は引き続き適用されます。"
+        },
+        "suggestions": {
+          "title": "提案",
+          "description": "Handyが編集内容から見つけた修正です。承認すると今後適用されます。繰り返し行う修正は自動的に追加されます。「今後しない」を選ぶと完全にブロックされます。",
+          "accept": "承認",
+          "dismiss": "今後しない"
+        },
+        "dictionary": {
+          "title": "辞書",
+          "filterPlaceholder": "フィルター…",
+          "noMatches": "一致する項目がありません。"
+        },
+        "blocked": {
+          "title": "ブロック済み",
+          "description": "却下または取り消した修正です。ブロックを解除しない限り、Handyは再学習しません。",
+          "unblock": "ブロック解除"
+        },
+        "options": {
+          "title": "学習オプション"
+        },
+        "aggressiveness": {
+          "title": "学習の積極性",
+          "description": "編集を本当の誤認識として受け入れる基準の緩さです。緩いレベルほど多く学習しますが、辞書を汚染するリスクがあります。",
+          "conservative": {
+            "label": "控えめ",
+            "description": "非常に近く、発音が似た修正のみを学習します。誤登録に対して最も安全です。"
+          },
+          "balanced": {
+            "label": "バランス",
+            "description": "適度に異なる修正も受け入れます。発音は参考程度にのみ使用されます。"
+          },
+          "aggressive": {
+            "label": "積極的",
+            "description": "緩やかに関連する修正も受け入れ、発音の類似は確認しません。日常的な単語同士の置き換えは引き続き学習しません。誤登録のリスクが最も高くなります。"
+          }
+        },
+        "window": {
+          "title": "学習ウィンドウ",
+          "description": "貼り付け後、Handy が手動修正を監視する時間の長さです。",
+          "seconds": "秒"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "自動",
+          "manual": "手動"
+        },
+        "count": "{{count}}回検出",
+        "langBadge": "学習された言語: {{lang}}",
+        "platformHint": "自動学習は macOS でのみ動作します。以下から手動で修正を追加でき、それらはすべてのプラットフォームで適用されます。",
+        "add": {
+          "misheardPlaceholder": "誤認識",
+          "intendedPlaceholder": "修正後",
+          "button": "追加"
+        },
+        "enable": "{{misheard}} を有効にする",
+        "remove": "{{misheard}} を削除",
+        "empty": "まだ修正がありません。認識エンジンが繰り返し誤認識する単語（名前や専門用語など）を追加すると、今後のすべての文字起こしにその修正が適用されます。",
+        "toastShortcuts": {
+          "accept": {
+            "title": "ショートカット：承認",
+            "description": "学習した修正の通知に表示された提案を承認します。通知が表示されている間だけ有効です。"
+          },
+          "dismiss": {
+            "title": "ショートカット：元に戻す",
+            "description": "学習したばかりの修正を元に戻します。学習済みの修正が通知に表示されている間だけ有効です。Ctrl+Esc は何も変更せずに通知を閉じます。"
+          },
+          "errors": {
+            "needsModifier": "修飾キー（Control、Option、Shift、Command）を少なくとも 1 つ使ってください。",
+            "invalid": "このキーの組み合わせはショートカットとして使用できません。",
+            "conflict": "この組み合わせは別の Handy ショートカットで使用されています。",
+            "conflictWith": "この組み合わせは「{{name}}」で既に使用されています。",
+            "save": "ショートカットを保存できませんでした：{{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "聞き間違えた語と修正後の語の両方を入力してください。",
+          "generic": "変更を保存できませんでした。もう一度お試しください。"
+        }
+      },
       "voiceActivityDetection": {
         "title": "音声区間検出 (VAD)",
         "description": "録音から無音部分を除去します。ストリーミング対応モデルはより長い音声検出区間を使用します。VAD を無効にすると音声をそのまま録音します。"
@@ -624,6 +786,55 @@
           "simplified": "簡体字",
           "traditionalTw": "繁体字 (台湾)",
           "traditionalHk": "繁体字 (香港)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "言い直しの修正",
+          "description": "つなぎ言葉(\"uh\"、\"um\"、「えーと」)、どもりや繰り返された語、言い直しで取り消した部分(\"no wait\"、\"I mean\"、「いや、待って」、「つまり」)を、このデバイス上の Apple Intelligence で取り除きます。設定済みの後処理プロバイダー(リモートサービスの場合があります)は後処理が有効なときにのみ使用されます。語は削除されるだけで書き換えられることはありません。こうした言いよどみのない口述はそのまま貼り付けられ、モデルが遅い場合や変更が多すぎる場合は元のテキストが維持されます。"
+        },
+        "appStyles": {
+          "title": "アプリ別スタイル",
+          "description": "口述先のアプリに合わせてテキストを調整します。チャットメッセージは末尾の句点なし、ターミナルやコードに適した出力、カーソル前のテキストに合わせた大文字小文字とスペースになります。",
+          "categories": {
+            "title": "スタイル",
+            "summary": "{{active}}/{{total}} 有効",
+            "chat": {
+              "label": "チャットアプリ",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams:1文だけのメッセージは末尾のピリオドが省かれます(? と ! は残ります)。"
+            },
+            "terminal": {
+              "label": "ターミナル",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm:末尾のピリオドなし、先頭の機能語を大文字にしません。"
+            },
+            "code": {
+              "label": "コードエディタ",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova:単語1つまたは識別子は末尾のピリオドが省かれます。"
+            },
+            "matchContext": {
+              "label": "周囲のテキストに合わせる",
+              "hint": "文の続きでは先頭の機能語が小文字になり(\"and\"、\"weil\")、カーソルが単語の直後にある場合はスペースが追加されます。"
+            }
+          }
+        },
+        "snippets": {
+          "title": "スニペット",
+          "description": "トリガーフレーズだけ(または句読点で区切って)話すと、対応するテキストが挿入されます。例:「私の住所」。大文字小文字と句読点は無視され、挿入されたテキストが他のルールで変更されることはありません。",
+          "triggerPlaceholder": "トリガーフレーズ(例:私の住所)",
+          "expansionPlaceholder": "挿入するテキスト(複数行可)",
+          "add": "追加",
+          "save": "保存",
+          "cancel": "キャンセル",
+          "edit": "編集",
+          "remove": "スニペット {{trigger}} を削除",
+          "enable": "スニペット {{trigger}} を有効にする",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "トリガーには英数字の単語が少なくとも1つ必要です。",
+            "expansionRequired": "挿入するテキストを入力してください。",
+            "duplicateTrigger": "「{{trigger}}」のスニペットはすでに存在します。",
+            "commandFailed": "スニペットを保存または削除できませんでした。もう一度お試しください。"
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "文字起こし中…",
     "processing": "処理中…",
-    "loadingModel": "モデルを読み込み中…"
+    "fallbackModel": "フォールバックモデル…",
+    "recordingLimitWarning": "録音はあと{{seconds}}秒で自動的に停止します",
+    "loadingModel": "モデルを読み込み中…",
+    "recording": "録音中…"
+  },
+  "learnedToast": {
+    "pair": "「{{misheard}}」→「{{intended}}」",
+    "undo": "元に戻す",
+    "accept": "承認",
+    "dismiss": "閉じる",
+    "more": "他{{count}}件"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} が1個のショートカットをブロックしている可能性があります",

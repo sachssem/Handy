@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Skrót postprocessingu",
             "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze stosuje postprocessing AI do transkrypcji."
+          },
+          "paste_last_transcript": {
+            "name": "Wklej ostatnią transkrypcję",
+            "description": "Ponownie wkleja Twoją najnowszą transkrypcję. Kombinacja jest zajęta w całym systemie, dopóki jest ustawiona — zmień ją, jeśli potrzebuje jej inna aplikacja (np. Ctrl+V w terminalach lub Vimie)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Szukaj języka...",
         "noResults": "Nie znaleziono języków",
         "auto": "Automatycznie",
+        "allowlist": {
+          "title": "Ogranicz automatyczne wykrywanie do…",
+          "description": "Gdy wybrano Auto, zachowaj tylko te języki. Wykryty język spoza tej listy jest ponownie transkrybowany z wymuszeniem pierwszego (głównego) języka.",
+          "primary": "Główny",
+          "primaryTag": "{{language}} (główny)",
+          "makePrimary": "Ustaw jako główny",
+          "summaryAll": "Wszystkie języki",
+          "fallbackModel": {
+            "label": "Model zapasowy",
+            "none": "Brak",
+            "description": "Wykrycia spoza listy są ponownie transkrybowane tym modelem zamiast ponawiania w głównym języku."
+          }
+        },
         "autoUnavailable": {
           "title": "Automatycznie jest wyłączone",
           "oneLanguage": "Z tym modelem działa tylko jeden z twoich języków",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Tryb automatyczny wymaga osobnego pobrania",
         "detectorMissing": "Ten model nie rozpozna, w jakim języku mówisz. Tryb automatyczny potrzebuje małego detektora języka, żeby to ustalić",
         "stopDetectorDownload": "Zatrzymaj pobieranie detektora języka"
+      },
+      "asrBiasing": {
+        "label": "Używaj słownictwa i kontekstu aplikacji",
+        "description": "Przekazuje własne słowa, wyuczone poprawki i kontekst docelowej aplikacji do rozpoznawania, aby poprawić nazwy i terminy.",
+        "unsupported": "Wybrany model ignoruje słownictwo i kontekst aplikacji; własne słowa nadal są stosowane jako późniejsze poprawki."
       },
       "preferredLanguages": {
         "title": "Preferowane języki",
@@ -471,7 +493,10 @@
         "output": "Wyjście",
         "transcription": "Transkrypcja",
         "history": "Historia",
-        "experimental": "Eksperymentalne"
+        "experimental": "Eksperymentalne",
+        "textRules": "Reguły tekstu",
+        "learnedCorrections": "Wyuczone korekty",
+        "smartFormatting": "Inteligentne formatowanie"
       },
       "experimentalToggle": {
         "label": "Funkcje Eksperymentalne",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Pozostaw mikrofon otwarty między transkrypcjami",
         "description": "Utrzymuje strumień mikrofonu otwarty przez 30 sekund po zatrzymaniu nagrywania, zmniejszając opóźnienie przy kolejnych transkrypcjach. Może pogorszyć jakość dźwięku Bluetooth."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Automatycznie zatrzymuj długie nagrania",
+        "description": "Zatrzymuje nagrywanie, zanim wybrany model osiągnie bezpieczny limit dyktowania. W ostatnich sekundach pojawia się pierścień odliczania."
+      },
+      "dictationJournal": {
+        "title": "Dziennik dyktowania",
+        "description": "Prowadzi lokalny, dzienny zapis każdego dyktowania (czasy, model, tekst po każdym etapie przetwarzania, aplikacja docelowa), aby można było później analizować jakość. Pozostaje na tym urządzeniu; pliki starsze niż {{days}} dni są usuwane.",
+        "folderTitle": "Folder dziennika",
+        "folderDescription": "Miejsce zapisu dziennych plików dziennika",
+        "retentionTitle": "Okres przechowywania",
+        "retentionDescription": "Starsze pliki dzienne są usuwane",
+        "retentionOption": "{{days}} dni"
       },
       "airpodsMode": {
         "label": "Tryb AirPods",
@@ -590,6 +628,130 @@
         "remove": "Usuń {{word}}",
         "duplicate": "\"{{word}}\" już istnieje"
       },
+      "textRules": {
+        "title": "Zamieniaj polecenia głosowe",
+        "description": "Zamienia wypowiadane polecenia interpunkcji i formatowania (niemieckie i angielskie) natychmiast na symbole, bez udziału AI. Działa przed opcjonalnym przetwarzaniem AI.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Liczby na cyfry",
+          "description": "Zamienia wypowiadane liczby na cyfry, np. \"five hundred thirty nine\" → \"539\". Małe pojedyncze liczby pozostają zapisane słownie."
+        },
+        "builtins": {
+          "title": "Wbudowane polecenia",
+          "description": "Włącz lub wyłącz poszczególne wbudowane polecenia. Wyłącz dane polecenie, jeśli błędnie uruchamia się w normalnej mowie (np. \"Punkt\").",
+          "summary": "Aktywne: {{active}}/{{total}}",
+          "loading": "Wczytywanie wbudowanych poleceń…",
+          "loadError": "Nie udało się wczytać wbudowanych poleceń.",
+          "retry": "Ponów"
+        },
+        "custom": {
+          "title": "Reguły własne",
+          "description": "Dodaj własne reguły zamiany wyzwalacza na zamiennik. Reguły własne zastępują wbudowane o tym samym wyzwalaczu.",
+          "triggerPlaceholder": "Wyzwalacz",
+          "replacementPlaceholder": "Zamiennik",
+          "add": "Dodaj",
+          "remove": "Usuń {{trigger}}",
+          "duplicate": "\"{{trigger}}\" już istnieje",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Jak przecinek",
+          "attach_right": "Jak nawias otwierający",
+          "glue": "Łączy słowa",
+          "standalone": "Samodzielnie"
+        },
+        "spacingHint": {
+          "attach_left": "Bez spacji przed, jedna po: słowo, słowo",
+          "attach_right": "Jedna spacja przed, bez spacji po: słowo (słowo",
+          "glue": "Bez spacji wokół: voice-control",
+          "standalone": "Wstawiane bez zmian, okoliczne spacje usuwane: podziały wierszy"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Słownik osobisty",
+        "description": "Zastępuje słowa, które rozpoznawanie ciągle przekręca — imiona, żargon, polskie znaki — w każdej transkrypcji, przed opcjonalnym przetwarzaniem AI. W macOS Handy uczy się też z Twoich poprawek: popraw słowo zaraz po wklejeniu, a zaproponuje tę korektę. Wyłączenie wstrzymuje oba mechanizmy.",
+        "learnFromEdits": {
+          "title": "Ucz się z moich poprawek",
+          "description": "Obserwuje pole po wklejeniu i proponuje poprawki wprowadzone ręcznie. Wyłączone: nic nowego nie jest zapamiętywane, słownik nadal działa."
+        },
+        "suggestions": {
+          "title": "Sugestie",
+          "description": "Korekty, które Handy zauważył w Twoich poprawkach. Zaakceptuj jedną, aby stosować ją od teraz; korekta, którą powtarzasz, jest dodawana automatycznie. Wybierz Nigdy, aby zablokować ją na stałe.",
+          "accept": "Akceptuj",
+          "dismiss": "Nigdy"
+        },
+        "dictionary": {
+          "title": "Słownik",
+          "filterPlaceholder": "Filtruj…",
+          "noMatches": "Brak pasujących wpisów."
+        },
+        "blocked": {
+          "title": "Zablokowane",
+          "description": "Korekty, które odrzuciłeś lub cofnąłeś. Handy nie nauczy się ich ponownie, dopóki ich nie odblokujesz.",
+          "unblock": "Odblokuj"
+        },
+        "options": {
+          "title": "Opcje uczenia"
+        },
+        "aggressiveness": {
+          "title": "Agresywność uczenia",
+          "description": "Jak łatwo edycja jest akceptowana jako prawdziwe przesłyszenie. Luźniejsze poziomy uczą się więcej, ale grożą zanieczyszczeniem słownika.",
+          "conservative": {
+            "label": "Konserwatywny",
+            "description": "Uczone są tylko bardzo bliskie, podobnie brzmiące poprawki. Najbezpieczniejszy pod względem błędnych wpisów."
+          },
+          "balanced": {
+            "label": "Zrównoważony",
+            "description": "Akceptuje umiarkowanie różne poprawki; fonetyka ma jedynie charakter pomocniczy."
+          },
+          "aggressive": {
+            "label": "Agresywny",
+            "description": "Przyjmuje nawet luźno powiązane poprawki i nie sprawdza podobieństwa brzmienia. Zamiany codziennych słów nadal nigdy nie są zapamiętywane. Najwyższe ryzyko błędnych wpisów."
+          }
+        },
+        "window": {
+          "title": "Okno uczenia",
+          "description": "Jak długo po wklejeniu Handy obserwuje pole w poszukiwaniu ręcznej poprawki.",
+          "seconds": "sekundy"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Ręcznie"
+        },
+        "count": "wykryto {{count}}×",
+        "langBadge": "Wyuczono dla języka: {{lang}}",
+        "platformHint": "Automatyczne uczenie działa tylko na macOS. Poniżej możesz nadal dodawać poprawki ręcznie, a będą stosowane na każdej platformie.",
+        "add": {
+          "misheardPlaceholder": "Przesłyszane",
+          "intendedPlaceholder": "Poprawione",
+          "button": "Dodaj"
+        },
+        "enable": "Włącz {{misheard}}",
+        "remove": "Usuń {{misheard}}",
+        "empty": "Brak poprawek. Dodaj słowo, które system rozpoznawania wciąż źle rozpoznaje — jak nazwa lub termin techniczny — a jego poprawka zostanie zastosowana do każdej przyszłej transkrypcji.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Skrót: Akceptuj",
+            "description": "Akceptuje sugestię w powiadomieniu o wyuczonej poprawce. Aktywny tylko wtedy, gdy powiadomienie jest widoczne."
+          },
+          "dismiss": {
+            "title": "Skrót: Cofnij",
+            "description": "Cofa właśnie wyuczoną poprawkę (Cofnij). Aktywny tylko wtedy, gdy powiadomienie pokazuje wyuczoną poprawkę; Ctrl+Esc zamyka powiadomienie bez żadnych zmian."
+          },
+          "errors": {
+            "needsModifier": "Użyj co najmniej jednego klawisza modyfikującego (Control, Option, Shift lub Command).",
+            "invalid": "Tej kombinacji klawiszy nie można użyć jako skrótu.",
+            "conflict": "Ta kombinacja jest już używana przez inny skrót Handy.",
+            "conflictWith": "Ta kombinacja jest już używana przez „{{name}}”.",
+            "save": "Nie udało się zapisać skrótu: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Wpisz zarówno błędnie rozpoznane słowo, jak i jego poprawkę.",
+          "generic": "Nie udało się zapisać zmiany. Spróbuj ponownie."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Wykrywanie aktywności głosowej",
         "description": "Odfiltrowuje ciszę z nagrań. Modele obsługujące streaming używają dłuższego marginesu VAD; wyłączenie VAD nagrywa surowy dźwięk."
@@ -624,6 +786,55 @@
           "simplified": "Uproszczone",
           "traditionalTw": "Tradycyjne (Tajwan)",
           "traditionalHk": "Tradycyjne (Hongkong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autokorekta",
+          "description": "Usuwa wtrącenia (\"uh\", \"um\", „yyy”), zająknięcia i powtórzone słowa oraz fragmenty, które cofasz, gdy się poprawiasz (\"no wait\", \"I mean\", „nie, czekaj”, „to znaczy”), za pomocą Apple Intelligence na tym urządzeniu. Skonfigurowany dostawca przetwarzania końcowego, który może być usługą zdalną, jest używany tylko wtedy, gdy przetwarzanie końcowe jest włączone. Słowa są tylko usuwane, nigdy przepisywane; dyktowanie bez takich zawahań jest wklejane bez zmian, a jeśli model jest wolny lub zmienia zbyt wiele, zostaje oryginał."
+        },
+        "appStyles": {
+          "title": "Style aplikacji",
+          "description": "Dopasowuje tekst do aplikacji, w której dyktujesz: wiadomości czatu bez kropki na końcu, dane wyjściowe przyjazne dla terminala i kodu oraz wielkość liter i spacje zgodne z tekstem przed kursorem.",
+          "categories": {
+            "title": "Style",
+            "summary": "Aktywne: {{active}}/{{total}}",
+            "chat": {
+              "label": "Aplikacje czatu",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: jednozdaniowa wiadomość traci końcową kropkę (? i ! zostają)."
+            },
+            "terminal": {
+              "label": "Terminale",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: bez końcowej kropki, bez wielkiej litery na początkowym słowie funkcyjnym."
+            },
+            "code": {
+              "label": "Edytory kodu",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: pojedyncze słowo lub identyfikator traci końcową kropkę."
+            },
+            "matchContext": {
+              "label": "Dopasuj do otaczającego tekstu",
+              "hint": "Przy kontynuowaniu zdania początkowe słowo funkcyjne jest pisane małą literą (\"and\", \"weil\"); gdy kursor stoi tuż po słowie, dodawana jest spacja."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Fragmenty tekstu",
+          "description": "Wypowiedz samą frazę wyzwalającą (lub między znakami interpunkcyjnymi), aby wstawić jej tekst, np. \"mój adres\". Wielkość liter i interpunkcja są ignorowane; wstawiony tekst nigdy nie jest zmieniany przez inne reguły.",
+          "triggerPlaceholder": "Fraza wyzwalająca, np. mój adres",
+          "expansionPlaceholder": "Tekst do wstawienia (dozwolonych wiele wierszy)",
+          "add": "Dodaj",
+          "save": "Zapisz",
+          "cancel": "Anuluj",
+          "edit": "Edytuj",
+          "remove": "Usuń fragment {{trigger}}",
+          "enable": "Włącz fragment {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Fraza wyzwalająca musi zawierać co najmniej jedno słowo alfanumeryczne.",
+            "expansionRequired": "Wpisz tekst do wstawienia.",
+            "duplicateTrigger": "Fragment dla „{{trigger}}” już istnieje.",
+            "commandFailed": "Nie udało się zapisać ani usunąć fragmentu. Spróbuj ponownie."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie...",
-    "loadingModel": "Wczytywanie modelu..."
+    "fallbackModel": "Model zapasowy…",
+    "recordingLimitWarning": "Nagrywanie zatrzyma się automatycznie za {{seconds}} sekund",
+    "loadingModel": "Wczytywanie modelu...",
+    "recording": "Nagrywanie…"
+  },
+  "learnedToast": {
+    "pair": "„{{misheard}}“ → „{{intended}}“",
+    "undo": "Cofnij",
+    "accept": "Akceptuj",
+    "dismiss": "Zamknij",
+    "more": "+{{count}} więcej"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} może blokować 1 skrót",

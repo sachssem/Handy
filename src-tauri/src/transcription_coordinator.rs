@@ -1,5 +1,8 @@
 use crate::actions::ACTION_MAP;
 use crate::managers::audio::AudioRecordingManager;
+// fork(voice-control): recording-limit auto-stop.
+use crate::managers::model::recording_limit_for_model_id;
+use crate::settings::get_settings;
 use crate::settings::ShortcutActivation;
 use log::{debug, error, warn};
 use serde::{Deserialize, Serialize};
@@ -7,8 +10,9 @@ use specta::Type;
 use std::sync::mpsc::{self, Sender};
 use std::sync::Arc;
 use std::thread;
-use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+// fork(voice-control): SystemTime/UNIX_EPOCH/Emitter for the recording limit.
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use tauri::{AppHandle, Emitter, Manager};
 use tauri_specta::Event;
 
 const DEBOUNCE: Duration = Duration::from_millis(30);
@@ -204,10 +208,20 @@ enum Effect {
     },
 }
 
+// fork(voice-control): payload for the overlay's recording-limit countdown.
+#[derive(Clone, Debug, Serialize)]
+struct RecordingLimitEvent {
+    deadline_epoch_ms: u64,
+    limit_ms: u64,
+    warning_ms: u64,
+}
+
 /// Commands processed sequentially by the coordinator thread.
 enum Command {
     Input(InputEvent),
     Cancel { recording_was_active: bool },
+    // fork(voice-control): the recording-limit timer for `session_id` fired.
+    AutoStop { session_id: u64 },
     ProcessingFinished,
 }
 
@@ -259,6 +273,9 @@ struct CoordinatorState {
     last_press: Option<Instant>,
     pending_release: Option<PendingRelease>,
     pending_press: Option<PendingPress>,
+    // fork(voice-control): bumped on every recording start so a recording-limit
+    // timer from an earlier session can never stop a later one.
+    recording_session: u64,
 }
 
 impl CoordinatorState {
@@ -269,6 +286,7 @@ impl CoordinatorState {
             last_press: None,
             pending_release: None,
             pending_press: None,
+            recording_session: 0,
         }
     }
 
@@ -514,6 +532,26 @@ impl CoordinatorState {
         }
     }
 
+    // fork(voice-control): the recording-limit timer fired. Stop only if the
+    // session it was scheduled for is still the one recording.
+    fn on_auto_stop(&mut self, session_id: u64) -> Option<Effect> {
+        let Stage::Recording(binding_id) = &self.stage else {
+            debug!("Ignoring auto-stop for session {session_id}; not recording");
+            return None;
+        };
+        if self.recording_session != session_id {
+            debug!(
+                "Ignoring stale auto-stop for session {session_id}; active session is {}",
+                self.recording_session
+            );
+            return None;
+        }
+        let binding_id = binding_id.clone();
+        self.pending_release = None;
+        debug!("Auto-stopping recording session {session_id} before model limit");
+        Some(self.begin_processing(binding_id, crate::journal::AUTO_STOP_TRIGGER.to_string()))
+    }
+
     fn on_processing_finished(&mut self) -> Option<Effect> {
         self.stage = Stage::Idle;
         self.hold = None;
@@ -551,6 +589,8 @@ impl CoordinatorState {
     ) -> Effect {
         self.stage = Stage::Recording(binding_id.clone());
         self.hold = Some(Hold { pressed_at, locked });
+        // fork(voice-control): new session for the recording-limit timer.
+        self.recording_session = self.recording_session.wrapping_add(1);
         Effect::Start {
             binding_id,
             hotkey_string,
@@ -583,6 +623,8 @@ pub fn is_transcribe_binding(id: &str) -> bool {
 impl TranscriptionCoordinator {
     pub fn new(app: AppHandle) -> Self {
         let (tx, rx) = mpsc::channel();
+        // fork(voice-control): the recording-limit timer posts AutoStop back.
+        let worker_tx = tx.clone();
 
         thread::spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
@@ -595,7 +637,7 @@ impl TranscriptionCoordinator {
                             Err(mpsc::RecvTimeoutError::Timeout) => {
                                 let was_locked = state.is_recording_locked();
                                 if let Some(effect) = state.on_grace_expired() {
-                                    run_effect(&app, &mut state, effect);
+                                    run_effect(&app, &worker_tx, &mut state, effect);
                                 }
                                 if !was_locked && state.is_recording_locked() {
                                     emit_recording_phase(&app, RecordingPhase::Locked);
@@ -620,7 +662,7 @@ impl TranscriptionCoordinator {
                             // tap into a hold (#2089).
                             let now = input.received_at;
                             if let Some(effect) = state.on_input(input, now) {
-                                run_effect(&app, &mut state, effect);
+                                run_effect(&app, &worker_tx, &mut state, effect);
                             }
                         }
                         Command::Cancel {
@@ -634,9 +676,15 @@ impl TranscriptionCoordinator {
                                 emit_recording_phase(&app, RecordingPhase::Cancelled);
                             }
                         }
+                        // fork(voice-control): recording-limit auto-stop.
+                        Command::AutoStop { session_id } => {
+                            if let Some(effect) = state.on_auto_stop(session_id) {
+                                run_effect(&app, &worker_tx, &mut state, effect);
+                            }
+                        }
                         Command::ProcessingFinished => {
                             if let Some(effect) = state.on_processing_finished() {
-                                run_effect(&app, &mut state, effect);
+                                run_effect(&app, &worker_tx, &mut state, effect);
                             }
                         }
                     }
@@ -732,7 +780,7 @@ impl TranscriptionCoordinator {
     }
 }
 
-fn run_effect(app: &AppHandle, state: &mut CoordinatorState, effect: Effect) {
+fn run_effect(app: &AppHandle, tx: &Sender<Command>, state: &mut CoordinatorState, effect: Effect) {
     match effect {
         Effect::Start {
             binding_id,
@@ -742,6 +790,8 @@ fn run_effect(app: &AppHandle, state: &mut CoordinatorState, effect: Effect) {
             state.on_start_result(&binding_id, started);
             if started {
                 emit_recording_phase(app, RecordingPhase::Started);
+                // fork(voice-control): enforce the model's safe recording limit.
+                schedule_recording_limit(app, tx, state.recording_session);
             }
         }
         Effect::Stop {
@@ -777,6 +827,59 @@ fn stop(app: &AppHandle, binding_id: &str, hotkey_string: &str) {
         return;
     };
     action.stop(app, binding_id, hotkey_string);
+}
+
+// fork(voice-control): extra recording after the overlay countdown ends.
+const RECORDING_LIMIT_GRACE_MS: u64 = 1_000;
+
+// fork(voice-control): enforce the selected model's measured safe recording limit.
+fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u64) {
+    let settings = get_settings(app);
+    if !settings.auto_stop_recording_on_limit {
+        return;
+    }
+
+    let Some(limit) = recording_limit_for_model_id(&settings.selected_model) else {
+        return;
+    };
+
+    let deadline_epoch_ms = SystemTime::now()
+        .checked_add(Duration::from_millis(limit.max_recording_ms))
+        .and_then(|deadline| deadline.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis().min(u128::from(u64::MAX)) as u64)
+        .unwrap_or(u64::MAX);
+
+    let event = RecordingLimitEvent {
+        deadline_epoch_ms,
+        limit_ms: limit.max_recording_ms,
+        warning_ms: limit.warning_ms.min(limit.max_recording_ms),
+    };
+    // fork(voice-control): emit on the main thread, queued behind the
+    // `show-overlay` emit (also main-thread). Emitted from here directly it
+    // could reach the webview first, and the show handler's reset of the
+    // previous session's limit would then wipe this session's countdown.
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || {
+        match handle.emit_to("recording_overlay", "recording-limit", event) {
+            Ok(()) => debug!(
+                "recording-limit sent: limit_ms={} deadline_epoch_ms={deadline_epoch_ms}",
+                limit.max_recording_ms
+            ),
+            Err(err) => debug!("Failed to emit recording limit event: {err}"),
+        }
+    });
+
+    let tx = tx.clone();
+    thread::spawn(move || {
+        // fork(voice-control): keep recording briefly past the countdown so the
+        // word spoken as it hits zero is not cut off.
+        thread::sleep(Duration::from_millis(
+            limit.max_recording_ms + RECORDING_LIMIT_GRACE_MS,
+        ));
+        if tx.send(Command::AutoStop { session_id }).is_err() {
+            warn!("Transcription coordinator channel closed before auto-stop");
+        }
+    });
 }
 
 #[cfg(test)]

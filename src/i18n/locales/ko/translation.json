@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "후처리 단축키",
             "description": "선택 사항: 항상 AI 후처리를 적용하는 전용 단축키입니다."
+          },
+          "paste_last_transcript": {
+            "name": "마지막 전사 붙여넣기",
+            "description": "가장 최근의 전사를 다시 붙여넣습니다. 설정되어 있는 동안 이 조합은 시스템 전체에서 사용됩니다. 다른 앱에서 필요하면 변경하세요(예: 터미널이나 Vim의 Ctrl+V)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "언어 검색...",
         "noResults": "언어를 찾을 수 없습니다",
         "auto": "자동",
+        "allowlist": {
+          "title": "자동 감지를 다음 언어로 제한…",
+          "description": "'자동'을 선택하면 이 언어들만 유지합니다. 목록에 없는 언어가 감지되면 첫 번째(기본) 언어로 고정하여 다시 변환합니다.",
+          "primary": "기본",
+          "primaryTag": "{{language}} (기본)",
+          "makePrimary": "기본으로 설정",
+          "summaryAll": "모든 언어",
+          "fallbackModel": {
+            "label": "대체 모델",
+            "none": "없음",
+            "description": "목록에 없는 감지는 기본 언어 재시도 대신 이 모델로 다시 변환됩니다."
+          }
+        },
         "autoUnavailable": {
           "title": "자동이 꺼져 있습니다",
           "oneLanguage": "이 모델에서는 사용자 언어 중 하나만 사용할 수 있습니다",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "자동을 사용하려면 별도 다운로드가 필요합니다",
         "detectorMissing": "이 모델은 어떤 언어로 말하는지 구별할 수 없습니다. 자동은 작은 언어 감지기로 언어를 알아냅니다",
         "stopDetectorDownload": "언어 감지기 다운로드 중지"
+      },
+      "asrBiasing": {
+        "label": "어휘 및 앱 컨텍스트 사용",
+        "description": "사용자 지정 단어, 학습된 수정 사항, 대상 앱의 컨텍스트를 인식기에 전달해 이름과 용어를 개선합니다.",
+        "unsupported": "선택한 모델은 어휘와 앱 컨텍스트를 무시합니다. 사용자 지정 단어는 여전히 사후 수정으로 적용됩니다."
       },
       "preferredLanguages": {
         "title": "선호 언어",
@@ -471,7 +493,10 @@
         "output": "출력",
         "transcription": "전사",
         "history": "히스토리",
-        "experimental": "실험적"
+        "experimental": "실험적",
+        "textRules": "텍스트 규칙",
+        "learnedCorrections": "학습된 수정",
+        "smartFormatting": "스마트 서식"
       },
       "experimentalToggle": {
         "label": "실험적 기능",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "전사 사이에 마이크 열어 두기",
         "description": "녹음 중지 후 30초 동안 마이크 스트림을 열어 두어 연속 전사 시 지연을 줄입니다. 활성화 중 블루투스 오디오 품질이 저하될 수 있습니다."
+      },
+      "recordingLimitAutoStop": {
+        "title": "긴 녹음 자동 중지",
+        "description": "선택한 모델이 안전한 받아쓰기 한도에 도달하기 전에 녹음을 중지합니다. 마지막 몇 초 동안 카운트다운 링이 표시됩니다."
+      },
+      "dictationJournal": {
+        "title": "받아쓰기 기록",
+        "description": "모든 받아쓰기(소요 시간, 모델, 각 처리 단계 후 텍스트, 대상 앱)를 날짜별로 로컬에 기록해 나중에 품질을 분석할 수 있게 합니다. 이 기기에만 저장되며 {{days}}일이 지난 파일은 삭제됩니다.",
+        "folderTitle": "기록 폴더",
+        "folderDescription": "일별 기록 파일이 저장되는 위치",
+        "retentionTitle": "기록 보관 기간",
+        "retentionDescription": "이보다 오래된 날짜별 파일은 삭제됩니다",
+        "retentionOption": "{{days}}일"
       },
       "airpodsMode": {
         "label": "AirPods 모드",
@@ -590,6 +628,130 @@
         "remove": "{{word}} 제거",
         "duplicate": "\"{{word}}\"이(가) 이미 존재합니다"
       },
+      "textRules": {
+        "title": "음성 명령 변환",
+        "description": "음성으로 말한 구두점 및 서식 명령(독일어 및 영어)을 AI를 거치지 않고 즉시 기호로 변환합니다. 선택적 AI 후처리 이전에 실행됩니다.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "숫자를 숫자로 변환",
+          "description": "말한 숫자를 숫자로 변환합니다. 예: \"five hundred thirty nine\" → \"539\". 작은 단독 숫자는 단어 그대로 유지됩니다."
+        },
+        "builtins": {
+          "title": "기본 제공 명령",
+          "description": "개별 기본 제공 명령을 활성화하거나 비활성화합니다. 일반적인 말에서 잘못 작동하면 해당 명령을 비활성화하세요(예: \"Punkt\").",
+          "summary": "{{active}}/{{total}} 활성",
+          "loading": "기본 제공 명령을 불러오는 중…",
+          "loadError": "기본 제공 명령을 불러올 수 없습니다.",
+          "retry": "다시 시도"
+        },
+        "custom": {
+          "title": "사용자 정의 규칙",
+          "description": "직접 트리거-대체 규칙을 추가합니다. 사용자 정의 규칙은 동일한 트리거의 기본 제공 규칙보다 우선합니다.",
+          "triggerPlaceholder": "트리거",
+          "replacementPlaceholder": "대체",
+          "add": "추가",
+          "remove": "{{trigger}} 제거",
+          "duplicate": "\"{{trigger}}\"이(가) 이미 존재합니다",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "쉼표처럼",
+          "attach_right": "여는 괄호처럼",
+          "glue": "단어 연결",
+          "standalone": "단독"
+        },
+        "spacingHint": {
+          "attach_left": "앞에 공백 없음, 뒤에 하나: word, word",
+          "attach_right": "앞에 공백 하나, 뒤에 없음: word (word",
+          "glue": "앞뒤 공백 없음: voice-control",
+          "standalone": "그대로 삽입, 주변 공백 제거: 줄바꿈"
+        }
+      },
+      "learnedCorrections": {
+        "title": "개인 사전",
+        "description": "인식기가 계속 틀리는 단어(이름, 전문 용어 등)를 선택적 AI 후처리 전에 모든 전사에서 바꿉니다. macOS에서는 Handy가 편집 내용에서도 학습합니다. 붙여넣은 직후 단어를 고치면 그 수정을 제안합니다. 끄면 둘 다 일시 중지됩니다.",
+        "learnFromEdits": {
+          "title": "내 수정에서 학습",
+          "description": "붙여넣은 뒤 입력란을 지켜보고 직접 한 수정을 제안합니다. 끄면 새로 학습하지 않으며 사전은 계속 적용됩니다."
+        },
+        "suggestions": {
+          "title": "제안",
+          "description": "Handy가 편집 내용에서 발견한 수정입니다. 수락하면 지금부터 적용되며, 반복해서 하는 수정은 자동으로 추가됩니다. '다시 안 함'을 선택하면 영구적으로 차단됩니다.",
+          "accept": "수락",
+          "dismiss": "다시 안 함"
+        },
+        "dictionary": {
+          "title": "사전",
+          "filterPlaceholder": "필터…",
+          "noMatches": "일치하는 항목이 없습니다."
+        },
+        "blocked": {
+          "title": "차단됨",
+          "description": "거절했거나 실행 취소한 수정입니다. 차단을 해제하지 않으면 Handy가 다시 학습하지 않습니다.",
+          "unblock": "차단 해제"
+        },
+        "options": {
+          "title": "학습 옵션"
+        },
+        "aggressiveness": {
+          "title": "학습 적극성",
+          "description": "편집을 실제 오인식으로 받아들이는 정도입니다. 느슨한 수준일수록 더 많이 학습하지만 사전을 오염시킬 위험이 있습니다.",
+          "conservative": {
+            "label": "보수적",
+            "description": "매우 유사하고 발음이 비슷한 수정만 학습합니다. 잘못된 항목에 가장 안전합니다."
+          },
+          "balanced": {
+            "label": "균형",
+            "description": "적당히 다른 수정도 허용합니다. 발음은 참고용으로만 사용됩니다."
+          },
+          "aggressive": {
+            "label": "적극적",
+            "description": "느슨하게 관련된 수정도 받아들이며 발음 유사성을 확인하지 않습니다. 일상적인 단어끼리 바꾼 것은 여전히 학습하지 않습니다. 잘못된 항목의 위험이 가장 높습니다."
+          }
+        },
+        "window": {
+          "title": "학습 창",
+          "description": "붙여넣은 후 Handy가 수동 수정을 감지하기 위해 입력란을 관찰하는 시간입니다.",
+          "seconds": "초"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "자동",
+          "manual": "수동"
+        },
+        "count": "{{count}}회 발견",
+        "langBadge": "학습된 언어: {{lang}}",
+        "platformHint": "자동 학습은 macOS에서만 작동합니다. 아래에서 직접 수정을 추가할 수 있으며, 모든 플랫폼에서 적용됩니다.",
+        "add": {
+          "misheardPlaceholder": "잘못 인식됨",
+          "intendedPlaceholder": "수정됨",
+          "button": "추가"
+        },
+        "enable": "{{misheard}} 활성화",
+        "remove": "{{misheard}} 제거",
+        "empty": "아직 수정이 없습니다. 인식기가 계속 잘못 인식하는 단어(이름이나 전문 용어 등)를 추가하면 앞으로의 모든 전사에 그 수정이 적용됩니다.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "단축키: 수락",
+            "description": "학습된 교정 알림의 제안을 수락합니다. 알림이 표시되는 동안에만 작동합니다."
+          },
+          "dismiss": {
+            "title": "단축키: 실행 취소",
+            "description": "방금 학습한 교정을 되돌립니다(실행 취소). 알림에 학습된 교정이 표시되는 동안에만 작동하며, Ctrl+Esc는 아무것도 바꾸지 않고 알림을 닫습니다."
+          },
+          "errors": {
+            "needsModifier": "보조 키(Control, Option, Shift, Command)를 하나 이상 사용하세요.",
+            "invalid": "이 키 조합은 단축키로 사용할 수 없습니다.",
+            "conflict": "이 조합은 이미 다른 Handy 단축키에서 사용 중입니다.",
+            "conflictWith": "이 조합은 이미 \"{{name}}\"에서 사용 중입니다.",
+            "save": "단축키를 저장하지 못했습니다: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "잘못 인식된 단어와 수정할 단어를 모두 입력하세요.",
+          "generic": "변경 사항을 저장하지 못했습니다. 다시 시도해 주세요."
+        }
+      },
       "voiceActivityDetection": {
         "title": "음성 활동 감지",
         "description": "녹음에서 무음 구간을 걸러냅니다. 스트리밍 지원 모델은 더 긴 VAD 테일을 사용하며, VAD를 끄면 원본 오디오가 그대로 녹음됩니다."
@@ -624,6 +786,55 @@
           "simplified": "간체",
           "traditionalTw": "번체 (대만)",
           "traditionalHk": "번체 (홍콩)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "자기 수정",
+          "description": "군더더기 말(\"uh\", \"um\", \"음\"), 말더듬과 반복된 단어, 그리고 스스로 정정할 때 취소한 부분(\"no wait\", \"I mean\", \"아니, 잠깐\", \"내 말은\")을 이 기기의 Apple Intelligence로 제거합니다. 설정한 후처리 제공자(원격 서비스일 수 있음)는 후처리가 켜져 있을 때만 사용됩니다. 단어는 삭제만 될 뿐 다시 쓰이지 않습니다. 이런 머뭇거림이 없는 받아쓰기는 그대로 붙여넣어지며, 모델이 느리거나 너무 많이 바꾸면 원문이 유지됩니다."
+        },
+        "appStyles": {
+          "title": "앱별 스타일",
+          "description": "받아쓰는 앱에 맞게 텍스트를 조정합니다. 채팅 메시지는 마침표 없이, 터미널과 코드에 알맞은 출력, 커서 앞 텍스트에 맞춘 대소문자와 공백이 적용됩니다.",
+          "categories": {
+            "title": "스타일",
+            "summary": "{{active}}/{{total}} 활성",
+            "chat": {
+              "label": "채팅 앱",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: 한 문장짜리 메시지는 끝의 마침표가 빠집니다(? 와 ! 는 유지)."
+            },
+            "terminal": {
+              "label": "터미널",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: 끝 마침표 없음, 맨 앞 기능어를 대문자로 쓰지 않음."
+            },
+            "code": {
+              "label": "코드 편집기",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: 단어 하나 또는 식별자는 끝의 마침표가 빠집니다."
+            },
+            "matchContext": {
+              "label": "주변 텍스트에 맞추기",
+              "hint": "문장을 이어 쓸 때 맨 앞 기능어는 소문자가 되고(\"and\", \"weil\"), 커서가 단어 바로 뒤에 있으면 공백이 추가됩니다."
+            }
+          }
+        },
+        "snippets": {
+          "title": "스니펫",
+          "description": "트리거 문구만 따로(또는 문장부호 사이에) 말하면 해당 텍스트가 삽입됩니다. 예: \"내 주소\". 대소문자와 문장부호는 무시되며, 삽입된 텍스트는 다른 규칙으로 바뀌지 않습니다.",
+          "triggerPlaceholder": "트리거 문구, 예: 내 주소",
+          "expansionPlaceholder": "삽입할 텍스트(여러 줄 가능)",
+          "add": "추가",
+          "save": "저장",
+          "cancel": "취소",
+          "edit": "편집",
+          "remove": "스니펫 {{trigger}} 삭제",
+          "enable": "스니펫 {{trigger}} 사용",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "트리거에는 영숫자 단어가 하나 이상 있어야 합니다.",
+            "expansionRequired": "삽입할 텍스트를 입력하세요.",
+            "duplicateTrigger": "'{{trigger}}'에 대한 스니펫이 이미 있습니다.",
+            "commandFailed": "스니펫을 저장하거나 삭제할 수 없습니다. 다시 시도해 주세요."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중...",
-    "loadingModel": "모델 로딩 중..."
+    "fallbackModel": "대체 모델…",
+    "recordingLimitWarning": "{{seconds}}초 후 녹음이 자동으로 중지됩니다",
+    "loadingModel": "모델 로딩 중...",
+    "recording": "녹음 중…"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "실행 취소",
+    "accept": "수락",
+    "dismiss": "닫기",
+    "more": "외 {{count}}개"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}}이(가) 단축키 1개를 차단하고 있을 수 있습니다",

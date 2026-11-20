@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "后处理快捷键",
             "description": "可选：一个专用快捷键，始终对您的转录应用 AI 后处理。"
+          },
+          "paste_last_transcript": {
+            "name": "粘贴上一次转录",
+            "description": "再次粘贴你最近的一次转录。设置后该组合键会在全系统范围内被占用——如果其他应用需要它，请更改（例如终端或 Vim 中的 Ctrl+V）。"
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "搜索语言...",
         "noResults": "未找到语言",
         "auto": "自动",
+        "allowlist": {
+          "title": "将自动检测限制为…",
+          "description": "选择“自动”时，仅保留这些语言。检测到列表之外的语言时，将固定为第一个（主要）语言重新转写。",
+          "primary": "主要",
+          "primaryTag": "{{language}}（主要）",
+          "makePrimary": "设为主要",
+          "summaryAll": "所有语言",
+          "fallbackModel": {
+            "label": "备用模型",
+            "none": "无",
+            "description": "列表之外的检测将使用此模型重新转写，而不是用主要语言重试。"
+          }
+        },
         "autoUnavailable": {
           "title": "自动已停用",
           "oneLanguage": "你的语言中只有一种适用于此模型",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "自动模式需要单独下载",
         "detectorMissing": "此模型无法分辨你说的是哪种语言。自动模式需要一个小型语言检测器来判断",
         "stopDetectorDownload": "停止下载语言检测器"
+      },
+      "asrBiasing": {
+        "label": "使用词汇和应用上下文",
+        "description": "将自定义词、已学习的更正和目标应用的上下文传给识别引擎，以改进名称和术语。",
+        "unsupported": "所选模型会忽略词汇和应用上下文；自定义词仍会作为事后更正生效。"
       },
       "preferredLanguages": {
         "title": "常用语言",
@@ -471,7 +493,10 @@
         "output": "输出",
         "transcription": "转录",
         "history": "历史",
-        "experimental": "实验性"
+        "experimental": "实验性",
+        "textRules": "文本规则",
+        "learnedCorrections": "已学习的修正",
+        "smartFormatting": "智能格式化"
       },
       "experimentalToggle": {
         "label": "实验性功能",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "在转录之间保持麦克风开启",
         "description": "录音停止后保持麦克风流开启30秒，减少连续转录时的延迟。激活时可能会降低蓝牙音频质量。"
+      },
+      "recordingLimitAutoStop": {
+        "title": "自动停止长时间录音",
+        "description": "在所选模型达到安全听写限制前停止录音。最后几秒会显示倒计时圆环。"
+      },
+      "dictationJournal": {
+        "title": "听写日志",
+        "description": "在本地按天记录每次听写（耗时、模型、各处理步骤后的文本、目标应用），以便日后分析质量。仅保存在此设备上；超过 {{days}} 天的文件会被删除。",
+        "folderTitle": "日志文件夹",
+        "folderDescription": "每日日志文件的存储位置",
+        "retentionTitle": "日志保留时间",
+        "retentionDescription": "早于此时间的每日文件会被删除",
+        "retentionOption": "{{days}} 天"
       },
       "airpodsMode": {
         "label": "AirPods 模式",
@@ -590,6 +628,130 @@
         "remove": "删除 {{word}}",
         "duplicate": "\"{{word}}\" 已存在"
       },
+      "textRules": {
+        "title": "转换语音命令",
+        "description": "将口述的标点和格式命令（德语和英语）即时转换为符号，无需经过 AI 处理。在可选的 AI 后处理之前运行。",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "数字转为阿拉伯数字",
+          "description": "将口述的数字转换为阿拉伯数字，例如 \"five hundred thirty nine\" → \"539\"。较小的单独数字将保留为文字。"
+        },
+        "builtins": {
+          "title": "内置命令",
+          "description": "启用或禁用单个内置命令。如果某个命令在正常说话时被误触发，请将其禁用（例如 \"Punkt\"）。",
+          "summary": "已启用 {{active}}/{{total}}",
+          "loading": "正在加载内置命令…",
+          "loadError": "无法加载内置命令。",
+          "retry": "重试"
+        },
+        "custom": {
+          "title": "自定义规则",
+          "description": "添加您自己的触发词到替换内容的规则。自定义规则会覆盖具有相同触发词的内置规则。",
+          "triggerPlaceholder": "触发词",
+          "replacementPlaceholder": "替换内容",
+          "add": "添加",
+          "remove": "删除 {{trigger}}",
+          "duplicate": "\"{{trigger}}\" 已存在",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "像逗号",
+          "attach_right": "像左括号",
+          "glue": "连接单词",
+          "standalone": "独立"
+        },
+        "spacingHint": {
+          "attach_left": "前无空格，后加一个：word, word",
+          "attach_right": "前加一个空格，后无：word (word",
+          "glue": "前后均无空格：voice-control",
+          "standalone": "原样插入并移除周围空格：换行"
+        }
+      },
+      "learnedCorrections": {
+        "title": "个人词典",
+        "description": "在可选的 AI 后处理之前，于每次转录中替换识别器反复听错的词语（名称、术语等）。在 macOS 上，Handy 还会从你的编辑中学习：粘贴后立即更正某个词，它就会建议这项更正。关闭后两者都会暂停。",
+        "learnFromEdits": {
+          "title": "从我的更正中学习",
+          "description": "粘贴后监视输入框，并建议你手动做的更正。关闭时不会学习新内容，词典仍会应用。"
+        },
+        "suggestions": {
+          "title": "建议",
+          "description": "Handy 在你的编辑中发现的更正。接受后即从现在起应用；你反复进行的更正会自动加入。选择“永不”即可永久屏蔽。",
+          "accept": "接受",
+          "dismiss": "永不"
+        },
+        "dictionary": {
+          "title": "词典",
+          "filterPlaceholder": "筛选…",
+          "noMatches": "没有匹配的条目。"
+        },
+        "blocked": {
+          "title": "已屏蔽",
+          "description": "你忽略或撤销的更正。除非解除屏蔽，否则 Handy 不会再次学习。",
+          "unblock": "解除屏蔽"
+        },
+        "options": {
+          "title": "学习选项"
+        },
+        "aggressiveness": {
+          "title": "学习激进程度",
+          "description": "编辑被接受为真正听错的容易程度。较宽松的级别学习更多，但有污染词典的风险。",
+          "conservative": {
+            "label": "保守",
+            "description": "仅学习非常接近、发音相似的修正。对错误条目最安全。"
+          },
+          "balanced": {
+            "label": "均衡",
+            "description": "接受中等差异的修正；语音仅作参考。"
+          },
+          "aggressive": {
+            "label": "激进",
+            "description": "即使是松散相关的修正也会接受，且不检查发音是否相近。日常词汇之间的替换仍然不会被学习。错误条目风险最高。"
+          }
+        },
+        "window": {
+          "title": "学习窗口",
+          "description": "粘贴后 Handy 监视该字段以捕获手动修正的时长。",
+          "seconds": "秒"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "自动",
+          "manual": "手动"
+        },
+        "count": "出现 {{count}} 次",
+        "langBadge": "已为语言学习：{{lang}}",
+        "platformHint": "自动学习仅在 macOS 上运行。您仍可在下方手动添加修正，它们会在所有平台上应用。",
+        "add": {
+          "misheardPlaceholder": "听错的",
+          "intendedPlaceholder": "已更正",
+          "button": "添加"
+        },
+        "enable": "启用 {{misheard}}",
+        "remove": "删除 {{misheard}}",
+        "empty": "还没有修正。添加一个识别器反复听错的词——例如姓名或技术术语——它的修正将应用于以后的每次转录。",
+        "toastShortcuts": {
+          "accept": {
+            "title": "快捷键：接受",
+            "description": "接受已学习纠正提示中的建议。仅在提示显示时有效。"
+          },
+          "dismiss": {
+            "title": "快捷键：撤销",
+            "description": "撤销刚学习的纠正（撤销）。仅在提示显示已学习的纠正时有效；Ctrl+Esc 会关闭提示，不做任何更改。"
+          },
+          "errors": {
+            "needsModifier": "请至少使用一个修饰键（Control、Option、Shift 或 Command）。",
+            "invalid": "此组合键不能用作快捷键。",
+            "conflict": "此组合已被另一个 Handy 快捷键使用。",
+            "conflictWith": "此组合键已被“{{name}}”使用。",
+            "save": "无法保存快捷键：{{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "请同时输入听错的词和更正后的词。",
+          "generic": "无法保存更改，请重试。"
+        }
+      },
       "voiceActivityDetection": {
         "title": "语音活动检测",
         "description": "过滤录音中的静音。支持流式的模型会使用更长的 VAD 尾段；停用 VAD 则会录制原始音频。"
@@ -624,6 +786,55 @@
           "simplified": "简体",
           "traditionalTw": "繁体（台湾）",
           "traditionalHk": "繁体（香港）"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "自我纠正",
+          "description": "使用此设备上的 Apple Intelligence 删除填充词(\"uh\"、\"um\"、“嗯”)、口吃和重复的词,以及你改口时收回的部分(\"no wait\"、\"I mean\"、“不对,等一下”、“我是说”)。你配置的后处理提供商(可能是远程服务)仅在启用后处理时使用。只删除词语,绝不改写;没有此类停顿的听写会原样粘贴,如果模型太慢或改动过多,则保留原文。"
+        },
+        "appStyles": {
+          "title": "应用样式",
+          "description": "根据你听写所在的应用调整文本:聊天消息不加句末句号,输出适合终端和代码,大小写与空格与光标前的文本保持一致。",
+          "categories": {
+            "title": "样式",
+            "summary": "已启用 {{active}}/{{total}}",
+            "chat": {
+              "label": "聊天应用",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams:单句消息会去掉句末句号(保留 ? 和 !)。"
+            },
+            "terminal": {
+              "label": "终端",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm:无句末句号,开头的功能词不大写。"
+            },
+            "code": {
+              "label": "代码编辑器",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova:单个单词或标识符会去掉句末句号。"
+            },
+            "matchContext": {
+              "label": "匹配周围文本",
+              "hint": "接续句子时,开头的功能词改为小写(\"and\"、\"weil\");光标紧跟在单词之后时会补一个空格。"
+            }
+          }
+        },
+        "snippets": {
+          "title": "片段",
+          "description": "单独说出触发短语(或置于标点之间)即可插入对应文本,例如“我的地址”。匹配时忽略大小写和标点;插入的文本不会被其他规则改动。",
+          "triggerPlaceholder": "触发短语,例如 我的地址",
+          "expansionPlaceholder": "要插入的文本(可多行)",
+          "add": "添加",
+          "save": "保存",
+          "cancel": "取消",
+          "edit": "编辑",
+          "remove": "删除片段 {{trigger}}",
+          "enable": "启用片段 {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "触发短语至少需要一个由字母或数字组成的词。",
+            "expansionRequired": "请输入要插入的文本。",
+            "duplicateTrigger": "“{{trigger}}”的片段已存在。",
+            "commandFailed": "无法保存或删除该片段。请重试。"
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "正在转录...",
     "processing": "处理中...",
-    "loadingModel": "正在加载模型..."
+    "fallbackModel": "后备模型…",
+    "recordingLimitWarning": "录音将在 {{seconds}} 秒后自动停止",
+    "loadingModel": "正在加载模型...",
+    "recording": "录音中…"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}”→“{{intended}}”",
+    "undo": "撤销",
+    "accept": "接受",
+    "dismiss": "关闭",
+    "more": "另 {{count}} 个"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} 可能正在阻止 1 个快捷键",

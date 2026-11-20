@@ -27,6 +27,7 @@ use crate::settings::{
     ShortcutActivation, ShortcutBinding, SoundTheme, Theme, TypingTool, VadBackend,
     APPLE_INTELLIGENCE_PROVIDER_ID,
 };
+use crate::text_rules::{self, TextRule};
 use crate::tray;
 
 // Note: Commands are accessed via shortcut::handy_keys:: in lib.rs
@@ -63,6 +64,12 @@ pub fn init_shortcuts(app: &AppHandle) {
 /// Whether the recording lifecycle currently wants the cancel shortcut.
 /// Written synchronously by start/stop, so it always holds the latest request.
 static CANCEL_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+// fork(voice-control): the learned toast's transient dismiss combo yields to
+// the cancel shortcut while a recording wants it (see `toast_shortcuts`).
+pub fn cancel_shortcut_requested() -> bool {
+    CANCEL_REQUESTED.load(Ordering::SeqCst)
+}
 
 /// Whether the cancel shortcut is actually registered with the backend.
 /// The lock also serializes reconciliation passes.
@@ -112,6 +119,11 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
         let mut registered = CANCEL_REGISTERED.lock().unwrap_or_else(|e| e.into_inner());
         let requested = CANCEL_REQUESTED.load(Ordering::SeqCst);
         if requested == *registered {
+            // fork(voice-control): a toast pass may have released dismiss
+            // while a (very short) recording was requested; hand it back.
+            if !requested {
+                crate::correction_learning::toast_shortcuts::reclaim_dismiss_from_cancel(app);
+            }
             return;
         }
 
@@ -120,6 +132,9 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
         };
 
         if requested {
+            // fork(voice-control): release the toast's dismiss combo first —
+            // the backends refuse a duplicate combo.
+            crate::correction_learning::toast_shortcuts::yield_dismiss_to_cancel(app);
             match register_shortcut(app, cancel_binding) {
                 Ok(()) => *registered = true,
                 Err(e) => error!("Failed to register cancel shortcut: {}", e),
@@ -129,6 +144,8 @@ fn reconcile_cancel_shortcut(app: &AppHandle) {
                 Ok(()) => *registered = false,
                 Err(e) => error!("Failed to unregister cancel shortcut: {}", e),
             }
+            // fork(voice-control): hand dismiss back to a toast still on screen.
+            crate::correction_learning::toast_shortcuts::reclaim_dismiss_from_cancel(app);
         }
     }
 }
@@ -289,6 +306,8 @@ pub fn reset_binding(app: AppHandle, id: String) -> Result<BindingResponse, Stri
 /// mid-capture. The "cancel" binding is untouched: it is managed dynamically
 /// by the recording lifecycle.
 pub fn suspend_all_shortcuts(app: &AppHandle) {
+    // fork(voice-control): transient toast shortcuts must not swallow captured keys.
+    crate::correction_learning::toast_shortcuts::suspend(app);
     for (id, binding) in settings::get_bindings(app) {
         if id == "cancel" {
             continue;
@@ -306,6 +325,8 @@ pub fn suspend_all_shortcuts(app: &AppHandle) {
 /// Registering an already-registered shortcut fails cleanly in both
 /// implementations, so this is idempotent and safe on every exit path.
 pub fn resume_all_shortcuts(app: &AppHandle) {
+    // fork(voice-control): restore toast shortcuts only while the toast remains visible.
+    crate::correction_learning::toast_shortcuts::resume(app);
     let settings = get_settings(app);
     for (id, binding) in &settings.bindings {
         if id == "cancel" {
@@ -729,6 +750,35 @@ pub fn change_spoken_languages_setting(
     Ok(())
 }
 
+// fork(voice-control): the allowlist that constrains "auto" language detection.
+// See the pinned-retry guard in managers/transcription.rs.
+#[tauri::command]
+#[specta::specta]
+pub fn change_language_allowlist_setting(
+    app: AppHandle,
+    allowlist: Vec<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.language_allowlist = allowlist;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+// fork(voice-control): the model the allowlist guard escalates to on an
+// out-of-bounds "auto" detection. An empty selection clears the fallback (back to
+// the same-engine pin-retry). See the guard in managers/transcription.rs.
+#[tauri::command]
+#[specta::specta]
+pub fn change_language_allowlist_fallback_model_setting(
+    app: AppHandle,
+    model: Option<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.language_allowlist_fallback_model = model.filter(|m| !m.is_empty());
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_overlay_position_setting(app: AppHandle, position: String) -> Result<(), String> {
@@ -918,6 +968,55 @@ pub fn update_custom_words(app: AppHandle, words: Vec<String>) -> Result<(), Str
     settings.custom_words = words;
     settings::write_settings(&app, settings);
     Ok(())
+}
+
+// fork(voice-control): deterministic text-rules layer settings commands.
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_text_rules_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_text_rules_itn_enabled_setting(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_itn_enabled = enabled;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_rules_custom(app: AppHandle, rules: Vec<TextRule>) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_custom = rules;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn update_text_rules_disabled_builtins(
+    app: AppHandle,
+    triggers: Vec<String>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.text_rules_disabled_builtins = triggers;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+/// Return the built-in text-rules table so the UI can list them with a
+/// per-rule enable/disable checkbox.
+#[tauri::command]
+#[specta::specta]
+pub fn get_text_rules_builtins() -> Vec<TextRule> {
+    text_rules::builtin_rules()
 }
 
 #[tauri::command]
@@ -1467,6 +1566,18 @@ pub fn change_filler_word_removal_enabled_setting(
 pub fn change_chinese_script_setting(app: AppHandle, script: ChineseScript) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings.chinese_script = script;
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn change_auto_stop_recording_on_limit_setting(
+    app: AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.auto_stop_recording_on_limit = enabled;
     settings::write_settings(&app, settings);
     Ok(())
 }

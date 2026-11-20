@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Tecla de post procesamiento",
             "description": "Opcional: Una tecla de acceso rápido dedicada que siempre aplica post procesamiento con IA a tu transcripción."
+          },
+          "paste_last_transcript": {
+            "name": "Pegar la última transcripción",
+            "description": "Vuelve a pegar tu transcripción más reciente. La combinación queda ocupada en todo el sistema mientras esté asignada; cámbiala si otra aplicación la necesita (p. ej., Ctrl+V en terminales o Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Buscar idiomas...",
         "noResults": "No se encontraron idiomas",
         "auto": "Automático",
+        "allowlist": {
+          "title": "Restringir la detección automática a…",
+          "description": "Cuando se selecciona Automático, conservar solo estos idiomas. Un idioma detectado fuera de esta lista se vuelve a transcribir fijado al primer idioma (principal).",
+          "primary": "Principal",
+          "primaryTag": "{{language}} (principal)",
+          "makePrimary": "Hacer principal",
+          "summaryAll": "Todos los idiomas",
+          "fallbackModel": {
+            "label": "Modelo de reserva",
+            "none": "Ninguno",
+            "description": "Las detecciones fuera de la lista se vuelven a transcribir con este modelo en lugar del reintento con el idioma principal."
+          }
+        },
         "autoUnavailable": {
           "title": "Automático está desactivado",
           "oneLanguage": "Solo uno de tus idiomas funciona con este modelo",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Automático necesita una descarga aparte",
         "detectorMissing": "Este modelo no puede saber qué idioma hablas. Automático necesita un pequeño detector de idioma para averiguarlo",
         "stopDetectorDownload": "Detener la descarga del detector de idioma"
+      },
+      "asrBiasing": {
+        "label": "Usar vocabulario y contexto de la app",
+        "description": "Pasa las palabras personalizadas, las correcciones aprendidas y el contexto de la app de destino al reconocimiento para mejorar nombres y términos.",
+        "unsupported": "El modelo seleccionado ignora el vocabulario y el contexto de la app; las palabras personalizadas se siguen aplicando como correcciones posteriores."
       },
       "preferredLanguages": {
         "title": "Idiomas preferidos",
@@ -471,7 +493,10 @@
         "output": "Salida",
         "transcription": "Transcripción",
         "history": "Historial",
-        "experimental": "Experimental"
+        "experimental": "Experimental",
+        "textRules": "Reglas de Texto",
+        "learnedCorrections": "Correcciones aprendidas",
+        "smartFormatting": "Formato inteligente"
       },
       "experimentalToggle": {
         "label": "Funciones experimentales",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Mantener micrófono abierto entre transcripciones",
         "description": "Mantiene el flujo del micrófono abierto durante 30 segundos después de detener la grabación, reduciendo la latencia en transcripciones consecutivas. Puede degradar la calidad del audio Bluetooth mientras está activo."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Detener grabaciones largas automáticamente",
+        "description": "Detiene la grabación antes de que el modelo seleccionado alcance su límite seguro de dictado. Durante los últimos segundos aparece un anillo de cuenta atrás."
+      },
+      "dictationJournal": {
+        "title": "Diario de dictado",
+        "description": "Guarda un registro local diario de cada dictado (tiempos, modelo, texto tras cada paso de procesamiento, app de destino) para poder analizar la calidad más adelante. Se queda en este dispositivo; los archivos de más de {{days}} días se eliminan.",
+        "folderTitle": "Carpeta del diario",
+        "folderDescription": "Dónde se guardan los archivos diarios del diario",
+        "retentionTitle": "Conservación del registro",
+        "retentionDescription": "Los archivos diarios más antiguos se eliminan",
+        "retentionOption": "{{days}} días"
       },
       "airpodsMode": {
         "label": "Modo AirPods",
@@ -590,6 +628,130 @@
         "remove": "Eliminar {{word}}",
         "duplicate": "\"{{word}}\" ya existe"
       },
+      "textRules": {
+        "title": "Convertir comandos hablados",
+        "description": "Convierte comandos de puntuación y formato hablados (alemán e inglés) en símbolos al instante, sin recurrir a la IA. Se ejecuta antes del posprocesamiento opcional con IA.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Números a Dígitos",
+          "description": "Convierte números hablados en dígitos, p. ej. \"five hundred thirty nine\" → \"539\". Los números pequeños aislados se dejan escritos con palabras."
+        },
+        "builtins": {
+          "title": "Comandos Integrados",
+          "description": "Activa o desactiva comandos integrados individuales. Desactiva uno si se dispara por error en el habla normal (p. ej. \"Punkt\").",
+          "summary": "{{active}}/{{total}} activos",
+          "loading": "Cargando comandos integrados…",
+          "loadError": "No se pudieron cargar los comandos integrados.",
+          "retry": "Reintentar"
+        },
+        "custom": {
+          "title": "Reglas Personalizadas",
+          "description": "Agrega tus propias reglas de activador a reemplazo. Las reglas personalizadas anulan las integradas con el mismo activador.",
+          "triggerPlaceholder": "Activador",
+          "replacementPlaceholder": "Reemplazo",
+          "add": "Agregar",
+          "remove": "Eliminar {{trigger}}",
+          "duplicate": "\"{{trigger}}\" ya existe",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Como una coma",
+          "attach_right": "Como un paréntesis de apertura",
+          "glue": "Une palabras",
+          "standalone": "Independiente"
+        },
+        "spacingHint": {
+          "attach_left": "Sin espacio antes, uno después: palabra, palabra",
+          "attach_right": "Un espacio antes, ninguno después: palabra (palabra",
+          "glue": "Sin espacios alrededor: voice-control",
+          "standalone": "Se inserta tal cual, sin los espacios de alrededor: saltos de línea"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Diccionario personal",
+        "description": "Reemplaza las palabras que el reconocedor confunde una y otra vez — nombres, jerga, acentos — en cada transcripción, antes del posprocesamiento opcional con IA. En macOS, Handy también aprende de tus ediciones: corrige una palabra justo después de pegar y te sugerirá esa corrección. Desactivarlo pausa ambas cosas.",
+        "learnFromEdits": {
+          "title": "Aprender de mis correcciones",
+          "description": "Vigila el campo tras pegar y sugiere las correcciones que haces a mano. Desactivado: no se aprende nada nuevo y el diccionario se sigue aplicando."
+        },
+        "suggestions": {
+          "title": "Sugerencias",
+          "description": "Correcciones que Handy detectó en tus ediciones. Acepta una para aplicarla a partir de ahora; una corrección que repites se añade automáticamente. Elige Nunca para bloquearla para siempre.",
+          "accept": "Aceptar",
+          "dismiss": "Nunca"
+        },
+        "dictionary": {
+          "title": "Diccionario",
+          "filterPlaceholder": "Filtrar…",
+          "noMatches": "Ninguna entrada coincide."
+        },
+        "blocked": {
+          "title": "Bloqueadas",
+          "description": "Correcciones que descartaste o deshiciste. Handy no las volverá a aprender a menos que las desbloquees.",
+          "unblock": "Desbloquear"
+        },
+        "options": {
+          "title": "Opciones de aprendizaje"
+        },
+        "aggressiveness": {
+          "title": "Intensidad del aprendizaje",
+          "description": "Con qué facilidad se acepta una edición como un error de reconocimiento real. Los niveles más flexibles aprenden más, pero corren el riesgo de contaminar el diccionario.",
+          "conservative": {
+            "label": "Conservador",
+            "description": "Solo se aprenden correcciones muy cercanas y de sonido similar. Lo más seguro contra entradas erróneas."
+          },
+          "balanced": {
+            "label": "Equilibrado",
+            "description": "Acepta correcciones moderadamente diferentes; la fonética es solo orientativa."
+          },
+          "aggressive": {
+            "label": "Agresivo",
+            "description": "Acepta incluso correcciones poco relacionadas y no comprueba si suenan igual. Los cambios entre palabras cotidianas nunca se aprenden. El mayor riesgo de entradas erróneas."
+          }
+        },
+        "window": {
+          "title": "Ventana de aprendizaje",
+          "description": "Cuánto tiempo después de pegar Handy vigila el campo en busca de una corrección manual.",
+          "seconds": "segundos"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manual"
+        },
+        "count": "visto {{count}}×",
+        "langBadge": "Aprendido para el idioma: {{lang}}",
+        "platformHint": "El aprendizaje automático solo funciona en macOS. Aún puedes agregar correcciones a mano abajo, y se aplican en todas las plataformas.",
+        "add": {
+          "misheardPlaceholder": "Mal escuchado",
+          "intendedPlaceholder": "Corregido",
+          "button": "Agregar"
+        },
+        "enable": "Activar {{misheard}}",
+        "remove": "Eliminar {{misheard}}",
+        "empty": "Aún no hay correcciones. Agrega una palabra que el reconocedor sigue escuchando mal —como un nombre o un término técnico— y su corrección se aplicará a todas las transcripciones futuras.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Atajo: Aceptar",
+            "description": "Acepta la sugerencia del aviso de corrección aprendida. Solo está activo mientras el aviso es visible."
+          },
+          "dismiss": {
+            "title": "Atajo: Deshacer",
+            "description": "Deshace una corrección recién aprendida (Deshacer). Solo está activo mientras el aviso muestra una corrección aprendida; Ctrl+Esc cierra el aviso sin cambiar nada."
+          },
+          "errors": {
+            "needsModifier": "Usa al menos una tecla modificadora (Control, Opción, Mayúsculas o Comando).",
+            "invalid": "Esta combinación de teclas no se puede usar como atajo.",
+            "conflict": "Esta combinación ya la usa otro atajo de Handy.",
+            "conflictWith": "Esta combinación ya la usa «{{name}}».",
+            "save": "No se pudo guardar el atajo: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Introduce tanto la palabra mal reconocida como su corrección.",
+          "generic": "No se pudo guardar el cambio. Inténtalo de nuevo."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Detección de actividad de voz",
         "description": "Filtra el silencio de las grabaciones. Los modelos compatibles con streaming usan una cola de VAD más larga; desactivar el VAD graba audio sin procesar."
@@ -624,6 +786,55 @@
           "simplified": "Simplificado",
           "traditionalTw": "Tradicional (Taiwán)",
           "traditionalHk": "Tradicional (Hong Kong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Autocorrección",
+          "description": "Elimina muletillas (\"uh\", \"um\", \"eh\"), tartamudeos y palabras repetidas, y las partes que retiras al corregirte (\"no wait\", \"I mean\", \"no, espera\", \"quiero decir\"), con Apple Intelligence en este dispositivo. Tu proveedor de posprocesamiento configurado, que puede ser un servicio remoto, solo se usa si el posprocesamiento está activado. Solo se eliminan palabras, nunca se reescriben; los dictados sin esas vacilaciones se pegan sin cambios y, si el modelo es lento o cambia demasiado, se conserva el original."
+        },
+        "appStyles": {
+          "title": "Estilos por aplicación",
+          "description": "Adapta el texto a la aplicación en la que dictas: mensajes de chat sin punto final, salida adecuada para terminal y código, y mayúsculas y espacios acordes al texto anterior al cursor.",
+          "categories": {
+            "title": "Estilos",
+            "summary": "{{active}}/{{total}} activos",
+            "chat": {
+              "label": "Apps de chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: un mensaje de una sola frase pierde el punto final (? y ! se mantienen)."
+            },
+            "terminal": {
+              "label": "Terminales",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: sin punto final y sin mayúscula en una palabra funcional inicial."
+            },
+            "code": {
+              "label": "Editores de código",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: una sola palabra o identificador pierde el punto final."
+            },
+            "matchContext": {
+              "label": "Adaptar al texto circundante",
+              "hint": "Al continuar una frase, una palabra funcional inicial pasa a minúscula (\"and\", \"weil\"); se añade un espacio si el cursor está justo después de una palabra."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Fragmentos",
+          "description": "Di una frase activadora sola (o entre signos de puntuación) para insertar su texto, p. ej. \"mi dirección\". Se ignoran mayúsculas y puntuación; las demás reglas nunca modifican el texto insertado.",
+          "triggerPlaceholder": "Frase activadora, p. ej. mi dirección",
+          "expansionPlaceholder": "Texto a insertar (se permiten varias líneas)",
+          "add": "Añadir",
+          "save": "Guardar",
+          "cancel": "Cancelar",
+          "edit": "Editar",
+          "remove": "Eliminar fragmento {{trigger}}",
+          "enable": "Activar fragmento {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "La frase activadora necesita al menos una palabra alfanumérica.",
+            "expansionRequired": "Introduce un texto a insertar.",
+            "duplicateTrigger": "Ya existe un fragmento para «{{trigger}}».",
+            "commandFailed": "No se pudo guardar ni eliminar el fragmento. Inténtalo de nuevo."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Transcribiendo...",
     "processing": "Procesando...",
-    "loadingModel": "Cargando modelo..."
+    "fallbackModel": "Modelo de respaldo…",
+    "recordingLimitWarning": "La grabación se detendrá automáticamente en {{seconds}} segundos",
+    "loadingModel": "Cargando modelo...",
+    "recording": "Grabando…"
+  },
+  "learnedToast": {
+    "pair": "«{{misheard}}» → «{{intended}}»",
+    "undo": "Deshacer",
+    "accept": "Aceptar",
+    "dismiss": "Cerrar",
+    "more": "+{{count}} más"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} puede estar bloqueando 1 atajo",

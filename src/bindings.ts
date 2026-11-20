@@ -106,6 +106,22 @@ async changeSpokenLanguagesSetting(languages: string[]) : Promise<Result<null, s
     return { status: "ok", data: await TAURI_INVOKE("change_spoken_languages_setting", { languages }) };
 } catch (e) {
     if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as string };
+}
+},
+async changeLanguageAllowlistSetting(allowlist: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_language_allowlist_setting", { allowlist }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLanguageAllowlistFallbackModelSetting(model: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_language_allowlist_fallback_model_setting", { model }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
 },
@@ -344,6 +360,253 @@ async updateCustomWords(words: string[]) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeTextRulesEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_text_rules_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeTextRulesItnEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_text_rules_itn_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateTextRulesCustom(rules: TextRule[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_text_rules_custom", { rules }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async updateTextRulesDisabledBuiltins(triggers: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_text_rules_disabled_builtins", { triggers }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getTextRulesBuiltins() : Promise<TextRule[]> {
+    return await TAURI_INVOKE("get_text_rules_builtins");
+},
+async changeLearnCorrectionsEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLearnFromEditsEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_from_edits_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLearnCorrectionsAggressivenessSetting(aggressiveness: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_aggressiveness_setting", { aggressiveness }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeLearnCorrectionsWindowSecsSetting(windowSecs: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learn_corrections_window_secs_setting", { windowSecs }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getLearnedCorrections() : Promise<LearnedCorrections> {
+    return await TAURI_INVOKE("get_learned_corrections");
+},
+async addLearnedCorrection(misheard: string, intended: string) : Promise<Result<LearnedCorrection, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_learned_correction", { misheard, intended }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async acceptLearnedCorrection(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("accept_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async rejectLearnedCorrections(ids: string[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reject_learned_corrections", { ids }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeLearnedCorrection(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async setLearnedCorrectionEnabled(id: string, enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_learned_correction_enabled", { id, enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async unblockLearnedCorrection(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("unblock_learned_correction", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+// fork(voice-control): scope delayed dismissals to the toast being dismissed.
+async hideLearnedToast(id?: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("hide_learned_toast", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async takePendingLearnedToast() : Promise<LearnedCorrectionEvent | null> {
+    return await TAURI_INVOKE("take_pending_learned_toast");
+},
+async toastStage(stage: string) : Promise<void> {
+    await TAURI_INVOKE("toast_stage", { stage });
+},
+async changeLearnedToastShortcutSetting(action: LearnedToastShortcut, binding: string | null) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_learned_toast_shortcut_setting", { action, binding }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeDictationJournalEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_dictation_journal_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeDictationJournalRetentionDaysSetting(days: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_dictation_journal_retention_days_setting", { days }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getJournalDirPath() : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_journal_dir_path") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async openJournalDir() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_journal_dir") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async journalOverlayStage(stage: string) : Promise<void> {
+    await TAURI_INVOKE("journal_overlay_stage", { stage });
+},
+async changeAsrContextBiasingSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_asr_context_biasing_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async getAsrBiasSupport(modelId: string) : Promise<boolean | null> {
+    return await TAURI_INVOKE("get_asr_bias_support", { modelId });
+},
+/**
+ * Switch for the trigger-gated self-correction LLM pass.
+ */
+async changeSelfCorrectionLlmEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_self_correction_llm_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Master switch for per-app styles and context matching.
+ */
+async changeAppStylesEnabledSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_app_styles_enabled_setting", { enabled }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * The per-category switches.
+ */
+async changeAppStylesCategoriesSetting(categories: AppStyleCategories) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_app_styles_categories_setting", { categories }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async addSnippet(trigger: string, expansion: string) : Promise<Result<Snippet, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("add_snippet", { trigger, expansion }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Replace the snippet with `snippet.id` (trigger, expansion, enabled).
+ */
+async updateSnippet(snippet: Snippet) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("update_snippet", { snippet }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async removeSnippet(id: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("remove_snippet", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Temporarily unregister all bindings while the user is recording a
  * shortcut in the UI. This avoids firing actions while keys are recorded.
@@ -426,6 +689,14 @@ async changeFillerWordRemovalEnabledSetting(enabled: boolean) : Promise<Result<n
 async changeChineseScriptSetting(script: ChineseScript) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_chinese_script_setting", { script }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async changeAutoStopRecordingOnLimitSetting(enabled: boolean) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_auto_stop_recording_on_limit_setting", { enabled }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -1076,6 +1347,8 @@ export const events = __makeEvents__<{
 historyUpdatePayload: HistoryUpdatePayload,
 noticesChanged: NoticesChanged,
 recordingStateEvent: RecordingStateEvent,
+learnedCorrectionEvent: LearnedCorrectionEvent,
+learnedCorrectionsChanged: LearnedCorrectionsChanged,
 streamPhaseEvent: StreamPhaseEvent,
 streamTextEvent: StreamTextEvent,
 transcriptionCompleteEvent: TranscriptionCompleteEvent,
@@ -1084,6 +1357,8 @@ transcriptionJob: TranscriptionJob
 historyUpdatePayload: "history-update-payload",
 noticesChanged: "notices-changed",
 recordingStateEvent: "recording-state-event",
+learnedCorrectionEvent: "learned-correction-event",
+learnedCorrectionsChanged: "learned-corrections-changed",
 streamPhaseEvent: "stream-phase-event",
 streamTextEvent: "stream-text-event",
 transcriptionCompleteEvent: "transcription-complete-event",
@@ -1136,7 +1411,7 @@ whats_new_last_seen_version?: string; selected_model?: string; onboarding_comple
  * Which input channel to use on the selected microphone device.
  * None means "average all channels" (original behavior).
  */
-selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; 
+selected_channel?: number | null; clamshell_microphone?: string | null; selected_output_device?: string | null; translate_to_english?: boolean; selected_language?: string; language_allowlist?: string[]; language_allowlist_fallback_model?: string | null; 
 /**
  * Every language the person dictates in (codes, e.g. ["en", "zh"]),
  * picked during onboarding. Empty until then.
@@ -1168,7 +1443,7 @@ transcribe_gpu_device?: string | null; extra_recording_buffer_ms?: number; vad_e
 /**
  * Experimental detector implementation. Silero remains the stable default.
  */
-vad_backend?: VadBackend; 
+vad_backend?: VadBackend; auto_stop_recording_on_limit?: boolean; 
 /**
  * Decode long audio in chunks cut at pauses, for models whose accuracy
  * degrades on long audio. Independent of `vad_enabled`, which only
@@ -1185,7 +1460,20 @@ language_detection_window_secs?: number;
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; text_rules_enabled?: boolean; text_rules_itn_enabled?: boolean; text_rules_custom?: TextRule[]; text_rules_disabled_builtins?: string[]; learn_corrections_enabled?: boolean; learn_from_edits_enabled?: boolean; learn_corrections_aggressiveness?: Aggressiveness; learn_corrections_window_secs?: number; learned_toast_accept_shortcut?: string; learned_toast_dismiss_shortcut?: string; learned_corrections?: LearnedCorrection[]; dictation_journal_enabled?: boolean; 
+/**
+ * Days a journal day file is kept (clamped to 1–365).
+ */
+dictation_journal_retention_days?: number; self_correction_llm_enabled?: boolean; app_styles_enabled?: boolean; app_styles_categories?: AppStyleCategories; snippets?: Snippet[]; asr_context_biasing_enabled?: boolean }
+export type Aggressiveness = "conservative" | "balanced" | "aggressive"
+/**
+ * Which per-app styles are active.
+ */
+export type AppStyleCategories = { chat?: boolean; terminal?: boolean; code?: boolean; 
+/**
+ * Casing and spacing matched to the text before the caret.
+ */
+match_context?: boolean }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AutoUnavailableReason = 
@@ -1203,6 +1491,7 @@ export type AutoUnavailableReason =
 { kind: "no_match" }
 export type AvailableAccelerators = { transcribe: string[]; gpu_devices: GpuDeviceOption[] }
 export type BindingResponse = { success: boolean; binding: ShortcutBinding | null; error: string | null }
+export type BlockedCorrection = { id: string; misheard: string; intended: string; blocked_at: number }
 /**
  * Script applied to Mandarin and Cantonese output. Traditional carries its region
  * (Taiwan vs Hong Kong forms, e.g. 裡/裏) rather than guessing it.
@@ -1221,6 +1510,8 @@ export type ChineseScript =
  */
 "traditional_hk"
 export type ClipboardHandling = "dont_modify" | "copy_to_clipboard"
+export type CorrectionSource = "auto" | "manual"
+export type CorrectionStatus = "suggested" | "active"
 export type CustomSounds = { start: boolean; stop: boolean }
 export type GpuDeviceOption = { id: string; name: string; total_vram_mb: number }
 export type HistoryEntry = { id: number; file_name: string; timestamp: number; saved: boolean; title: string; transcription_text: string; post_processed_text: string | null; post_process_prompt: string | null; post_process_requested: boolean; 
@@ -1316,6 +1607,14 @@ export type LanguageStatus =
  * Auto can't work here; `language` is used instead.
  */
 { kind: "auto_unavailable"; language: string; reason: AutoUnavailableReason }
+export type LearnedCorrection = { id: string; misheard: string; intended: string; count: number; last_seen: number; source: CorrectionSource; status: CorrectionStatus; enabled: boolean; lang: string | null; sentence_start: boolean }
+export type LearnedCorrectionEvent = { id: string; misheard: string; intended: string; status: CorrectionStatus; suggested_ids: string[]; active_ids: string[]; extra: number }
+export type LearnedCorrections = { corrections: LearnedCorrection[]; blocked: BlockedCorrection[] }
+export type LearnedCorrectionsChanged = Record<string, never>
+/**
+ * Which toast shortcut a setting / command refers to.
+ */
+export type LearnedToastShortcut = "accept" | "dismiss"
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 /**
  * A macOS privacy permission Handy asks for during onboarding.
@@ -1485,7 +1784,20 @@ export type ShortcutActivation =
  */
 "hold_or_toggle"
 export type ShortcutBinding = { id: string; name: string; description: string; default_binding: string; current_binding: string }
+/**
+ * A user-defined snippet.
+ */
+export type Snippet = { id: string; 
+/**
+ * Spoken trigger phrase, e.g. `"meine Adresse"`.
+ */
+trigger: string; 
+/**
+ * Inserted text (multi-line allowed), inserted verbatim.
+ */
+expansion: string; enabled?: boolean }
 export type SoundTheme = "marimba" | "pop" | "custom"
+export type SpacingPolicy = "attach_left" | "attach_right" | "glue" | "standalone"
 /**
  * Phase of the streaming overlay card, emitted to drive its UI state.
  */
@@ -1523,6 +1835,7 @@ export type StreamWorkKind = "transcribing" | "polishing"
  * and `Dark` force one of the two palettes Handy already ships.
  */
 export type Theme = "system" | "light" | "dark"
+export type TextRule = { trigger: string; replacement: string; spacing?: SpacingPolicy }
 export type TranscribeAcceleratorSetting = "auto" | "cpu" | "gpu"
 /**
  * Emitted when a dictation finishes (not on cancel); onboarding uses it to measure speed.

@@ -249,6 +249,13 @@ pub fn dictation_in_progress(app: &AppHandle) -> bool {
         .is_some_and(|state| state.lock().icon_state.is_busy())
 }
 
+// fork(voice-control): the paste-last-transcript hotkey only fires while idle.
+pub(crate) fn current_tray_state(app: &AppHandle) -> TrayIconState {
+    app.try_state::<TrayState>()
+        .map(|state| state.lock().icon_state)
+        .unwrap_or(TrayIconState::Idle)
+}
+
 /// Re-syncs the tray after something other than the recording state changed
 /// (theme, Secure Input warning, notices). The recording state itself is
 /// preserved.
@@ -788,7 +795,8 @@ fn build_menu(app: &AppHandle, inputs: &MenuInputs) -> tauri::Result<(Menu<tauri
     Ok((menu, tooltip))
 }
 
-fn last_transcript_text(entry: &HistoryEntry) -> &str {
+// fork(voice-control): shared with the paste-last-transcript hotkey.
+pub(crate) fn last_transcript_text(entry: &HistoryEntry) -> &str {
     entry
         .post_processed_text
         .as_deref()

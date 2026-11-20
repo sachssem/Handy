@@ -160,6 +160,10 @@ pub struct LoadedInfo {
     /// run (whisper today); other models' long audio is chunked by Handy.
     pub supports_long_form: bool,
     pub supports_vocabulary: bool,
+    /// fork(voice-control): `RunOptions::prompt` reaches a conditioning slot
+    /// (`Feature::ContextPrompt`), for the app-context ASR bias (`asr_bias`).
+    #[serde(default)]
+    pub supports_context_prompt: bool,
 }
 
 /// Encode one frame. Refuses a section the reader would refuse, so an

@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Phím tắt xử lý sau",
             "description": "Tùy chọn: Phím tắt chuyên dụng luôn áp dụng xử lý sau bằng AI cho bản chuyển đổi của bạn."
+          },
+          "paste_last_transcript": {
+            "name": "Dán bản chép lời gần nhất",
+            "description": "Dán lại bản chép lời gần đây nhất của bạn. Tổ hợp phím này bị chiếm trên toàn hệ thống khi được đặt — hãy đổi nếu ứng dụng khác cần nó (ví dụ Ctrl+V trong terminal hoặc Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Tìm kiếm ngôn ngữ...",
         "noResults": "Không tìm thấy ngôn ngữ",
         "auto": "Tự động",
+        "allowlist": {
+          "title": "Giới hạn tự động nhận diện ở…",
+          "description": "Khi chọn Tự động, chỉ giữ các ngôn ngữ này. Ngôn ngữ được nhận diện ngoài danh sách sẽ được phiên âm lại, ghim vào ngôn ngữ đầu tiên (chính).",
+          "primary": "Chính",
+          "primaryTag": "{{language}} (chính)",
+          "makePrimary": "Đặt làm chính",
+          "summaryAll": "Tất cả ngôn ngữ",
+          "fallbackModel": {
+            "label": "Mô hình dự phòng",
+            "none": "Không có",
+            "description": "Các nhận diện ngoài danh sách được phiên âm lại bằng mô hình này thay vì thử lại bằng ngôn ngữ chính."
+          }
+        },
         "autoUnavailable": {
           "title": "Tự động đã tắt",
           "oneLanguage": "Chỉ một trong các ngôn ngữ của bạn hoạt động với mô hình này",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Tự động cần tải xuống riêng",
         "detectorMissing": "Mô hình này không nhận biết được bạn đang nói ngôn ngữ nào. Tự động cần một trình nhận diện ngôn ngữ nhỏ để xác định",
         "stopDetectorDownload": "Dừng tải xuống trình nhận diện ngôn ngữ"
+      },
+      "asrBiasing": {
+        "label": "Dùng từ vựng & ngữ cảnh ứng dụng",
+        "description": "Chuyển từ tùy chỉnh, các sửa lỗi đã học và ngữ cảnh của ứng dụng đích cho bộ nhận dạng để cải thiện tên và thuật ngữ.",
+        "unsupported": "Mô hình đã chọn bỏ qua từ vựng và ngữ cảnh ứng dụng; từ tùy chỉnh vẫn được áp dụng như sửa lỗi sau đó."
       },
       "preferredLanguages": {
         "title": "Ngôn ngữ ưa thích",
@@ -471,7 +493,10 @@
         "output": "Đầu ra",
         "transcription": "Chuyển đổi",
         "history": "Lịch sử",
-        "experimental": "Thử nghiệm"
+        "experimental": "Thử nghiệm",
+        "textRules": "Quy tắc văn bản",
+        "learnedCorrections": "Sửa lỗi đã học",
+        "smartFormatting": "Định dạng thông minh"
       },
       "experimentalToggle": {
         "label": "Tính năng thử nghiệm",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Giữ micro mở giữa các lần phiên âm",
         "description": "Giữ luồng micro mở trong 30 giây sau khi dừng ghi âm, giảm độ trễ khi phiên âm liên tiếp. Có thể làm giảm chất lượng âm thanh Bluetooth khi đang hoạt động."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Tự động dừng bản ghi dài",
+        "description": "Dừng ghi âm trước khi mô hình đã chọn đạt đến giới hạn đọc chính tả an toàn. Vòng đếm ngược xuất hiện trong những giây cuối cùng."
+      },
+      "dictationJournal": {
+        "title": "Nhật ký đọc chính tả",
+        "description": "Lưu nhật ký cục bộ theo ngày cho mỗi lần đọc chính tả (thời gian, mô hình, văn bản sau mỗi bước xử lý, ứng dụng đích) để có thể phân tích chất lượng sau này. Chỉ lưu trên thiết bị này; các tệp cũ hơn {{days}} ngày sẽ bị xóa.",
+        "folderTitle": "Thư mục nhật ký",
+        "folderDescription": "Nơi lưu các tệp nhật ký hằng ngày",
+        "retentionTitle": "Thời gian lưu nhật ký",
+        "retentionDescription": "Các tệp theo ngày cũ hơn sẽ bị xóa",
+        "retentionOption": "{{days}} ngày"
       },
       "airpodsMode": {
         "label": "Chế độ AirPods",
@@ -590,6 +628,130 @@
         "remove": "Xóa {{word}}",
         "duplicate": "\"{{word}}\" đã tồn tại"
       },
+      "textRules": {
+        "title": "Chuyển đổi lệnh nói",
+        "description": "Chuyển đổi ngay lập tức các lệnh dấu câu và định dạng được nói (tiếng Đức và tiếng Anh) thành ký hiệu, không cần qua AI. Chạy trước bước xử lý hậu kỳ AI tùy chọn.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Chuyển số thành chữ số",
+          "description": "Chuyển đổi các số được nói thành chữ số, ví dụ \"five hundred thirty nine\" → \"539\". Các số nhỏ đứng riêng lẻ được giữ nguyên dưới dạng chữ."
+        },
+        "builtins": {
+          "title": "Lệnh tích hợp sẵn",
+          "description": "Bật hoặc tắt từng lệnh tích hợp sẵn. Tắt một lệnh nếu nó bị kích hoạt nhầm trong lời nói bình thường (ví dụ \"Punkt\").",
+          "summary": "{{active}}/{{total}} đang bật",
+          "loading": "Đang tải lệnh tích hợp…",
+          "loadError": "Không thể tải lệnh tích hợp.",
+          "retry": "Thử lại"
+        },
+        "custom": {
+          "title": "Quy tắc tùy chỉnh",
+          "description": "Thêm quy tắc trình kích hoạt-thay thế của riêng bạn. Quy tắc tùy chỉnh ghi đè quy tắc tích hợp sẵn có cùng trình kích hoạt.",
+          "triggerPlaceholder": "Trình kích hoạt",
+          "replacementPlaceholder": "Thay thế",
+          "add": "Thêm",
+          "remove": "Xóa {{trigger}}",
+          "duplicate": "\"{{trigger}}\" đã tồn tại",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Như dấu phẩy",
+          "attach_right": "Như dấu ngoặc mở",
+          "glue": "Nối các từ",
+          "standalone": "Đứng riêng"
+        },
+        "spacingHint": {
+          "attach_left": "Không có dấu cách trước, một sau: từ, từ",
+          "attach_right": "Một dấu cách trước, không có sau: từ (từ",
+          "glue": "Không có dấu cách xung quanh: voice-control",
+          "standalone": "Chèn nguyên dạng, xóa dấu cách xung quanh: xuống dòng"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Từ điển cá nhân",
+        "description": "Thay thế những từ mà trình nhận dạng liên tục nhận sai — tên riêng, thuật ngữ, dấu — trong mọi bản chép lời, trước bước hậu xử lý AI tùy chọn. Trên macOS, Handy còn học từ các chỉnh sửa của bạn: sửa một từ ngay sau khi dán và Handy sẽ đề xuất cách sửa đó. Tắt tính năng này sẽ tạm dừng cả hai.",
+        "learnFromEdits": {
+          "title": "Học từ các chỉnh sửa của tôi",
+          "description": "Theo dõi ô nhập sau khi dán và gợi ý các sửa lỗi bạn làm thủ công. Khi tắt, không học thêm gì mới; từ điển vẫn được áp dụng."
+        },
+        "suggestions": {
+          "title": "Đề xuất",
+          "description": "Các cách sửa Handy nhận thấy trong chỉnh sửa của bạn. Chấp nhận để áp dụng từ bây giờ; cách sửa bạn lặp lại sẽ được tự động thêm vào. Chọn Không bao giờ để chặn vĩnh viễn.",
+          "accept": "Chấp nhận",
+          "dismiss": "Không bao giờ"
+        },
+        "dictionary": {
+          "title": "Từ điển",
+          "filterPlaceholder": "Lọc…",
+          "noMatches": "Không có mục nào khớp."
+        },
+        "blocked": {
+          "title": "Đã chặn",
+          "description": "Các cách sửa bạn đã bỏ qua hoặc hoàn tác. Handy sẽ không học lại chúng trừ khi bạn bỏ chặn.",
+          "unblock": "Bỏ chặn"
+        },
+        "options": {
+          "title": "Tùy chọn học"
+        },
+        "aggressiveness": {
+          "title": "Mức độ tích cực khi học",
+          "description": "Mức độ dễ dàng mà một chỉnh sửa được chấp nhận là một trường hợp nghe sai thực sự. Các mức lỏng hơn học được nhiều hơn nhưng có nguy cơ làm hỏng từ điển.",
+          "conservative": {
+            "label": "Thận trọng",
+            "description": "Chỉ học các sửa lỗi rất gần, phát âm tương tự. An toàn nhất trước các mục sai."
+          },
+          "balanced": {
+            "label": "Cân bằng",
+            "description": "Chấp nhận các sửa lỗi khác biệt vừa phải; ngữ âm chỉ mang tính tham khảo."
+          },
+          "aggressive": {
+            "label": "Tích cực",
+            "description": "Chấp nhận cả những sửa lỗi liên quan lỏng lẻo và không kiểm tra độ giống âm. Việc đổi qua lại giữa các từ thông dụng vẫn không bao giờ được học. Nguy cơ mục sai cao nhất."
+          }
+        },
+        "window": {
+          "title": "Khung thời gian học",
+          "description": "Thời gian Handy theo dõi trường nhập sau khi dán để phát hiện sửa lỗi thủ công.",
+          "seconds": "giây"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Tự động",
+          "manual": "Thủ công"
+        },
+        "count": "đã thấy {{count}}×",
+        "langBadge": "Đã học cho ngôn ngữ: {{lang}}",
+        "platformHint": "Học tự động chỉ chạy trên macOS. Bạn vẫn có thể thêm sửa lỗi thủ công bên dưới, và chúng được áp dụng trên mọi nền tảng.",
+        "add": {
+          "misheardPlaceholder": "Nghe sai",
+          "intendedPlaceholder": "Đã sửa",
+          "button": "Thêm"
+        },
+        "enable": "Bật {{misheard}}",
+        "remove": "Xóa {{misheard}}",
+        "empty": "Chưa có sửa lỗi nào. Thêm một từ mà bộ nhận dạng liên tục nghe sai — như tên riêng hoặc thuật ngữ kỹ thuật — và sửa lỗi của nó sẽ được áp dụng cho mọi bản phiên âm trong tương lai.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Phím tắt: Chấp nhận",
+            "description": "Chấp nhận gợi ý trong thông báo sửa lỗi đã học. Chỉ hoạt động khi thông báo đang hiển thị."
+          },
+          "dismiss": {
+            "title": "Phím tắt: Hoàn tác",
+            "description": "Hoàn tác một sửa lỗi vừa học (Hoàn tác). Chỉ hoạt động khi thông báo đang hiển thị một sửa lỗi đã học; Ctrl+Esc đóng thông báo mà không thay đổi gì."
+          },
+          "errors": {
+            "needsModifier": "Hãy dùng ít nhất một phím bổ trợ (Control, Option, Shift hoặc Command).",
+            "invalid": "Không thể dùng tổ hợp phím này làm phím tắt.",
+            "conflict": "Tổ hợp này đã được một phím tắt Handy khác sử dụng.",
+            "conflictWith": "Tổ hợp phím này đã được “{{name}}” sử dụng.",
+            "save": "Không thể lưu phím tắt: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Hãy nhập cả từ bị nghe nhầm và từ đã sửa.",
+          "generic": "Không thể lưu thay đổi. Vui lòng thử lại."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Phát hiện hoạt động giọng nói",
         "description": "Lọc bỏ khoảng lặng khỏi bản ghi. Các mô hình hỗ trợ truyền trực tiếp dùng đuôi VAD dài hơn; tắt VAD sẽ ghi âm thanh thô."
@@ -624,6 +786,55 @@
           "simplified": "Giản thể",
           "traditionalTw": "Phồn thể (Đài Loan)",
           "traditionalHk": "Phồn thể (Hồng Kông)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Tự sửa lỗi",
+          "description": "Loại bỏ từ đệm (\"uh\", \"um\", \"ờ\"), nói lắp và từ lặp lại, cùng những phần bạn rút lại khi tự sửa (\"no wait\", \"I mean\", \"không, khoan\", \"ý tôi là\"), bằng Apple Intelligence trên thiết bị này. Nhà cung cấp hậu xử lý bạn đã cấu hình, có thể là dịch vụ từ xa, chỉ được dùng khi hậu xử lý được bật. Từ chỉ bị xóa, không bao giờ bị viết lại; bản đọc không có những chỗ ngập ngừng như vậy được dán nguyên vẹn, và nếu mô hình chậm hoặc thay đổi quá nhiều, bản gốc được giữ lại."
+        },
+        "appStyles": {
+          "title": "Kiểu theo ứng dụng",
+          "description": "Điều chỉnh văn bản theo ứng dụng bạn đang đọc vào: tin nhắn chat không có dấu chấm cuối, kết quả phù hợp với terminal và mã, cùng cách viết hoa và khoảng trắng khớp với văn bản trước con trỏ.",
+          "categories": {
+            "title": "Kiểu",
+            "summary": "{{active}}/{{total}} đang bật",
+            "chat": {
+              "label": "Ứng dụng chat",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: tin nhắn một câu sẽ bỏ dấu chấm cuối (giữ nguyên ? và !)."
+            },
+            "terminal": {
+              "label": "Terminal",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: không có dấu chấm cuối, không viết hoa từ chức năng đứng đầu."
+            },
+            "code": {
+              "label": "Trình soạn thảo mã",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: một từ hoặc định danh đơn lẻ sẽ bỏ dấu chấm cuối."
+            },
+            "matchContext": {
+              "label": "Khớp với văn bản xung quanh",
+              "hint": "Khi viết tiếp một câu, từ chức năng đứng đầu được viết thường (\"and\", \"weil\"); thêm khoảng trắng khi con trỏ nằm ngay sau một từ."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Đoạn văn bản mẫu",
+          "description": "Nói riêng một cụm kích hoạt (hoặc giữa các dấu câu) để chèn văn bản của nó, ví dụ \"địa chỉ của tôi\". Bỏ qua hoa/thường và dấu câu; văn bản được chèn không bao giờ bị quy tắc khác thay đổi.",
+          "triggerPlaceholder": "Cụm kích hoạt, ví dụ địa chỉ của tôi",
+          "expansionPlaceholder": "Văn bản cần chèn (cho phép nhiều dòng)",
+          "add": "Thêm",
+          "save": "Lưu",
+          "cancel": "Hủy",
+          "edit": "Sửa",
+          "remove": "Xóa đoạn mẫu {{trigger}}",
+          "enable": "Bật đoạn mẫu {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Cụm kích hoạt cần có ít nhất một từ gồm chữ hoặc số.",
+            "expansionRequired": "Nhập văn bản cần chèn.",
+            "duplicateTrigger": "Đã có đoạn mẫu cho '{{trigger}}'.",
+            "commandFailed": "Không thể lưu hoặc xóa đoạn mẫu. Vui lòng thử lại."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
-    "loadingModel": "Đang tải mô hình..."
+    "fallbackModel": "Mô hình dự phòng…",
+    "recordingLimitWarning": "Ghi âm sẽ tự động dừng sau {{seconds}} giây",
+    "loadingModel": "Đang tải mô hình...",
+    "recording": "Đang ghi âm…"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Hoàn tác",
+    "accept": "Chấp nhận",
+    "dismiss": "Đóng",
+    "more": "+{{count}} nữa"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} có thể đang chặn 1 phím tắt",

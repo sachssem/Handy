@@ -148,7 +148,9 @@ fn sound_counts_even_when_vad_drops_it() {
 
 #[test]
 fn vad_keeps_speech_frames_only() {
-    let mut h = harness(VadPolicy::Offline);
+    // fork(voice-control): offline VAD keeps internal pauses (see
+    // `vad_edges`), so upstream's filtering is checked on the streaming policy.
+    let mut h = harness(VadPolicy::Streaming);
     h.sink.process_chunk(chunk(&[1.0; FRAME], FRAME));
     h.sink.process_chunk(chunk(&[0.0; FRAME], FRAME));
     h.sink.process_chunk(chunk(&[2.0; FRAME], FRAME));

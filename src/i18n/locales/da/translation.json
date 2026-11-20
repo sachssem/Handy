@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Genvej til efterbehandling",
             "description": "Valgfrit: En dedikeret genvej, der altid anvender AI-efterbehandling på din transskription."
+          },
+          "paste_last_transcript": {
+            "name": "Indsæt seneste transskription",
+            "description": "Indsætter din seneste transskription igen. Kombinationen er optaget i hele systemet, så længe den er sat — skift den, hvis en anden app har brug for den (f.eks. Ctrl+V i terminaler eller Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Søg efter sprog...",
         "noResults": "Ingen sprog fundet",
         "auto": "Automatisk",
+        "allowlist": {
+          "title": "Begræns automatisk registrering til…",
+          "description": "Når Auto er valgt, beholdes kun disse sprog. Et registreret sprog uden for listen transskriberes igen på det primære sprog.",
+          "primary": "Primært",
+          "primaryTag": "{{language}} (primært)",
+          "makePrimary": "Gør til primært",
+          "summaryAll": "Alle sprog",
+          "fallbackModel": {
+            "label": "Reservemodel",
+            "none": "Ingen",
+            "description": "Registreringer uden for listen transskriberes igen med denne model i stedet for et nyt forsøg på det primære sprog."
+          }
+        },
         "autoUnavailable": {
           "title": "Automatisk er slået fra",
           "oneLanguage": "Kun ét af dine sprog virker med denne model",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Automatisk kræver en separat download",
         "detectorMissing": "Denne model kan ikke afgøre, hvilket sprog du taler. Automatisk har brug for en lille sprogregistrering til at finde ud af det",
         "stopDetectorDownload": "Stop download af sprogregistreringen"
+      },
+      "asrBiasing": {
+        "label": "Brug ordforråd og app-kontekst",
+        "description": "Sender egne ord, lærte rettelser og målappens kontekst til genkendelsen for at forbedre navne og termer.",
+        "unsupported": "Den valgte model ignorerer ordforråd og app-kontekst; egne ord anvendes stadig som efterfølgende rettelser."
       },
       "preferredLanguages": {
         "title": "Foretrukne sprog",
@@ -471,7 +493,10 @@
         "output": "Output",
         "transcription": "Transskription",
         "history": "Historik",
-        "experimental": "Eksperimentel"
+        "experimental": "Eksperimentel",
+        "textRules": "Tekstregler",
+        "learnedCorrections": "Lærte rettelser",
+        "smartFormatting": "Smart formatering"
       },
       "experimentalToggle": {
         "label": "Eksperimentelle funktioner",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Hold mikrofon åben mellem transskriptioner",
         "description": "Holder mikrofonstrømmen åben i 30 sekunder, efter at optagelsen stopper, hvilket reducerer ventetid ved transskriptioner lige efter hinanden. Kan forringe Bluetooth-lydkvaliteten, mens den er aktiv."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Stop lange optagelser automatisk",
+        "description": "Stopper optagelsen, før den valgte model når sin sikre dikteringsgrænse. En nedtællingsring vises i de sidste sekunder."
+      },
+      "dictationJournal": {
+        "title": "Dikteringsjournal",
+        "description": "Fører en lokal log pr. dag over hver diktering (tidsforløb, model, tekst efter hvert behandlingstrin, målprogram), så kvaliteten kan analyseres senere. Forbliver på denne enhed; filer ældre end {{days}} dage slettes.",
+        "folderTitle": "Journalmappe",
+        "folderDescription": "Hvor de daglige journalfiler gemmes",
+        "retentionTitle": "Opbevaringstid",
+        "retentionDescription": "Dagsfiler ældre end dette slettes",
+        "retentionOption": "{{days}} dage"
       },
       "airpodsMode": {
         "label": "AirPods-tilstand",
@@ -590,6 +628,130 @@
         "remove": "Fjern {{word}}",
         "duplicate": "\"{{word}}\" findes allerede"
       },
+      "textRules": {
+        "title": "Konvertér talte kommandoer",
+        "description": "Konvertér talte tegnsætnings- og formateringskommandoer (tysk og engelsk) til symboler med det samme uden en tur forbi AI. Kører før valgfri AI-efterbehandling.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Tal som cifre",
+          "description": "Konvertér talte tal til cifre, f.eks. \"five hundred thirty nine\" → \"539\". Små enkeltstående tal bevares som ord."
+        },
+        "builtins": {
+          "title": "Indbyggede kommandoer",
+          "description": "Aktivér eller deaktiver individuelle indbyggede kommandoer. Deaktiver en, hvis den udløses ved en fejl i almindelig tale (f.eks. \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktive",
+          "loading": "Indlæser indbyggede kommandoer…",
+          "loadError": "Kunne ikke indlæse de indbyggede kommandoer.",
+          "retry": "Prøv igen"
+        },
+        "custom": {
+          "title": "Brugerdefinerede regler",
+          "description": "Tilføj dine egne regler for udløser og erstatning. Brugerdefinerede regler tilsidesætter indbyggede regler med samme udløser.",
+          "triggerPlaceholder": "Udløser",
+          "replacementPlaceholder": "Erstatning",
+          "add": "Tilføj",
+          "remove": "Fjern {{trigger}}",
+          "duplicate": "\"{{trigger}}\" findes allerede",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Som et komma",
+          "attach_right": "Som en startparentes",
+          "glue": "Forbinder ord",
+          "standalone": "Selvstændig"
+        },
+        "spacingHint": {
+          "attach_left": "Intet mellemrum før, ét efter: ord, ord",
+          "attach_right": "Ét mellemrum før, intet efter: ord (ord",
+          "glue": "Ingen mellemrum omkring: voice-control",
+          "standalone": "Indsættes uændret, omgivende mellemrum fjernes: linjeskift"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Personlig ordbog",
+        "description": "Erstatter ord, som genkendelsen bliver ved med at tage fejl af – navne, fagudtryk, omlyde – i hver transskription, før valgfri AI-efterbehandling. På macOS lærer Handy også af dine redigeringer: Ret et ord lige efter indsætning, så foreslår Handy den rettelse. Slås dette fra, sættes begge dele på pause.",
+        "learnFromEdits": {
+          "title": "Lær af mine rettelser",
+          "description": "Overvåger feltet efter indsættelse og foreslår de rettelser, du laver i hånden. Slået fra: intet nyt læres, ordbogen anvendes stadig."
+        },
+        "suggestions": {
+          "title": "Forslag",
+          "description": "Rettelser, som Handy har bemærket i dine redigeringer. Acceptér en for at anvende den fremover; en rettelse, du bliver ved med at lave, tilføjes automatisk. Vælg Aldrig for at blokere den permanent.",
+          "accept": "Acceptér",
+          "dismiss": "Aldrig"
+        },
+        "dictionary": {
+          "title": "Ordbog",
+          "filterPlaceholder": "Filtrer…",
+          "noMatches": "Ingen poster matcher."
+        },
+        "blocked": {
+          "title": "Blokeret",
+          "description": "Rettelser, du har afvist eller fortrudt. Handy lærer dem ikke igen, medmindre du fjerner blokeringen.",
+          "unblock": "Fjern blokering"
+        },
+        "options": {
+          "title": "Indlæringsindstillinger"
+        },
+        "aggressiveness": {
+          "title": "Indlæringsgrad",
+          "description": "Hvor let en redigering accepteres som en reel fejlgenkendelse. Løsere niveauer lærer mere, men risikerer at forurene ordbogen.",
+          "conservative": {
+            "label": "Forsigtig",
+            "description": "Kun meget tætte rettelser, der lyder ens, læres. Sikrest mod forkerte poster."
+          },
+          "balanced": {
+            "label": "Afbalanceret",
+            "description": "Accepterer moderat forskellige rettelser; fonetik er kun vejledende."
+          },
+          "aggressive": {
+            "label": "Aggressiv",
+            "description": "Accepterer selv løst relaterede rettelser og tjekker ikke, om de lyder ens. Ombytning af hverdagsord læres stadig aldrig. Højeste risiko for dårlige poster."
+          }
+        },
+        "window": {
+          "title": "Indlæringsvindue",
+          "description": "Hvor længe efter indsætning Handy holder øje med feltet for en manuel rettelse.",
+          "seconds": "sekunder"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Automatisk",
+          "manual": "Manuel"
+        },
+        "count": "set {{count}}×",
+        "langBadge": "Lært for sprog: {{lang}}",
+        "platformHint": "Automatisk indlæring kører kun på macOS. Du kan stadig tilføje rettelser manuelt nedenfor, og de anvendes på alle platforme.",
+        "add": {
+          "misheardPlaceholder": "Fejlgenkendt",
+          "intendedPlaceholder": "Rettet",
+          "button": "Tilføj"
+        },
+        "enable": "Aktivér {{misheard}}",
+        "remove": "Fjern {{misheard}}",
+        "empty": "Ingen rettelser endnu. Tilføj et ord, som genkendelsen bliver ved med at høre forkert – f.eks. et navn eller et fagudtryk – så anvendes rettelsen på alle fremtidige transskriptioner.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Genvej: Acceptér",
+            "description": "Accepterer forslaget i meddelelsen om lærte rettelser. Kun aktiv, mens meddelelsen er synlig."
+          },
+          "dismiss": {
+            "title": "Genvej: Fortryd",
+            "description": "Fortryder en netop lært rettelse (Fortryd). Kun aktiv, mens meddelelsen viser en lært rettelse; Ctrl+Esc lukker meddelelsen uden at ændre noget."
+          },
+          "errors": {
+            "needsModifier": "Brug mindst én ændringstast (Control, Option, Skift eller Kommando).",
+            "invalid": "Denne tastekombination kan ikke bruges som genvej.",
+            "conflict": "Denne kombination bruges allerede af en anden Handy-genvej.",
+            "conflictWith": "Denne kombination bruges allerede af “{{name}}”.",
+            "save": "Genvejen kunne ikke gemmes: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Angiv både det fejlhørte ord og rettelsen.",
+          "generic": "Ændringen kunne ikke gemmes. Prøv igen."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Stemmeaktivitetsdetektion",
         "description": "Filtrer stilhed fra optagelser. Streaming-modeller bruger en længere VAD-hale; deaktivering af VAD optager rå lyd."
@@ -624,6 +786,55 @@
           "simplified": "Forenklet",
           "traditionalTw": "Traditionelle (Taiwan)",
           "traditionalHk": "Traditionelle (Hongkong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Selvkorrektion",
+          "description": "Fjerner fyldord (\"uh\", \"um\", \"øh\"), stammen og gentagne ord samt de dele, du trækker tilbage, når du retter dig selv (\"no wait\", \"I mean\", \"nein, warte\", \"Korrektur\"), med Apple Intelligence på denne enhed. Din konfigurerede efterbehandlingsudbyder, som kan være en fjerntjeneste, bruges kun, når efterbehandling er slået til. Ord fjernes kun, de omskrives aldrig; dikteringer uden sådanne tøven indsættes uændret, og hvis modellen er langsom eller ændrer for meget, bevares originalen."
+        },
+        "appStyles": {
+          "title": "App-stilarter",
+          "description": "Tilpasser teksten til den app, du dikterer i: chatbeskeder uden afsluttende punktum, output egnet til terminal og kode samt store/små bogstaver og mellemrum tilpasset teksten før markøren.",
+          "categories": {
+            "title": "Stilarter",
+            "summary": "{{active}}/{{total}} aktive",
+            "chat": {
+              "label": "Chatapps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: en besked på én sætning mister sit afsluttende punktum (? og ! bevares)."
+            },
+            "terminal": {
+              "label": "Terminaler",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: intet afsluttende punktum og intet stort bogstav på et indledende funktionsord."
+            },
+            "code": {
+              "label": "Kodeeditorer",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: et enkelt ord eller en identifikator mister sit afsluttende punktum."
+            },
+            "matchContext": {
+              "label": "Tilpas til omgivende tekst",
+              "hint": "Når en sætning fortsættes, skrives et indledende funktionsord (\"and\", \"weil\") med lille; der tilføjes et mellemrum, når markøren står lige efter et ord."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Tekststumper",
+          "description": "Sig en udløserfrase alene (eller mellem tegnsætning) for at indsætte dens tekst, f.eks. \"min adresse\". Matchning ignorerer store/små bogstaver og tegnsætning; den indsatte tekst ændres aldrig af andre regler.",
+          "triggerPlaceholder": "Udløserfrase, f.eks. min adresse",
+          "expansionPlaceholder": "Tekst, der skal indsættes (flere linjer tilladt)",
+          "add": "Tilføj",
+          "save": "Gem",
+          "cancel": "Annuller",
+          "edit": "Rediger",
+          "remove": "Fjern tekststump {{trigger}}",
+          "enable": "Aktivér tekststump {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Udløserfrasen skal indeholde mindst ét alfanumerisk ord.",
+            "expansionRequired": "Angiv en tekst, der skal indsættes.",
+            "duplicateTrigger": "Der findes allerede en tekststump for '{{trigger}}'.",
+            "commandFailed": "Tekststumpen kunne ikke gemmes eller fjernes. Prøv igen."
+          }
         }
       }
     },
@@ -982,7 +1193,10 @@
   "overlay": {
     "transcribing": "Transskriberer...",
     "processing": "Behandler...",
-    "loadingModel": "Indlæser model..."
+    "fallbackModel": "Reservemodel…",
+    "recordingLimitWarning": "Optagelsen stopper automatisk om {{seconds}} sekunder",
+    "loadingModel": "Indlæser model...",
+    "recording": "Optager…"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokerer muligvis 1 genvej",
@@ -994,5 +1208,12 @@
     "learnMore": "Sådan løser du det",
     "recorderBlocked": "Genveje kan ikke optages lige nu — macOS Secure Input blokerer tastehændelser. Løs advarslen om Secure Input først.",
     "dismiss": "Afvis"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Fortryd",
+    "accept": "Acceptér",
+    "dismiss": "Luk",
+    "more": "+{{count}} mere"
   }
 }

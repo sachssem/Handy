@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Snabbkommando för efterbearbetning",
             "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+          },
+          "paste_last_transcript": {
+            "name": "Klistra in senaste transkriptionen",
+            "description": "Klistrar in din senaste transkription igen. Kombinationen är upptagen i hela systemet så länge den är inställd — ändra den om en annan app behöver den (t.ex. Ctrl+V i terminaler eller Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Sök språk...",
         "noResults": "Inga språk hittades",
         "auto": "Automatiskt",
+        "allowlist": {
+          "title": "Begränsa automatisk igenkänning till…",
+          "description": "När Auto är valt, behåll endast dessa språk. Ett upptäckt språk utanför listan transkriberas om låst till det första (primära) språket.",
+          "primary": "Primärt",
+          "primaryTag": "{{language}} (primärt)",
+          "makePrimary": "Gör primärt",
+          "summaryAll": "Alla språk",
+          "fallbackModel": {
+            "label": "Reservmodell",
+            "none": "Ingen",
+            "description": "Igenkänningar utanför listan transkriberas om med den här modellen i stället för det nya försöket på det primära språket."
+          }
+        },
         "autoUnavailable": {
           "title": "Automatiskt är avstängt",
           "oneLanguage": "Bara ett av dina språk fungerar med den här modellen",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Automatiskt kräver en separat nedladdning",
         "detectorMissing": "Den här modellen kan inte avgöra vilket språk du talar. Automatiskt behöver en liten språkidentifiering som tar reda på det",
         "stopDetectorDownload": "Stoppa nedladdningen av språkidentifieringen"
+      },
+      "asrBiasing": {
+        "label": "Använd ordförråd och appkontext",
+        "description": "Skickar egna ord, inlärda rättelser och målappens kontext till igenkänningen för att förbättra namn och termer.",
+        "unsupported": "Den valda modellen ignorerar ordförråd och appkontext; egna ord tillämpas fortfarande som efterföljande rättelser."
       },
       "preferredLanguages": {
         "title": "Föredragna språk",
@@ -471,7 +493,10 @@
         "output": "Utmatning",
         "transcription": "Transkription",
         "history": "Historik",
-        "experimental": "Experimentellt"
+        "experimental": "Experimentellt",
+        "textRules": "Textregler",
+        "learnedCorrections": "Inlärda korrigeringar",
+        "smartFormatting": "Smart formatering"
       },
       "experimentalToggle": {
         "label": "Experimentella funktioner",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Håll mikrofonen öppen mellan transkriptioner",
         "description": "Håller mikrofonströmmen öppen i 30 sekunder efter att inspelningen avslutats, vilket minskar latensen för transkriptioner efter varandra. Kan försämra Bluetooth-ljudkvaliteten medan den är aktiv."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Stoppa långa inspelningar automatiskt",
+        "description": "Stoppar inspelningen innan den valda modellen når sin säkra dikteringsgräns. En nedräkningsring visas under de sista sekunderna."
+      },
+      "dictationJournal": {
+        "title": "Dikteringslogg",
+        "description": "För en lokal daglig logg över varje diktering (tider, modell, text efter varje bearbetningssteg, målapp) så att kvaliteten kan analyseras senare. Stannar på den här enheten; filer äldre än {{days}} dagar raderas.",
+        "folderTitle": "Loggmapp",
+        "folderDescription": "Var de dagliga loggfilerna sparas",
+        "retentionTitle": "Lagringstid",
+        "retentionDescription": "Äldre dagsfiler raderas",
+        "retentionOption": "{{days}} dagar"
       },
       "airpodsMode": {
         "label": "AirPods-läge",
@@ -590,6 +628,130 @@
         "remove": "Ta bort {{word}}",
         "duplicate": "\"{{word}}\" finns redan"
       },
+      "textRules": {
+        "title": "Omvandla talade kommandon",
+        "description": "Omvandlar talade skiljetecken- och formateringskommandon (tyska och engelska) direkt till symboler, utan en AI-omväg. Körs före valfri AI-efterbearbetning.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Tal till siffror",
+          "description": "Omvandlar talade tal till siffror, t.ex. \"five hundred thirty nine\" → \"539\". Små fristående tal lämnas som ord."
+        },
+        "builtins": {
+          "title": "Inbyggda kommandon",
+          "description": "Aktivera eller inaktivera enskilda inbyggda kommandon. Inaktivera ett om det utlöses av misstag i vanligt tal (t.ex. \"Punkt\").",
+          "summary": "{{active}}/{{total}} aktiva",
+          "loading": "Läser in inbyggda kommandon…",
+          "loadError": "Det gick inte att läsa in de inbyggda kommandona.",
+          "retry": "Försök igen"
+        },
+        "custom": {
+          "title": "Egna regler",
+          "description": "Lägg till egna regler för utlösare till ersättning. Egna regler åsidosätter inbyggda med samma utlösare.",
+          "triggerPlaceholder": "Utlösare",
+          "replacementPlaceholder": "Ersättning",
+          "add": "Lägg till",
+          "remove": "Ta bort {{trigger}}",
+          "duplicate": "\"{{trigger}}\" finns redan",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Som ett kommatecken",
+          "attach_right": "Som en inledande parentes",
+          "glue": "Sammanfogar ord",
+          "standalone": "Fristående"
+        },
+        "spacingHint": {
+          "attach_left": "Inget mellanslag före, ett efter: ord, ord",
+          "attach_right": "Ett mellanslag före, inget efter: ord (ord",
+          "glue": "Inga mellanslag runt: voice-control",
+          "standalone": "Infogas som det är, omgivande mellanslag tas bort: radbrytningar"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Personlig ordlista",
+        "description": "Ersätter ord som igenkänningen gång på gång missuppfattar — namn, fackord, specialtecken — i varje transkribering, före valfri AI-efterbearbetning. På macOS lär sig Handy även av dina redigeringar: rätta ett ord direkt efter inklistring så föreslår Handy den rättelsen. Att stänga av pausar båda.",
+        "learnFromEdits": {
+          "title": "Lär av mina korrigeringar",
+          "description": "Bevakar fältet efter inklistring och föreslår rättelser du gör för hand. Av: inget nytt lärs in, ordlistan används fortfarande."
+        },
+        "suggestions": {
+          "title": "Förslag",
+          "description": "Rättelser som Handy har lagt märke till i dina redigeringar. Godkänn en för att använda den från och med nu; en rättelse du gör upprepade gånger läggs till automatiskt. Välj Aldrig för att blockera den för gott.",
+          "accept": "Godkänn",
+          "dismiss": "Aldrig"
+        },
+        "dictionary": {
+          "title": "Ordlista",
+          "filterPlaceholder": "Filtrera…",
+          "noMatches": "Inga matchande poster."
+        },
+        "blocked": {
+          "title": "Blockerade",
+          "description": "Rättelser som du har avvisat eller ångrat. Handy lär sig dem inte igen om du inte avblockerar dem.",
+          "unblock": "Avblockera"
+        },
+        "options": {
+          "title": "Inlärningsalternativ"
+        },
+        "aggressiveness": {
+          "title": "Inlärningsaggressivitet",
+          "description": "Hur lätt en ändring godtas som en genuin felhörning. Lösare nivåer lär sig mer men riskerar att förstöra ordlistan.",
+          "conservative": {
+            "label": "Konservativ",
+            "description": "Endast mycket nära, likljudande korrigeringar lärs in. Säkrast mot felaktiga poster."
+          },
+          "balanced": {
+            "label": "Balanserad",
+            "description": "Godtar måttligt olika korrigeringar; fonetik är endast vägledande."
+          },
+          "aggressive": {
+            "label": "Aggressiv",
+            "description": "Godtar även löst relaterade korrigeringar och kontrollerar inte om de låter lika. Byten mellan vardagsord lärs ändå aldrig in. Högst risk för felaktiga poster."
+          }
+        },
+        "window": {
+          "title": "Inlärningsfönster",
+          "description": "Hur länge efter inklistring Handy bevakar fältet efter en manuell korrigering.",
+          "seconds": "sekunder"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manuell"
+        },
+        "count": "sedd {{count}}×",
+        "langBadge": "Inlärt för språk: {{lang}}",
+        "platformHint": "Automatisk inlärning körs endast på macOS. Du kan fortfarande lägga till korrigeringar för hand nedan, och de tillämpas på alla plattformar.",
+        "add": {
+          "misheardPlaceholder": "Felhört",
+          "intendedPlaceholder": "Korrigerat",
+          "button": "Lägg till"
+        },
+        "enable": "Aktivera {{misheard}}",
+        "remove": "Ta bort {{misheard}}",
+        "empty": "Inga korrigeringar ännu. Lägg till ett ord som igenkänningen ständigt hör fel — som ett namn eller en teknisk term — så tillämpas dess korrigering på varje framtida transkription.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Kortkommando: Godkänn",
+            "description": "Godkänner förslaget i aviseringen om inlärda korrigeringar. Endast aktivt medan aviseringen visas."
+          },
+          "dismiss": {
+            "title": "Kortkommando: Ångra",
+            "description": "Ångrar en nyss inlärd korrigering (Ångra). Endast aktivt medan aviseringen visar en inlärd korrigering; Ctrl+Esc stänger aviseringen utan att ändra något."
+          },
+          "errors": {
+            "needsModifier": "Använd minst en modifieringstangent (Control, Alternativ, Skift eller Kommando).",
+            "invalid": "Den här tangentkombinationen kan inte användas som kortkommando.",
+            "conflict": "Den här kombinationen används redan av ett annat Handy-kortkommando.",
+            "conflictWith": "Den här kombinationen används redan av ”{{name}}”.",
+            "save": "Det gick inte att spara kortkommandot: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Ange både det felhörda ordet och rättelsen.",
+          "generic": "Ändringen kunde inte sparas. Försök igen."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Röstaktivitetsdetektering",
         "description": "Filtrerar bort tystnad från inspelningar. Modeller med streamingstöd använder en längre VAD-svans; om VAD inaktiveras spelas rått ljud in."
@@ -624,6 +786,55 @@
           "simplified": "Förenklad",
           "traditionalTw": "Traditionell (Taiwan)",
           "traditionalHk": "Traditionell (Hongkong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Självkorrigering",
+          "description": "Tar bort utfyllnadsord (\"uh\", \"um\", \"öh\"), stamningar och upprepade ord samt det du tar tillbaka när du rättar dig själv (\"no wait\", \"I mean\", \"nej, vänta\", \"jag menar\"), med Apple Intelligence på den här enheten. Din konfigurerade efterbehandlingsleverantör, som kan vara en fjärrtjänst, används bara när efterbehandling är aktiverad. Ord tas bara bort, de skrivs aldrig om; dikteringar utan sådana tvekanden klistras in oförändrade, och om modellen är långsam eller ändrar för mycket behålls originalet."
+        },
+        "appStyles": {
+          "title": "Appstilar",
+          "description": "Anpassar texten efter appen du dikterar i: chattmeddelanden utan avslutande punkt, terminal- och kodvänlig utdata samt versaler och mellanslag som passar texten före markören.",
+          "categories": {
+            "title": "Stilar",
+            "summary": "{{active}}/{{total}} aktiva",
+            "chat": {
+              "label": "Chattappar",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: ett meddelande på en enda mening förlorar sin avslutande punkt (? och ! behålls)."
+            },
+            "terminal": {
+              "label": "Terminaler",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: ingen avslutande punkt, ingen versal på ett inledande funktionsord."
+            },
+            "code": {
+              "label": "Kodredigerare",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: ett enskilt ord eller en identifierare förlorar sin avslutande punkt."
+            },
+            "matchContext": {
+              "label": "Anpassa efter omgivande text",
+              "hint": "När du fortsätter en mening blir ett inledande funktionsord gemener (\"and\", \"weil\"); ett mellanslag läggs till när markören står direkt efter ett ord."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Textsnuttar",
+          "description": "Säg en utlösarfras för sig själv (eller mellan skiljetecken) för att infoga dess text, t.ex. \"min adress\". Versaler och skiljetecken ignoreras; den infogade texten ändras aldrig av andra regler.",
+          "triggerPlaceholder": "Utlösarfras, t.ex. min adress",
+          "expansionPlaceholder": "Text att infoga (flera rader tillåtna)",
+          "add": "Lägg till",
+          "save": "Spara",
+          "cancel": "Avbryt",
+          "edit": "Redigera",
+          "remove": "Ta bort textsnutten {{trigger}}",
+          "enable": "Aktivera textsnutten {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "Utlösarfrasen måste innehålla minst ett alfanumeriskt ord.",
+            "expansionRequired": "Ange en text att infoga.",
+            "duplicateTrigger": "Det finns redan en textsnutt för ”{{trigger}}”.",
+            "commandFailed": "Textsnutten kunde inte sparas eller tas bort. Försök igen."
+          }
         }
       }
     },
@@ -982,7 +1193,17 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
-    "loadingModel": "Laddar modell..."
+    "fallbackModel": "Reservmodell…",
+    "recordingLimitWarning": "Inspelningen stoppas automatiskt om {{seconds}} sekunder",
+    "loadingModel": "Laddar modell...",
+    "recording": "Spelar in…"
+  },
+  "learnedToast": {
+    "pair": "”{{misheard}}” → ”{{intended}}”",
+    "undo": "Ångra",
+    "accept": "Godkänn",
+    "dismiss": "Stäng",
+    "more": "+{{count}} till"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} kanske blockerar 1 kortkommando",

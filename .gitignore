@@ -29,6 +29,8 @@ dist-ssr
 .claude/
 
 /target/
+# fork(voice-control): durable DMG output; build intermediates stay disposable.
+/Handy artifacts/
 recording_*
 .crush/
 
@@ -45,3 +47,9 @@ result
 
 # Python bytecode (scripts/)
 __pycache__/
+
+# fork(voice-control): benchmark suite — the user's voice recordings and run
+# outputs never go to the public fork. The corpus manifest IS committed.
+bench/corpus/**/*.wav
+bench/corpus/history-stubs.toml
+bench/results/

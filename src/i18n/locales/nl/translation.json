@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "Sneltoets voor naverwerking",
             "description": "Optioneel: Een specifieke sneltoets die altijd AI-naverwerking toepast op je transcriptie."
+          },
+          "paste_last_transcript": {
+            "name": "Laatste transcriptie plakken",
+            "description": "Plakt je meest recente transcriptie opnieuw. De combinatie is systeembreed bezet zolang ze is ingesteld — wijzig haar als een andere app haar nodig heeft (bijv. Ctrl+V in terminals of Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "Talen zoeken...",
         "noResults": "Geen talen gevonden",
         "auto": "Automatisch",
+        "allowlist": {
+          "title": "Automatische detectie beperken tot…",
+          "description": "Wanneer Auto is geselecteerd, alleen deze talen behouden. Een gedetecteerde taal buiten deze lijst wordt opnieuw getranscribeerd, vastgezet op de eerste (primaire) taal.",
+          "primary": "Primair",
+          "primaryTag": "{{language}} (primair)",
+          "makePrimary": "Primair maken",
+          "summaryAll": "Alle talen",
+          "fallbackModel": {
+            "label": "Terugvalmodel",
+            "none": "Geen",
+            "description": "Detecties buiten de lijst worden met dit model opnieuw getranscribeerd in plaats van de nieuwe poging in de primaire taal."
+          }
+        },
         "autoUnavailable": {
           "title": "Automatisch is uitgeschakeld",
           "oneLanguage": "Maar één van je talen werkt met dit model",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "Automatisch heeft een aparte download nodig",
         "detectorMissing": "Dit model kan niet bepalen welke taal je spreekt. Automatisch heeft een kleine taaldetector nodig om dat uit te zoeken",
         "stopDetectorDownload": "Downloaden van de taaldetector stoppen"
+      },
+      "asrBiasing": {
+        "label": "Woordenlijst & app-context gebruiken",
+        "description": "Geeft eigen woorden, geleerde correcties en de context van de doel-app door aan de herkenning om namen en termen te verbeteren.",
+        "unsupported": "Het gekozen model negeert woordenlijst en app-context; eigen woorden worden nog steeds achteraf als correctie toegepast."
       },
       "preferredLanguages": {
         "title": "Voorkeurstalen",
@@ -471,7 +493,10 @@
         "output": "Uitvoer",
         "transcription": "Transcriptie",
         "history": "Geschiedenis",
-        "experimental": "Experimenteel"
+        "experimental": "Experimenteel",
+        "textRules": "Tekstregels",
+        "learnedCorrections": "Geleerde correcties",
+        "smartFormatting": "Slim opmaken"
       },
       "experimentalToggle": {
         "label": "Experimentele functies",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "Microfoon openhouden tussen transcripties",
         "description": "Houdt de microfoonstream tot 30 seconden open nadat een opname stopt. Dit vermindert de vertraging bij opeenvolgende opnames, maar kan de Bluetooth-audiokwaliteit tijdelijk verminderen."
+      },
+      "recordingLimitAutoStop": {
+        "title": "Lange opnames automatisch stoppen",
+        "description": "Stopt de opname voordat het geselecteerde model zijn veilige dicteerlimiet bereikt. Tijdens de laatste seconden verschijnt een aftelring."
+      },
+      "dictationJournal": {
+        "title": "Dicteerlogboek",
+        "description": "Houdt per dag een lokaal logboek bij van elk dictaat (tijden, model, tekst na elke verwerkingsstap, doel-app) zodat de kwaliteit later kan worden geanalyseerd. Blijft op dit apparaat; bestanden ouder dan {{days}} dagen worden verwijderd.",
+        "folderTitle": "Logboekmap",
+        "folderDescription": "Waar de dagelijkse logboekbestanden worden opgeslagen",
+        "retentionTitle": "Bewaartermijn",
+        "retentionDescription": "Oudere dagbestanden worden verwijderd",
+        "retentionOption": "{{days}} dagen"
       },
       "airpodsMode": {
         "label": "AirPods-modus",
@@ -590,6 +628,130 @@
         "remove": "{{word}} verwijderen",
         "duplicate": "\"{{word}}\" bestaat al"
       },
+      "textRules": {
+        "title": "Gesproken opdrachten omzetten",
+        "description": "Zet uitgesproken leesteken- en opmaakcommando's (Duits en Engels) direct om naar symbolen, zonder tussenkomst van AI. Wordt uitgevoerd vóór de optionele AI-nabewerking.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Getallen naar cijfers",
+          "description": "Zet uitgesproken getallen om naar cijfers, bijv. \"five hundred thirty nine\" → \"539\". Kleine losse getallen blijven als woorden staan."
+        },
+        "builtins": {
+          "title": "Ingebouwde commando's",
+          "description": "Schakel afzonderlijke ingebouwde commando's in of uit. Schakel er een uit als het per ongeluk afgaat in normale spraak (bijv. \"Punkt\").",
+          "summary": "{{active}}/{{total}} actief",
+          "loading": "Ingebouwde opdrachten laden…",
+          "loadError": "Kan de ingebouwde opdrachten niet laden.",
+          "retry": "Opnieuw proberen"
+        },
+        "custom": {
+          "title": "Eigen regels",
+          "description": "Voeg je eigen trigger-naar-vervanging-regels toe. Eigen regels hebben voorrang op ingebouwde regels met dezelfde trigger.",
+          "triggerPlaceholder": "Trigger",
+          "replacementPlaceholder": "Vervanging",
+          "add": "Toevoegen",
+          "remove": "{{trigger}} verwijderen",
+          "duplicate": "\"{{trigger}}\" bestaat al",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Zoals een komma",
+          "attach_right": "Zoals een openingshaakje",
+          "glue": "Verbindt woorden",
+          "standalone": "Op zichzelf"
+        },
+        "spacingHint": {
+          "attach_left": "Geen spatie ervoor, één erna: woord, woord",
+          "attach_right": "Eén spatie ervoor, geen erna: woord (woord",
+          "glue": "Geen spaties eromheen: voice-control",
+          "standalone": "Ongewijzigd ingevoegd, omliggende spaties verwijderd: regeleinden"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Persoonlijk woordenboek",
+        "description": "Vervangt woorden die de herkenning steeds verkeerd verstaat — namen, jargon, accenten — in elke transcriptie, vóór de optionele AI-nabewerking. Op macOS leert Handy ook van je bewerkingen: verbeter een woord direct na het plakken en Handy stelt die correctie voor. Uitschakelen pauzeert beide.",
+        "learnFromEdits": {
+          "title": "Leren van mijn correcties",
+          "description": "Houdt het veld na het plakken in de gaten en stelt correcties voor die je met de hand maakt. Uit: er wordt niets nieuws geleerd, het woordenboek blijft gelden."
+        },
+        "suggestions": {
+          "title": "Suggesties",
+          "description": "Correcties die Handy in je bewerkingen heeft opgemerkt. Accepteer er een om hem voortaan toe te passen; een correctie die je herhaaldelijk maakt, wordt automatisch toegevoegd. Kies Nooit om hem definitief te blokkeren.",
+          "accept": "Accepteren",
+          "dismiss": "Nooit"
+        },
+        "dictionary": {
+          "title": "Woordenboek",
+          "filterPlaceholder": "Filteren…",
+          "noMatches": "Geen overeenkomende items."
+        },
+        "blocked": {
+          "title": "Geblokkeerd",
+          "description": "Correcties die je hebt genegeerd of ongedaan gemaakt. Handy leert ze niet opnieuw, tenzij je ze deblokkeert.",
+          "unblock": "Deblokkeren"
+        },
+        "options": {
+          "title": "Leeropties"
+        },
+        "aggressiveness": {
+          "title": "Leeragressiviteit",
+          "description": "Hoe gemakkelijk een bewerking wordt geaccepteerd als een echt verkeerd verstaan woord. Lossere niveaus leren meer, maar lopen het risico het woordenboek te vervuilen.",
+          "conservative": {
+            "label": "Conservatief",
+            "description": "Alleen zeer nauwe, gelijk klinkende correcties worden geleerd. Veiligst tegen verkeerde vermeldingen."
+          },
+          "balanced": {
+            "label": "Gebalanceerd",
+            "description": "Accepteert matig afwijkende correcties; fonetiek is slechts adviserend."
+          },
+          "aggressive": {
+            "label": "Agressief",
+            "description": "Accepteert zelfs losjes verwante correcties en controleert niet of ze gelijk klinken. Verwisselde alledaagse woorden worden nog steeds nooit geleerd. Hoogste risico op foute vermeldingen."
+          }
+        },
+        "window": {
+          "title": "Leervenster",
+          "description": "Hoe lang na het plakken Handy het veld in de gaten houdt voor een handmatige correctie.",
+          "seconds": "seconden"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Handmatig"
+        },
+        "count": "{{count}}× gezien",
+        "langBadge": "Geleerd voor taal: {{lang}}",
+        "platformHint": "Automatisch leren werkt alleen op macOS. Je kunt hieronder nog steeds handmatig correcties toevoegen, en die worden op elk platform toegepast.",
+        "add": {
+          "misheardPlaceholder": "Verkeerd verstaan",
+          "intendedPlaceholder": "Gecorrigeerd",
+          "button": "Toevoegen"
+        },
+        "enable": "{{misheard}} inschakelen",
+        "remove": "{{misheard}} verwijderen",
+        "empty": "Nog geen correcties. Voeg een woord toe dat de herkenner steeds verkeerd verstaat — zoals een naam of technische term — en de correctie wordt toegepast op elke toekomstige transcriptie.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Sneltoets: Accepteren",
+            "description": "Accepteert de suggestie in de melding over geleerde correcties. Alleen actief zolang de melding zichtbaar is."
+          },
+          "dismiss": {
+            "title": "Sneltoets: Ongedaan maken",
+            "description": "Maakt een zojuist geleerde correctie ongedaan. Alleen actief zolang de melding een geleerde correctie toont; Ctrl+Esc sluit de melding zonder iets te wijzigen."
+          },
+          "errors": {
+            "needsModifier": "Gebruik minstens één modificatietoets (Control, Option, Shift of Command).",
+            "invalid": "Deze toetscombinatie kan niet als sneltoets worden gebruikt.",
+            "conflict": "Deze combinatie wordt al gebruikt door een andere Handy-sneltoets.",
+            "conflictWith": "Deze combinatie wordt al gebruikt door ‘{{name}}’.",
+            "save": "Sneltoets kon niet worden opgeslagen: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Vul zowel het verkeerd verstane woord als de correctie in.",
+          "generic": "De wijziging kon niet worden opgeslagen. Probeer het opnieuw."
+        }
+      },
       "voiceActivityDetection": {
         "title": "Spraakactiviteitsdetectie (VAD)",
         "description": "Filter stilte uit opnames. Streaming-modellen gebruiken een langere VAD-uitloop; het uitschakelen van VAD neemt de ruwe audio op."
@@ -624,6 +786,55 @@
           "simplified": "Vereenvoudigd",
           "traditionalTw": "Traditioneel (Taiwan)",
           "traditionalHk": "Traditioneel (Hongkong)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Zelfcorrectie",
+          "description": "Verwijdert stopwoordjes (\"uh\", \"um\", \"eh\"), gestotter en herhaalde woorden, en de delen die je terugneemt als je jezelf verbetert (\"no wait\", \"I mean\", \"nee, wacht\", \"ik bedoel\"), met Apple Intelligence op dit apparaat. Je ingestelde nabewerkingsprovider, mogelijk een externe dienst, wordt alleen gebruikt als nabewerking is ingeschakeld. Woorden worden alleen verwijderd, nooit herschreven; dictaten zonder zulke haperingen worden ongewijzigd geplakt, en is het model traag of verandert het te veel, dan blijft het origineel behouden."
+        },
+        "appStyles": {
+          "title": "App-stijlen",
+          "description": "Past de tekst aan de app aan waarin je dicteert: chatberichten zonder slotpunt, terminal- en codevriendelijke uitvoer, en hoofdletters en spaties passend bij de tekst vóór de cursor.",
+          "categories": {
+            "title": "Stijlen",
+            "summary": "{{active}}/{{total}} actief",
+            "chat": {
+              "label": "Chat-apps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: een bericht van één zin verliest het slotpunt (? en ! blijven)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: geen slotpunt, geen hoofdletter bij een functiewoord aan het begin."
+            },
+            "code": {
+              "label": "Code-editors",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Xcode, Sublime, Nova: een los woord of identifier verliest het slotpunt."
+            },
+            "matchContext": {
+              "label": "Aanpassen aan omliggende tekst",
+              "hint": "Bij het vervolgen van een zin wordt een functiewoord aan het begin klein geschreven (\"and\", \"weil\"); er wordt een spatie toegevoegd als de cursor direct na een woord staat."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Tekstfragmenten",
+          "description": "Zeg een triggerzin los (of tussen leestekens) om de bijbehorende tekst in te voegen, bijv. \"mijn adres\". Hoofdletters en leestekens worden genegeerd; de ingevoegde tekst wordt nooit door andere regels gewijzigd.",
+          "triggerPlaceholder": "Triggerzin, bijv. mijn adres",
+          "expansionPlaceholder": "In te voegen tekst (meerdere regels mogelijk)",
+          "add": "Toevoegen",
+          "save": "Opslaan",
+          "cancel": "Annuleren",
+          "edit": "Bewerken",
+          "remove": "Tekstfragment {{trigger}} verwijderen",
+          "enable": "Tekstfragment {{trigger}} inschakelen",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "De triggerzin moet minstens één alfanumeriek woord bevatten.",
+            "expansionRequired": "Voer een in te voegen tekst in.",
+            "duplicateTrigger": "Er bestaat al een tekstfragment voor '{{trigger}}'.",
+            "commandFailed": "Het tekstfragment kon niet worden opgeslagen of verwijderd. Probeer het opnieuw."
+          }
         }
       }
     },
@@ -982,7 +1193,10 @@
   "overlay": {
     "transcribing": "Transcriberen...",
     "processing": "Verwerken...",
-    "loadingModel": "Model laden..."
+    "fallbackModel": "Fallbackmodel…",
+    "recordingLimitWarning": "De opname stopt automatisch over {{seconds}} seconden",
+    "loadingModel": "Model laden...",
+    "recording": "Opnemen…"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} blokkeert mogelijk 1 sneltoets",
@@ -994,5 +1208,12 @@
     "learnMore": "Hoe je dit oplost",
     "recorderBlocked": "Sneltoetsen kunnen nu niet worden opgenomen — Secure Input van macOS blokkeert toetsgebeurtenissen. Los eerst de Secure Input-waarschuwing op.",
     "dismiss": "Sluiten"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Ongedaan maken",
+    "accept": "Accepteren",
+    "dismiss": "Sluiten",
+    "more": "+{{count}} meer"
   }
 }

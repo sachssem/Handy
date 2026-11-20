@@ -348,6 +348,10 @@
           "transcribe_with_post_process": {
             "name": "ปุ่มลัดปรับแต่งข้อความ",
             "description": "ตัวเลือกเสริม: ปุ่มลัดเฉพาะสำหรับใช้ AI ปรับแต่งข้อความที่ถอดได้ทุกครั้ง"
+          },
+          "paste_last_transcript": {
+            "name": "Paste Last Transcript",
+            "description": "Pastes your most recent transcription again. The combination is taken system-wide while set — change it if another app needs it (e.g. Ctrl+V in terminals or Vim)."
           }
         },
         "errors": {
@@ -360,6 +364,19 @@
         "searchPlaceholder": "ค้นหาภาษา...",
         "noResults": "ไม่พบภาษา",
         "auto": "อัตโนมัติ",
+        "allowlist": {
+          "title": "Restrict auto-detect to…",
+          "description": "When Auto is selected, only keep these languages. A detected language outside this list is re-transcribed in the primary language.",
+          "primary": "Primary",
+          "primaryTag": "{{language}} (primary)",
+          "makePrimary": "Make primary",
+          "summaryAll": "All languages",
+          "fallbackModel": {
+            "label": "Fallback model",
+            "none": "None",
+            "description": "Out-of-list detections are re-transcribed with this model instead of the primary-language retry."
+          }
+        },
         "autoUnavailable": {
           "title": "โหมดอัตโนมัติถูกปิดใช้งาน",
           "oneLanguage": "มีเพียงภาษาเดียวของคุณที่ใช้งานได้กับโมเดลนี้",
@@ -369,6 +386,11 @@
         "detectorMissingTitle": "โหมดอัตโนมัติต้องดาวน์โหลดเพิ่มเติม",
         "detectorMissing": "โมเดลนี้ไม่สามารถแยกแยะได้ว่าคุณพูดภาษาอะไร โหมดอัตโนมัติจึงต้องใช้ตัวตรวจหาภาษาขนาดเล็กเพื่อระบุภาษา",
         "stopDetectorDownload": "หยุดดาวน์โหลดตัวตรวจหาภาษา"
+      },
+      "asrBiasing": {
+        "label": "Use vocabulary & app context",
+        "description": "Passes custom words, learned corrections and the target app's context to the recognizer to improve names and terms.",
+        "unsupported": "The selected model ignores vocabulary and app context; custom words still apply as corrections afterwards."
       },
       "preferredLanguages": {
         "title": "ภาษาที่ต้องการ",
@@ -471,7 +493,10 @@
         "output": "เอาต์พุต",
         "transcription": "การถอดเสียง",
         "history": "ประวัติ",
-        "experimental": "ฟีเจอร์ทดลอง"
+        "experimental": "ฟีเจอร์ทดลอง",
+        "textRules": "Text Rules",
+        "learnedCorrections": "Learned Corrections",
+        "smartFormatting": "Smart Formatting"
       },
       "experimentalToggle": {
         "label": "ฟีเจอร์ทดลอง",
@@ -480,6 +505,19 @@
       "lazyStreamClose": {
         "label": "เปิดไมโครโฟนค้างไว้ระหว่างการถอดเสียง",
         "description": "เปิดการเชื่อมต่อไมโครโฟนค้างไว้ 30 วินาทีหลังจากหยุดบันทึกเสียง เพื่อลดความหน่วงเมื่อถอดเสียงต่อเนื่องกัน อาจทำให้คุณภาพเสียงผ่าน Bluetooth ลดลงขณะเปิดใช้งาน"
+      },
+      "recordingLimitAutoStop": {
+        "title": "Stop Long Recordings Automatically",
+        "description": "Stops recording before the selected model reaches its safe dictation limit. A countdown ring appears during the final seconds."
+      },
+      "dictationJournal": {
+        "title": "Dictation Journal",
+        "description": "Keeps a local, per-day log of every dictation (timings, model, text after each processing step, target app) so quality can be analysed later. Stays on this device; files older than {{days}} days are deleted.",
+        "folderTitle": "Journal Folder",
+        "folderDescription": "Where the daily journal files are stored",
+        "retentionTitle": "Journal Retention",
+        "retentionDescription": "Day files older than this are deleted",
+        "retentionOption": "{{days}} days"
       },
       "airpodsMode": {
         "label": "โหมด AirPods",
@@ -590,6 +628,130 @@
         "remove": "ลบ {{word}}",
         "duplicate": "มี \"{{word}}\" อยู่แล้ว"
       },
+      "textRules": {
+        "title": "Convert spoken commands",
+        "description": "Convert spoken punctuation and formatting commands (German and English) into symbols instantly, without an AI round-trip. Runs before optional AI post-processing.",
+        "mapping": "{{trigger}} → {{replacement}}",
+        "itn": {
+          "title": "Numbers to Digits",
+          "description": "Convert spoken numbers into digits, e.g. \"five hundred thirty nine\" → \"539\". Small standalone numbers are left as words."
+        },
+        "builtins": {
+          "title": "Built-in Commands",
+          "description": "Enable or disable individual built-in commands. Disable one if it misfires in normal speech (e.g. \"Punkt\").",
+          "summary": "{{active}}/{{total}} active",
+          "loading": "Loading built-in commands…",
+          "loadError": "Couldn't load the built-in commands.",
+          "retry": "Retry"
+        },
+        "custom": {
+          "title": "Custom Rules",
+          "description": "Add your own trigger to replacement rules. Custom rules override built-ins with the same trigger.",
+          "triggerPlaceholder": "Trigger",
+          "replacementPlaceholder": "Replacement",
+          "add": "Add",
+          "remove": "Remove {{trigger}}",
+          "duplicate": "\"{{trigger}}\" already exists",
+          "rule": "{{trigger}} → {{replacement}} ({{spacing}})"
+        },
+        "spacing": {
+          "attach_left": "Like a comma",
+          "attach_right": "Like an opening bracket",
+          "glue": "Joins words",
+          "standalone": "On its own"
+        },
+        "spacingHint": {
+          "attach_left": "No space before, one after: word, word",
+          "attach_right": "One space before, none after: word (word",
+          "glue": "No spaces around: voice-control",
+          "standalone": "Inserted as-is, surrounding spaces removed: line breaks"
+        }
+      },
+      "learnedCorrections": {
+        "title": "Personal dictionary",
+        "description": "Replaces words the recognizer keeps getting wrong — names, jargon, umlauts — in every transcription, before optional AI post-processing. On macOS, Handy also learns from your edits: fix a word right after pasting and it suggests that fix. Turning this off pauses both.",
+        "learnFromEdits": {
+          "title": "Learn from my corrections",
+          "description": "Watch the field after pasting and suggest the fixes you make by hand. When off, nothing new is learned; the dictionary still applies."
+        },
+        "suggestions": {
+          "title": "Suggestions",
+          "description": "Fixes Handy noticed in your edits. Accept one to apply it from now on; a fix you keep making is added automatically. Choose Never to block it for good.",
+          "accept": "Accept",
+          "dismiss": "Never"
+        },
+        "dictionary": {
+          "title": "Dictionary",
+          "filterPlaceholder": "Filter…",
+          "noMatches": "No entries match."
+        },
+        "blocked": {
+          "title": "Blocked",
+          "description": "Fixes you dismissed or undid. Handy won't learn them again unless you unblock them.",
+          "unblock": "Unblock"
+        },
+        "options": {
+          "title": "Learning options"
+        },
+        "aggressiveness": {
+          "title": "Learning aggressiveness",
+          "description": "How readily an edit is accepted as a genuine mishearing. Looser levels learn more but risk poisoning the dictionary.",
+          "conservative": {
+            "label": "Conservative",
+            "description": "Only very close, similar-sounding fixes are learned. Safest against wrong entries."
+          },
+          "balanced": {
+            "label": "Balanced",
+            "description": "Accepts moderately different fixes; phonetics are advisory only."
+          },
+          "aggressive": {
+            "label": "Aggressive",
+            "description": "Accepts even loosely related fixes and skips the sound-alike check. Swaps between everyday words are still never learned. Highest risk of bad entries."
+          }
+        },
+        "window": {
+          "title": "Learning window",
+          "description": "How long after pasting Handy watches the field for a manual correction.",
+          "seconds": "seconds"
+        },
+        "mapping": "{{misheard}} → {{intended}}",
+        "source": {
+          "auto": "Auto",
+          "manual": "Manual"
+        },
+        "count": "seen {{count}}×",
+        "langBadge": "Learned for language: {{lang}}",
+        "platformHint": "Automatic learning runs only on macOS. You can still add corrections by hand below, and they are applied on every platform.",
+        "add": {
+          "misheardPlaceholder": "Misheard",
+          "intendedPlaceholder": "Corrected",
+          "button": "Add"
+        },
+        "enable": "Enable {{misheard}}",
+        "remove": "Remove {{misheard}}",
+        "empty": "No corrections yet. Add a word the recognizer keeps mishearing — like a name or technical term — and its fix will be applied to every future transcription.",
+        "toastShortcuts": {
+          "accept": {
+            "title": "Accept shortcut",
+            "description": "Accepts the suggestion in the learned-correction toast. Only active while the toast is visible."
+          },
+          "dismiss": {
+            "title": "Undo shortcut",
+            "description": "Undoes a just-learned correction (Undo). Only active while the toast shows a learned correction; Ctrl+Esc dismisses the toast without changing anything."
+          },
+          "errors": {
+            "needsModifier": "Use at least one modifier key (Control, Option, Shift or Command).",
+            "invalid": "This key combination can't be used as a shortcut.",
+            "conflict": "This combination is already used by another Handy shortcut.",
+            "conflictWith": "This combination is already used by “{{name}}”.",
+            "save": "Couldn't save the shortcut: {{error}}"
+          }
+        },
+        "errors": {
+          "emptyPair": "Enter both the misheard word and its correction.",
+          "generic": "The change couldn't be saved. Please try again."
+        }
+      },
       "voiceActivityDetection": {
         "title": "การตรวจจับเสียงพูด (VAD)",
         "description": "กรองช่วงเงียบออกจากการบันทึกเสียง โมเดลที่รองรับสตรีมมิงจะคงช่วงท้ายของ VAD นานขึ้น หากปิด VAD จะบันทึกเสียงดิบทั้งหมด"
@@ -624,6 +786,55 @@
           "simplified": "จีนตัวย่อ",
           "traditionalTw": "จีนตัวเต็ม (ไต้หวัน)",
           "traditionalHk": "จีนตัวเต็ม (ฮ่องกง)"
+        }
+      },
+      "smartFormatting": {
+        "selfCorrection": {
+          "title": "Self-Correction",
+          "description": "Removes filler words (\"uh\", \"um\", \"ähm\"), stutters and repeated words, and the parts you take back when you correct yourself (\"no wait\", \"I mean\", \"scratch that\", \"nein, warte\"), using Apple Intelligence on this device. Your configured post-processing provider, which may be a remote service, is used only when post-processing is enabled. Words are only removed, never rewritten; dictations without such hesitations are pasted untouched, and if the model is slow or changes too much, the original is kept."
+        },
+        "appStyles": {
+          "title": "App Styles",
+          "description": "Adapts the text to the app you dictate into: chat messages without a final period, terminal and code-friendly output, and casing and spacing matched to the text before the cursor.",
+          "categories": {
+            "title": "Styles",
+            "summary": "{{active}}/{{total}} active",
+            "chat": {
+              "label": "Chat apps",
+              "hint": "Slack, Messages, WhatsApp, Telegram, Discord, Signal, Teams: a one-sentence message drops its final period (? and ! stay)."
+            },
+            "terminal": {
+              "label": "Terminals",
+              "hint": "Terminal, iTerm2, Warp, Ghostty, kitty, Alacritty, WezTerm: no final period, no capital on a leading function word."
+            },
+            "code": {
+              "label": "Code editors",
+              "hint": "VS Code, Cursor, Zed, JetBrains, Android Studio, Xcode, Sublime, Nova: a single word or identifier drops its final period."
+            },
+            "matchContext": {
+              "label": "Match surrounding text",
+              "hint": "Continuing a sentence lowercases a leading function word (\"and\", \"weil\"); a space is added when the cursor sits right after a word."
+            }
+          }
+        },
+        "snippets": {
+          "title": "Snippets",
+          "description": "Say a trigger phrase on its own (or between punctuation) to insert its text, e.g. \"my address\". Matching ignores case and punctuation; the inserted text is never changed by other rules.",
+          "triggerPlaceholder": "Trigger phrase, e.g. my address",
+          "expansionPlaceholder": "Text to insert (multiple lines allowed)",
+          "add": "Add",
+          "save": "Save",
+          "cancel": "Cancel",
+          "edit": "Edit",
+          "remove": "Remove snippet {{trigger}}",
+          "enable": "Enable snippet {{trigger}}",
+          "mapping": "{{trigger}} → {{expansion}}",
+          "errors": {
+            "triggerRequired": "The trigger needs at least one alphanumeric word.",
+            "expansionRequired": "Enter an expansion.",
+            "duplicateTrigger": "A snippet for '{{trigger}}' already exists.",
+            "commandFailed": "The snippet could not be saved or removed. Please try again."
+          }
         }
       }
     },
@@ -982,7 +1193,10 @@
   "overlay": {
     "transcribing": "กำลังถอดเสียง...",
     "processing": "กำลังประมวลผล...",
-    "loadingModel": "กำลังโหลดโมเดล..."
+    "fallbackModel": "Fallback model…",
+    "recordingLimitWarning": "Recording stops automatically in {{seconds}} seconds",
+    "loadingModel": "กำลังโหลดโมเดล...",
+    "recording": "Recording…"
   },
   "secureInput": {
     "blockedWithCulprit_one": "{{name}} อาจกำลังบล็อกปุ่มลัด 1 รายการ",
@@ -994,5 +1208,12 @@
     "learnMore": "วิธีแก้ไข",
     "recorderBlocked": "ไม่สามารถเปลี่ยนปุ่มลัดได้ในขณะนี้ — Secure Input ของ macOS กำลังบล็อกการกดปุ่มอยู่ โปรดแก้ไขคำเตือน Secure Input ก่อน",
     "dismiss": "ปิด"
+  },
+  "learnedToast": {
+    "pair": "“{{misheard}}” → “{{intended}}”",
+    "undo": "Undo",
+    "accept": "Accept",
+    "dismiss": "Dismiss",
+    "more": "+{{count}} more"
   }
 }

@@ -10,6 +10,10 @@ import type {
   ShortcutActivation,
   VadBackend,
   LanguageDetectionMode,
+  LogLevel,
+  // fork(voice-control): text rules and per-app style settings.
+  TextRule,
+  AppStyleCategories, // fork(voice-control)
 } from "@/bindings";
 import { commands } from "@/bindings";
 import { notify } from "@/stores/noticeStore";
@@ -140,10 +144,51 @@ const settingUpdaters: {
     commands.changeTranslateToEnglishSetting(value as boolean),
   selected_language: (value) =>
     commands.changeSelectedLanguageSetting(value as string),
+  // fork(voice-control): allowlist that constrains "auto" language detection.
+  language_allowlist: (value) =>
+    commands.changeLanguageAllowlistSetting(value as string[]),
+  // fork(voice-control): model the allowlist guard escalates to on an
+  // out-of-bounds "auto" detection.
+  language_allowlist_fallback_model: (value) =>
+    commands.changeLanguageAllowlistFallbackModelSetting(
+      (value as string | null) || null,
+    ),
   overlay_position: (value) =>
     commands.changeOverlayPositionSetting(value as string),
   debug_mode: (value) => commands.changeDebugModeSetting(value as boolean),
   custom_words: (value) => commands.updateCustomWords(value as string[]),
+  text_rules_enabled: (value) =>
+    commands.changeTextRulesEnabledSetting(value as boolean),
+  text_rules_itn_enabled: (value) =>
+    commands.changeTextRulesItnEnabledSetting(value as boolean),
+  text_rules_custom: (value) =>
+    commands.updateTextRulesCustom(value as TextRule[]),
+  text_rules_disabled_builtins: (value) =>
+    commands.updateTextRulesDisabledBuiltins(value as string[]),
+  learn_corrections_enabled: (value) =>
+    commands.changeLearnCorrectionsEnabledSetting(value as boolean),
+  learn_from_edits_enabled: (value) =>
+    commands.changeLearnFromEditsEnabledSetting(value as boolean),
+  learn_corrections_aggressiveness: (value) =>
+    commands.changeLearnCorrectionsAggressivenessSetting(value as string),
+  learn_corrections_window_secs: (value) =>
+    commands.changeLearnCorrectionsWindowSecsSetting(value as number),
+  // fork(voice-control): ASR vocabulary & app-context biasing.
+  asr_context_biasing_enabled: (value) =>
+    commands.changeAsrContextBiasingSetting(value as boolean),
+  // fork(voice-control): local dictation journal.
+  dictation_journal_enabled: (value) =>
+    commands.changeDictationJournalEnabledSetting(value as boolean),
+  dictation_journal_retention_days: (value) =>
+    commands.changeDictationJournalRetentionDaysSetting(value as number),
+  // fork(voice-control): self-correction pass + per-app styles. Snippets have
+  // no whole-list updater: add / update / remove are granular commands.
+  self_correction_llm_enabled: (value) =>
+    commands.changeSelfCorrectionLlmEnabledSetting(value as boolean),
+  app_styles_enabled: (value) =>
+    commands.changeAppStylesEnabledSetting(value as boolean),
+  app_styles_categories: (value) =>
+    commands.changeAppStylesCategoriesSetting(value as AppStyleCategories),
   word_correction_threshold: (value) =>
     commands.changeWordCorrectionThresholdSetting(value as number),
   paste_delay_ms: (value) =>
@@ -170,7 +215,7 @@ const settingUpdaters: {
     commands.changeMuteWhileRecordingSetting(value as boolean),
   append_trailing_space: (value) =>
     commands.changeAppendTrailingSpaceSetting(value as boolean),
-  log_level: (value) => commands.setLogLevel(value as any),
+  log_level: (value) => commands.setLogLevel(value as LogLevel),
   app_language: (value) => commands.changeAppLanguageSetting(value as string),
   theme: (value) => commands.changeThemeSetting(value as string),
   experimental_enabled: (value) =>
@@ -203,6 +248,8 @@ const settingUpdaters: {
     commands.changeFillerWordRemovalEnabledSetting(value as boolean),
   chinese_script: (value) =>
     commands.changeChineseScriptSetting(value as ChineseScript),
+  auto_stop_recording_on_limit: (value) =>
+    commands.changeAutoStopRecordingOnLimitSetting(value as boolean),
   show_tray_icon: (value) =>
     commands.changeShowTrayIconSetting(value as boolean),
   transcribe_accelerator: (value) =>
@@ -710,6 +757,17 @@ export const useSettingsStore = create<SettingsStore>()(
         if (event.payload.setting === "selected_microphone") {
           get().refreshAudioDevices();
         }
+      });
+
+      // fork(voice-control): the learned-corrections list is also mutated
+      // backend-side — auto-learning upserts a pair (learned-correction-event)
+      // and a toast Undo removes one (learned-corrections-changed) — so refresh
+      // the review UI on both.
+      listen("learned-correction-event", () => {
+        get().refreshSettings();
+      });
+      listen("learned-corrections-changed", () => {
+        get().refreshSettings();
       });
     },
   })),

@@ -92,6 +92,9 @@ pub struct CaptureSink {
     ready: Option<mpsc::Sender<()>>,
     samples: Vec<f32>,
     heard_sound: bool,
+    // fork(voice-control): offline quiet frames since the last speech, held
+    // until speech resumes or the recording stops (see `vad_edges`).
+    pending_gap: Vec<f32>,
 }
 
 /// Spectrum window at 16 kHz: 32 ms, near the overlay's ~30 Hz refresh.
@@ -128,6 +131,7 @@ impl CaptureSink {
             ready: Some(ready),
             samples: Vec::new(),
             heard_sound: false,
+            pending_gap: Vec::new(), // fork(voice-control)
         }
     }
 
@@ -138,7 +142,7 @@ impl CaptureSink {
 
     /// Hands back the recording and the detector. Logs what VAD still held
     /// back when the recording stopped.
-    pub fn finish(self) -> CapturedAudio {
+    pub fn finish(mut self) -> CapturedAudio {
         // Diagnostic for audio still withheld when capture stopped; it is not
         // conclusive in either direction.
         if self.policy != VadPolicy::Disabled {
@@ -153,6 +157,14 @@ impl CaptureSink {
                     report.onset_counter,
                     report.hangover_counter
                 );
+            }
+        }
+        // fork(voice-control): keep a bounded stop tail, so a quiet final word
+        // after the VAD hangover survives. Every chunk was classified by now.
+        if self.policy == VadPolicy::Offline {
+            let tail = vad_edges::take_tail(&self.samples, &mut self.pending_gap);
+            if !tail.is_empty() {
+                Self::emit(&mut self.samples, &self.on_audio, &tail);
             }
         }
         CapturedAudio {
@@ -197,11 +209,28 @@ impl Sink for CaptureSink {
             .push_frame(chunk.samples)
             .unwrap_or(VadFrame::Speech(chunk.samples))
         {
+            // fork(voice-control): offline dictation keeps internal pauses
+            // (VAD trims only the edges); streaming keeps upstream's filtering.
+            VadFrame::Speech(frame) if self.policy == VadPolicy::Offline => {
+                let kept = vad_edges::on_speech(
+                    &self.samples,
+                    &mut self.pending_gap,
+                    frame,
+                    chunk.samples,
+                );
+                Self::emit(&mut self.samples, &self.on_audio, &kept);
+            }
             VadFrame::Speech(frame) => Self::emit(&mut self.samples, &self.on_audio, frame),
+            VadFrame::Noise if self.policy == VadPolicy::Offline => {
+                vad_edges::on_noise(&self.samples, &mut self.pending_gap, chunk.samples);
+            }
             VadFrame::Noise => {}
         }
     }
 }
+
+// fork(voice-control): offline VAD keeps internal pauses and quiet endings.
+mod vad_edges;
 
 #[cfg(test)]
 mod tests;
