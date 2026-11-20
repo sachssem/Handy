@@ -243,6 +243,15 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
     text rules, smart formatting and the language allowlist).
 - **Probe:** `correction-learning: *` in `scripts/fork-check.sh` (the commands
   probe targets `correction_learning::commands::` in `lib.rs`).
+- **Paste read-back diagnosis:** `correction_learning/paste_check.rs`. The
+  session's first field read should contain the pasted text. If it does not,
+  and no later read does either, the `learning` journal line carries
+  `paste_mismatch` (dominant script of the pasted text and of the field text
+  where the paste should be, region size, an 80-character excerpt that the
+  dictation's redaction rule clears). It exists to catch insertions that
+  arrive in another script (Cyrillic instead of German, dictation
+  1795056054745 on 2026-11-19: correct ASR text, Direct paste). Fork-owned
+  files only; probe guards the call in `session.rs`.
 - **Upstream check:** does upstream ship any "learn from edits" / dictionary /
   custom-replacement feature?
   ```bash
@@ -1018,6 +1027,9 @@ correction" holds for the fork's list too.
   `dictation_context::get(id)` without waiting for async capture. Never uses a
   previous dictation's context. Prompt includes non-empty app name (120 chars),
   window title (180 chars), and the last 300 Unicode characters before the caret.
+  Without text before the caret no prompt is sent: with only app and window
+  name Qwen3-ASR wrote the prompt into the transcript ("… Window: T3 Code
+  (Beta). Prüfe das mal …", 1 of 154 biased runs up to 2026-11-15).
   Capture reads neither text nor window title of a secure field or while
   secure event input is on; the builder checks `secure` again.
 - **Fork-owned integration:** `correction_learning::snapshot` exposes loaded

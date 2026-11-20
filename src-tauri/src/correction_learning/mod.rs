@@ -23,6 +23,7 @@ pub(crate) mod ax_reader;
 pub(crate) mod commands;
 mod differ;
 pub(crate) mod lexicon; // `is_name` also gates self-correction cues.
+mod paste_check;
 mod session;
 mod store;
 // `pub(crate)` (not re-exported): the `#[tauri::command]` in `toast` expands
@@ -35,6 +36,7 @@ pub(crate) mod toast;
 pub(crate) mod toast_shortcuts;
 
 pub use differ::Aggressiveness;
+pub use paste_check::PasteMismatch;
 pub use session::{begin_session, end_session};
 pub use store::{CorrectionStatus, LearnedCorrection};
 

@@ -100,6 +100,17 @@ pair_id}]`, outcome as in the store: `suggested`, `promoted`, `re-observed`,
 `reverted+blocked`, `blocked`, `manual kept`, `inverse of manual`,
 `store full`), `duration_ms`.
 
+`paste_mismatch` is null unless the first field read after the paste did not
+contain the pasted text and no later read did either. Then it holds
+`pasted_script` and `field_script` (`latin`, `cyrillic`, `greek`, `han`,
+`kana`, `hangul`, `arabic`, `hebrew`, `other`, `none`: the script most letters
+belong to), `field_chars` (size of the inspected region: as many characters as
+were pasted, ending at the caret) and `excerpt` (the first 80 characters of
+that region, empty when the dictation is redacted). Differing scripts mean the
+insertion itself went wrong. Equal scripts usually mean the text was edited
+before the first read or the paste went to another field. A session that never
+got a text read (`skipped` set, or `reads` 0) cannot tell.
+
 ### `overlay`
 
 `state` (`recording`, `transcribing`, …), `phase` (`handler` \|
@@ -150,6 +161,9 @@ jq -s '(map(select(.type=="context")) | INDEX(.id)) as $ctx
 jq -s '[.[] | select(.type=="dictation" and .self_correction) | .self_correction.reason]
   | group_by(.) | map({(.[0]): length}) | add' /tmp/j.jsonl
 
+# Pastes that did not arrive as sent, by script pair
+jq -r 'select(.type=="learning" and .paste_mismatch!=null) | "\(.paste_mismatch.pasted_script)->\(.paste_mismatch.field_script) \(.app)"' /tmp/j.jsonl | sort | uniq -c
+
 # Outcomes overall
 jq -s '[.[] | select(.type=="dictation") | .outcome] | group_by(.) | map({(.[0]): length}) | add' /tmp/j.jsonl
 ```
@@ -163,4 +177,4 @@ compatible and needs no bump.
 - `1` — initial schema. Later compatible additions: `text.snippets`,
   `text.self_correction`, `text.app_style`, `self_correction`, `asr_bias`,
   `context.secure_input`, `context.text_redacted`, `source` with outcome
-  `delivered`.
+  `delivered`, `learning.paste_mismatch`.

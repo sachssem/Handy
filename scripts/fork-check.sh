@@ -49,6 +49,7 @@ PROBES=(
   "correction-learning: settings fields|src-tauri/src/settings.rs|learned_corrections"
   "correction-learning: settings UI mounted|src/components/settings/advanced/AdvancedSettings.tsx|LearnedCorrections"
   "correction-learning: paste session hook|src-tauri/src/actions.rs|correction_learning::begin_session"
+  "correction-learning: paste read-back diagnosis|src-tauri/src/correction_learning/session.rs|paste_check::describe\\("
   "correction-learning: pipeline hook|src-tauri/src/managers/transcription.rs|correction_learning::apply_learned"
 
   # -- language-allowlist guard (+ fallback model) --

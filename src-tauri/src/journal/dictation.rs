@@ -350,6 +350,9 @@ fn redact_learning(record: &mut LearningRecord, reason: Option<&str>) {
             pair.misheard.clear();
             pair.intended.clear();
         }
+        if let Some(mismatch) = &mut record.paste_mismatch {
+            mismatch.excerpt.clear();
+        }
     }
 }
 
@@ -673,6 +676,12 @@ mod tests {
                     misheard: "secret rejected".into(),
                     intended: "secret target".into(),
                 }],
+                paste_mismatch: Some(crate::correction_learning::PasteMismatch {
+                    pasted_script: "latin",
+                    field_script: "cyrillic",
+                    field_chars: 12,
+                    excerpt: "secret field".into(),
+                }),
                 ..Default::default()
             };
             let reason = records.learning_redaction(learning.id);

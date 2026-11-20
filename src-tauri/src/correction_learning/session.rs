@@ -49,6 +49,7 @@
 
 use crate::correction_learning::ax_reader::FocusRead;
 use crate::correction_learning::differ::{self, Candidate, Gate, GateProfile, PhoneticLang};
+use crate::correction_learning::paste_check::{self, PasteMismatch};
 use crate::correction_learning::{CorrectionStatus, LearnedCorrectionEvent};
 use std::ops::Range;
 use std::time::{Duration, Instant};
@@ -246,6 +247,8 @@ struct SessionState {
     pending_since: Option<Instant>,
     unrelated_logged: bool,
     oversized_logged: bool,
+    /// The first text read was compared with the paste (done once).
+    paste_checked: bool,
     /// Diagnostics of the last tick, drained by the driver for logging.
     notes: Vec<Note>,
 }
@@ -266,7 +269,11 @@ enum Decision {
 /// journal (which also keeps the rejected pairs' text).
 #[derive(Debug, PartialEq)]
 enum Note {
-    Anchored { exact: bool },
+    Anchored {
+        exact: bool,
+    },
+    /// The first field read did not contain the pasted text.
+    PasteMismatch(PasteMismatch),
     Unrelated,
     Rejected(Vec<(Gate, Candidate)>),
     Reformulation(usize),
@@ -413,6 +420,17 @@ impl SessionState {
             self.pending.clear();
             self.pending_since = None;
             return Decision::Continue;
+        }
+
+        // Read-back diagnosis: the first read after the paste should contain
+        // it. If not, journal what the field holds instead (wrong script?).
+        if !self.paste_checked {
+            self.paste_checked = true;
+            if locate_paste(&current, ctx.pasted, caret).is_none() {
+                self.notes.push(Note::PasteMismatch(paste_check::describe(
+                    &current, ctx.pasted, caret,
+                )));
+            }
         }
 
         // Anchor (or upgrade a provisional anchor) on the first read that
@@ -845,11 +863,16 @@ mod imp {
     }
 
     /// Count a note into the journal record, then log it.
-    fn tally_note(note: &Note, journal: &mut LearningRecord) {
+    pub(super) fn tally_note(note: &Note, journal: &mut LearningRecord) {
         match note {
             Note::Anchored { exact } => {
-                journal.anchored = Some(if *exact { "exact" } else { "paste_only" }.to_string())
+                journal.anchored = Some(if *exact { "exact" } else { "paste_only" }.to_string());
+                // A typed paste that was still landing on the first read.
+                if *exact {
+                    journal.paste_mismatch = None;
+                }
             }
+            Note::PasteMismatch(mismatch) => journal.paste_mismatch = Some(mismatch.clone()),
             Note::Unrelated => journal.unrelated += 1,
             Note::Rejected(rejections) => {
                 for (gate, candidate) in rejections {
@@ -916,6 +939,11 @@ mod imp {
             Note::PendingDropped => debug!(
                 "learn: session {} pending candidate(s) dropped by a later edit",
                 generation
+            ),
+            // Scripts and sizes only, never field text.
+            Note::PasteMismatch(mismatch) => debug!(
+                "learn: session {} first read lacks the paste (pasted script {}, field script {}, {} chars)",
+                generation, mismatch.pasted_script, mismatch.field_script, mismatch.field_chars
             ),
         }
     }
@@ -1329,6 +1357,47 @@ mod tests {
         h.text("Hi team, deploy on Kubernetes", 200);
         let d = h.read(FocusRead::FocusChanged, None, 1_800);
         assert_eq!(intended(&d), vec!["Kubernetes"]);
+    }
+
+    #[test]
+    fn first_read_without_the_paste_notes_what_the_field_holds() {
+        let mut h = Harness::new("Prüfe das bitte");
+        h.text("Проверь это пожалуйста", 0);
+        let mismatch = h
+            .state
+            .notes
+            .iter()
+            .find_map(|note| match note {
+                Note::PasteMismatch(mismatch) => Some(mismatch.clone()),
+                _ => None,
+            })
+            .expect("mismatch noted");
+        assert_eq!(mismatch.pasted_script, "latin");
+        assert_eq!(mismatch.field_script, "cyrillic");
+        // Only the first read is compared.
+        h.state.notes.clear();
+        h.text("Проверь это пожалуйста!", 100);
+        assert!(!h
+            .state
+            .notes
+            .iter()
+            .any(|note| matches!(note, Note::PasteMismatch(_))));
+    }
+
+    #[test]
+    #[cfg(target_os = "macos")]
+    fn a_later_exact_anchor_clears_the_mismatch_in_the_journal() {
+        use super::imp::tally_note;
+        let mut journal = crate::journal::LearningRecord::default();
+        tally_note(
+            &Note::PasteMismatch(paste_check::describe("Hi team, ", "deploy now", None)),
+            &mut journal,
+        );
+        assert!(journal.paste_mismatch.is_some());
+        tally_note(&Note::Anchored { exact: false }, &mut journal);
+        assert!(journal.paste_mismatch.is_some());
+        tally_note(&Note::Anchored { exact: true }, &mut journal);
+        assert!(journal.paste_mismatch.is_none());
     }
 
     #[test]

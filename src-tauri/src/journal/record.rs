@@ -362,6 +362,9 @@ pub struct LearningRecord {
     pub skipped: Option<String>,
     /// `exact` (paste found in field) | `paste_only` (fallback anchor).
     pub anchored: Option<String>,
+    /// Set when the first field read after the paste did not contain the
+    /// pasted text and no later read did either.
+    pub paste_mismatch: Option<crate::correction_learning::PasteMismatch>,
     /// Field reads performed.
     pub reads: u32,
     /// Reads whose text differed from the previous read.
