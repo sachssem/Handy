@@ -224,6 +224,12 @@ pub fn cancel_current_operation(app: &AppHandle) {
     // Unregister the cancel shortcut asynchronously
     shortcut::unregister_cancel_shortcut(app);
 
+    // fork(voice-control): over a running transcription, a cancel ends only
+    // the recording (see `overlap`).
+    if crate::overlap::cancel_recording_only(app) {
+        return;
+    }
+
     // Cancel any ongoing recording
     let audio_manager = app.state::<Arc<AudioRecordingManager>>();
     let recording_was_active = audio_manager.is_recording();

@@ -70,10 +70,27 @@ PROBES=(
   "long-form overlap: module registered|src-tauri/src/lib.rs|mod chunk_overlap"
   "long-form overlap: chunks decoded with shared audio|src-tauri/src/managers/transcription/chunked.rs|chunk_overlap::OverlapDecode::new"
   "long-form overlap: audio after the last chunk|src-tauri/src/audio_toolkit/chunking.rs|pub fn upcoming"
-  "long-form overlap: no limit for chunked Qwen3-ASR|src-tauri/src/managers/model.rs|long_form_chunking"
+  "long-form overlap: ten minutes for chunked Qwen3-ASR|src-tauri/src/managers/model.rs|max_recording_ms: 600_000"
   "long-form overlap: progress emitted|src-tauri/src/managers/transcription/chunked.rs|fn report_progress"
   "long-form overlap: progress meter in the capsule|src/overlay/RecordingOverlay.tsx|transcription-progress"
   "long-form overlap: progress meter styles|src/overlay/RecordingOverlay.css|swave\.metered"
+
+  # -- dictating over a running transcription --
+  "overlap: module registered|src-tauri/src/lib.rs|mod overlap"
+  "overlap: handover before a recording starts|src-tauri/src/actions.rs|overlap::wait_for_handover"
+  "overlap: dictations finish in stop order|src-tauri/src/actions.rs|overlap::enqueue"
+  "overlap: pipeline runs as its session|src-tauri/src/actions.rs|overlap::scoped"
+  "overlap: press during processing records|src-tauri/src/transcription_coordinator.rs|overlap::allowed"
+  "overlap: earlier end keeps the newer stage|src-tauri/src/transcription_coordinator.rs|self.processing.saturating_sub"
+  "overlap: second stream worker|src-tauri/src/managers/transcription.rs|overlap::allowed"
+  "overlap: model stays for the next dictation|src-tauri/src/managers/transcription.rs|overlap::keeps_model"
+  "overlap: recording discarded without cancel mark|src-tauri/src/managers/audio.rs|pub fn discard_recording"
+  "overlap: cancel ends only the recording|src-tauri/src/utils.rs|overlap::cancel_recording_only"
+  "overlap: stale dictation leaves the overlay|src-tauri/src/overlay.rs|overlap::stale"
+  "overlap: stale dictation leaves the tray|src-tauri/src/tray.rs|overlap::stale"
+  "overlap: stale notice stays off the overlay|src-tauri/src/notices.rs|overlap::stale"
+  "overlap: backlog in the capsule|src/overlay/RecordingOverlay.tsx|dictation-backlog"
+  "overlap: earlier dictation's wave|src/overlay/RecordingOverlay.css|\\.sprior"
 
   # -- overlay: instant, compact, theme-inverted pill --
   "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"

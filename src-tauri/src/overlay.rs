@@ -541,6 +541,10 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
 }
 
 fn show_overlay_state(app_handle: &AppHandle, state: &str) {
+    // fork(voice-control): a newer recording owns the overlay (see `overlap`).
+    if crate::overlap::stale() {
+        return;
+    }
     // Whether the overlay shows at all is governed by overlay_style; position
     // only chooses Top vs Bottom placement. Checked here (off the main thread)
     // so the common overlay-disabled case never pays for a main-thread hop.
@@ -802,6 +806,10 @@ static OVERLAY_SESSION_LIVE: AtomicBool = AtomicBool::new(false);
 
 /// Hides the recording overlay window with fade-out animation
 pub fn hide_recording_overlay(app_handle: &AppHandle) {
+    // fork(voice-control): a newer recording owns the overlay (see `overlap`).
+    if crate::overlap::stale() {
+        return;
+    }
     OVERLAY_SESSION_SHOWING.store(false, Ordering::SeqCst);
     OVERLAY_SESSION_LIVE.store(false, Ordering::SeqCst);
     // Always hide the overlay regardless of settings - if setting was changed while recording,

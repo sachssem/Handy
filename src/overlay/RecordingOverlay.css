@@ -376,6 +376,20 @@
   color: var(--s-fg);
   transform: none;
 }
+/* An earlier dictation that is still transcribed while a new recording runs:
+   its settled wave, small, in the start slot. */
+.spill .sprior {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: 50%;
+  margin-top: -6px;
+  display: flex;
+  animation: spill-in-fade 200ms ease-out;
+}
+.spill .sprior .swave {
+  --bw: 2;
+  gap: 2px;
+}
 /* Keep the label clear of the cancel slot (12px padding + 16px = the 27px the
    cancel occupies); symmetric so the label stays centered. Long labels ellipsize. */
 .spill .spill-label {

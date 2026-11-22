@@ -520,7 +520,9 @@ impl TranscriptionManager {
     pub fn maybe_unload_immediately(&self, context: &str) {
         // A file job keeps the model for its remaining chunks; it unloads
         // the model itself when it ends.
-        if self.job_active() {
+        // fork(voice-control): so does a dictation while another one records
+        // or waits behind it (see `overlap`).
+        if self.job_active() || crate::overlap::keeps_model(&self.app_handle) {
             return;
         }
         let settings = get_settings(&self.app_handle);
@@ -879,12 +881,23 @@ impl TranscriptionManager {
     /// falls back to batch transcription. Frames sent before the decode begins
     /// queue on the channel and are not lost.
     pub fn start_stream(&self) {
-        if self.router.is_open() || self.active_stream_worker.load(Ordering::Acquire) != 0 {
+        // fork(voice-control): a worker that still finishes the previous
+        // recording (its route is closed) does not block the next recording's
+        // chunked decode; a model that streams keeps upstream's one worker.
+        let overlap = crate::overlap::allowed(&self.app_handle);
+        if self.router.is_open()
+            || (!overlap && self.active_stream_worker.load(Ordering::Acquire) != 0)
+        {
             warn!("start_stream called while a stream worker is already active");
             return;
         }
         let worker_id = self.next_stream_worker_id.fetch_add(1, Ordering::Relaxed);
-        if self
+        if overlap {
+            // The finishing worker's guard sees a foreign id and leaves this
+            // worker's flags alone.
+            self.active_stream_worker
+                .store(worker_id, Ordering::Release);
+        } else if self
             .active_stream_worker
             .compare_exchange(0, worker_id, Ordering::AcqRel, Ordering::Acquire)
             .is_err()
@@ -896,7 +909,14 @@ impl TranscriptionManager {
         self.stream_active.store(false, Ordering::Release);
 
         let manager = self.clone();
-        thread::spawn(move || manager.run_stream_worker(rx, cancelled, worker_id));
+        // fork(voice-control): the worker journals into this dictation's
+        // record, also after a newer dictation has begun.
+        let journal_scope = crate::journal::current_id();
+        thread::spawn(move || {
+            crate::journal::with_scope(journal_scope, || {
+                manager.run_stream_worker(rx, cancelled, worker_id)
+            })
+        });
     }
 
     fn run_stream_worker(

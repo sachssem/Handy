@@ -51,6 +51,9 @@ const WAVE_BARS = 13;
 // long the chunk probably takes.
 type ProgressPayload = { from: number; to: number; eta_ms: number };
 type Meter = { from: number; to: number; etaMs: number; at: number };
+// fork(voice-control): bars of the small wave that stands for an earlier
+// dictation still being transcribed while a new recording runs.
+const PRIOR_BARS = 4;
 
 // fork(voice-control): overlay latency breadcrumbs (debug log level + the
 // dictation journal's `overlay` events). The overlay webview has no visible
@@ -123,9 +126,14 @@ const RecordingOverlay: React.FC = () => {
   // transcription takes a second pass.
   const [fallbackActive, setFallbackActive] = useState(false);
   // fork(voice-control): the chunk a long transcription is decoding; null
-  // while there is no progress to show. `litBars` is how many bars it lights.
+  // while there is no progress to show. `litBars` is how many of the
+  // WAVE_BARS bars it lights.
   const [meter, setMeter] = useState<Meter | null>(null);
   const [litBars, setLitBars] = useState(WAVE_BARS);
+  // fork(voice-control): dictations that are stopped and not yet pasted. While
+  // one is open, a new recording shows it as a small wave beside its bars.
+  const [backlog, setBacklog] = useState(0);
+  const backlogRef = useRef(0);
   const [nowMs, setNowMs] = useState(() => Date.now());
   // Bumped on each new streaming session so the Live card remounts fresh (replays
   // the pop-in, and never animates in from the previous panel's open size).
@@ -196,8 +204,11 @@ const RecordingOverlay: React.FC = () => {
             setNowMs(Date.now());
           }
           // fork(voice-control): the progress belongs to the transcription
-          // alone; recording and post-processing show the plain bars.
-          if (overlayState !== "transcribing") setMeter(null);
+          // alone; recording and post-processing show the plain bars. A
+          // recording over a running transcription keeps that one's progress.
+          if (overlayState !== "transcribing" && backlogRef.current === 0) {
+            setMeter(null);
+          }
           setState(overlayState);
           if (overlayState === "streaming") {
             setPhase("listening");
@@ -277,6 +288,15 @@ const RecordingOverlay: React.FC = () => {
           }),
       );
 
+      // fork(voice-control): how many dictations are still being finished.
+      const unlistenBacklog = await listen<number>(
+        "dictation-backlog",
+        (event) => {
+          backlogRef.current = event.payload;
+          setBacklog(event.payload);
+        },
+      );
+
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
         // Exponential smoothing across the 16 buckets, then take the first N
@@ -334,6 +354,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenRecordingLimit();
         unlistenFallback();
         unlistenProgress();
+        unlistenBacklog();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -374,6 +395,12 @@ const RecordingOverlay: React.FC = () => {
     const id = setInterval(tick, 80);
     return () => clearInterval(id);
   }, [meter]);
+
+  // fork(voice-control): the earlier dictation is pasted while the new
+  // recording still runs; its progress ends with it.
+  useEffect(() => {
+    if (backlog === 0 && state === "recording") setMeter(null);
+  }, [backlog, state]);
 
   // Stick to the bottom as text streams in — but only while pinned, so a user who
   // has scrolled up to read history isn't yanked back down by the next chunk.
@@ -473,36 +500,46 @@ const RecordingOverlay: React.FC = () => {
   // With a `meter` (a long transcription) the bars double as its progress: the
   // wave only travels across the share of bars that is decoded or in work, the
   // rest wait pale.
-  const waveformFor = (settled: boolean, minPx: number, maxPx: number) => (
-    <div
-      className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"} ${
-        settled && meter !== null ? "metered" : ""
-      }`}
-      style={
-        {
-          "--bmin": minPx,
-          "--bmax": maxPx,
-          "--cmax": (WAVE_BARS - 1) / 2,
-        } as React.CSSProperties
-      }
-    >
-      {levels.map((v, i) => (
-        <i
-          key={i}
-          className={settled && i >= litBars ? "pending" : undefined}
-          style={
-            {
-              "--l": Math.min(1, Math.pow(v, 0.7)).toFixed(3),
-              "--i": i,
-              "--c": Math.abs(i - (WAVE_BARS - 1) / 2),
-            } as React.CSSProperties
-          }
-        >
-          <b />
-        </i>
-      ))}
-    </div>
-  );
+  // `bars` below WAVE_BARS draws the small wave of an earlier dictation
+  // (always settled); its lit share is scaled from `litBars`.
+  const waveformFor = (
+    settled: boolean,
+    minPx: number,
+    maxPx: number,
+    bars = WAVE_BARS,
+  ) => {
+    const lit = Math.max(1, Math.ceil((litBars / WAVE_BARS) * bars));
+    return (
+      <div
+        className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"} ${
+          settled && meter !== null ? "metered" : ""
+        }`}
+        style={
+          {
+            "--bmin": minPx,
+            "--bmax": maxPx,
+            "--cmax": (bars - 1) / 2,
+          } as React.CSSProperties
+        }
+      >
+        {levels.slice(0, bars).map((v, i) => (
+          <i
+            key={i}
+            className={settled && i >= lit ? "pending" : undefined}
+            style={
+              {
+                "--l": Math.min(1, Math.pow(v, 0.7)).toFixed(3),
+                "--i": i,
+                "--c": Math.abs(i - (bars - 1) / 2),
+              } as React.CSSProperties
+            }
+          >
+            <b />
+          </i>
+        ))}
+      </div>
+    );
+  };
   const waveform = waveformFor(false, 3, 18);
 
   const cancelBtn = (
@@ -692,6 +729,14 @@ const RecordingOverlay: React.FC = () => {
         aria-label={working ? workLabel : t("overlay.recording")}
       >
         {!working && limitWarningIndicator}
+        {/* fork(voice-control): an earlier dictation is still transcribed
+            while this recording runs. Its small wave takes the start slot,
+            which the countdown claims in its final seconds. */}
+        {!working && backlog > 0 && !limitWarningVisible && (
+          <span className="sprior" aria-hidden="true">
+            {waveformFor(true, 3, 12, PRIOR_BARS)}
+          </span>
+        )}
         {/* fork(voice-control): text explains fallback latency; retain model-loading feedback. */}
         {working && (fallbackActive || modelLoading) ? (
           <span className="spill-label">{workLabel}</span>

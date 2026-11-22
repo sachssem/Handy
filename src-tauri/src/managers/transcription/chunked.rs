@@ -226,6 +226,13 @@ impl<'a> ChunkedDecode<'a> {
                     tm.run_batch(mark, pcm, &run_options, &bias, model_id)
                 }) {
                 Ok(transcript) => {
+                    // fork(voice-control): the engine's own stage times tell
+                    // a slow model run from time lost around it.
+                    let (mel_ms, encode_ms, decode_ms) = (
+                        transcript.timings.mel_ms,
+                        transcript.timings.encode_ms,
+                        transcript.timings.decode_ms,
+                    );
                     self.transcripts.push(transcript);
                     self.decoded_samples += chunk_samples;
                     // Real-time factor: audio seconds decoded per second of
@@ -236,11 +243,15 @@ impl<'a> ChunkedDecode<'a> {
                         self.decode_rate = elapsed_secs / audio_secs;
                     }
                     info!(
-                        "Decoded long-form chunk {} ({:.1}s of audio) in {:.2}s ({:.0}x real time)",
+                        "Decoded long-form chunk {} ({:.1}s of audio) in {:.2}s ({:.0}x real time; \
+                         engine mel {:.0} ms, encode {:.0} ms, decode {:.0} ms)",
                         self.transcripts.len(),
                         audio_secs,
                         elapsed_secs,
-                        audio_secs / elapsed_secs
+                        audio_secs / elapsed_secs,
+                        mel_ms,
+                        encode_ms,
+                        decode_ms
                     );
                 }
                 Err(e) => {

@@ -109,6 +109,18 @@ const POST_PROCESS_TIMEOUT: Duration = Duration::from_secs(60);
 /// doesn't reset the tray or hide the overlay of a newer one.
 static RECORDING_SESSION: AtomicU64 = AtomicU64::new(0);
 
+/// fork(voice-control): the session that owns the overlay and the tray (see
+/// `overlap`).
+pub(crate) fn recording_session() -> u64 {
+    RECORDING_SESSION.load(Ordering::SeqCst)
+}
+
+/// fork(voice-control): a cancelled recording gives the overlay and the tray
+/// back to the dictation `session`, which is still transcribing.
+pub(crate) fn hand_ui_to(session: u64) {
+    RECORDING_SESSION.store(session, Ordering::SeqCst);
+}
+
 /// Drop guard that finishes the transcription pipeline, including immediate
 /// model unloading on early exits.
 struct FinishGuard(AppHandle, Arc<TranscriptionManager>);
@@ -576,6 +588,9 @@ impl ShortcutAction for TranscribeAction {
             }
         }
 
+        // fork(voice-control): a recording over a running transcription
+        // waits for the microphone and the live decode's route.
+        crate::overlap::wait_for_handover(app);
         let binding_id = binding_id.to_string();
         RECORDING_SESSION.fetch_add(1, Ordering::SeqCst);
         // fork(voice-control): the tray is set after the overlay (below).
@@ -802,7 +817,12 @@ impl ShortcutAction for TranscribeAction {
             })
         };
 
-        tauri::async_runtime::spawn(async move {
+        // fork(voice-control): dictations finish in the order of their stops,
+        // and this one's pipeline runs as its own session (see `overlap`).
+        let session = recording_session();
+        let mut turn = crate::overlap::enqueue(app, session);
+        let journal_id = journal.id();
+        let pipeline = async move {
             let _guard = FinishGuard(ah.clone(), Arc::clone(&tm));
             debug!(
                 "Starting async transcription task for binding: {}",
@@ -833,6 +853,9 @@ impl ShortcutAction for TranscribeAction {
                     // Tear down any streaming worker so its channel doesn't leak
                     // and block the next start_stream.
                     tm.cancel_stream();
+                    // fork(voice-control): the overlay stays until the
+                    // dictation before this one is done.
+                    turn.wait().await;
                     finish_without_text(&ah, input_silent, 0, stop_time);
                 } else {
                     // Save WAV concurrently with transcription
@@ -850,6 +873,8 @@ impl ShortcutAction for TranscribeAction {
                     // result when it has one (all audio was already fed to it),
                     // otherwise a batch run of the samples. A cancel is surfaced
                     // as an error, so it never starts a batch run.
+                    // fork(voice-control): after the dictation before this one.
+                    turn.wait().await;
                     let transcription_time = Instant::now();
                     let transcription_result = tm.transcribe_recording(samples);
 
@@ -979,9 +1004,9 @@ impl ShortcutAction for TranscribeAction {
                                 let paste_time = Instant::now();
                                 let post_process_failed = processed.post_process_failed;
                                 let rm_for_paste = Arc::clone(&rm);
-                                // Taken before the paste thread exists, and so
-                                // before the next session can start.
-                                let session = RECORDING_SESSION.load(Ordering::SeqCst);
+                                // fork(voice-control): `session` is this
+                                // dictation's, taken at its stop; a newer
+                                // recording may have started since.
                                 // fork(voice-control): bind learning to this paste's owner,
                                 // even if a newer dictation starts before the thread runs.
                                 let dictation_id = journal.id();
@@ -990,6 +1015,9 @@ impl ShortcutAction for TranscribeAction {
                                 std::thread::Builder::new()
                                     .name("paste".into())
                                     .spawn(move || {
+                                        // fork(voice-control): the next dictation
+                                        // waits for this paste.
+                                        let _turn = turn;
                                         if rm_for_paste.was_cancelled_since(cancel_generation) {
                                             debug!(
                                                 "Transcription operation cancelled before paste"
@@ -1157,7 +1185,8 @@ impl ShortcutAction for TranscribeAction {
                     emit_transcription_complete(&ah, TranscriptionOutcome::Empty, 0, stop_time);
                 }
             }
-        });
+        };
+        tauri::async_runtime::spawn(crate::overlap::scoped(session, journal_id, pipeline));
 
         debug!(
             "TranscribeAction::stop completed in {:?}",

@@ -167,7 +167,8 @@ fn publish(app: &AppHandle, active: &[Notice], raised: Option<Notice>) {
 /// Replaces the source's previous notice. A dictation notice also replaces the
 /// overlay.
 pub fn raise(app: &AppHandle, notice: Notice) {
-    if notice.source == NoticeSource::Dictation {
+    // fork(voice-control): not on the overlay of a newer recording (`overlap`).
+    if notice.source == NoticeSource::Dictation && !crate::overlap::stale() {
         overlay::show_overlay_notice(app, &notice);
     }
     raise_without_overlay(app, notice);

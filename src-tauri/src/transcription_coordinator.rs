@@ -276,6 +276,12 @@ struct CoordinatorState {
     // fork(voice-control): bumped on every recording start so a recording-limit
     // timer from an earlier session can never stop a later one.
     recording_session: u64,
+    // fork(voice-control): a toggle press while a dictation is processed
+    // starts the next recording at once (see `overlap`). Set per input by the
+    // coordinator thread; off in the upstream tests.
+    overlap: bool,
+    // fork(voice-control): dictations stopped and not yet finished.
+    processing: u32,
 }
 
 impl CoordinatorState {
@@ -287,6 +293,8 @@ impl CoordinatorState {
             pending_release: None,
             pending_press: None,
             recording_session: 0,
+            overlap: false,
+            processing: 0,
         }
     }
 
@@ -362,6 +370,25 @@ impl CoordinatorState {
         // input against any already-remembered press instead of dropping it
         // silently.
         if let Stage::Processing = self.stage {
+            // fork(voice-control): record over the running transcription.
+            // Toggle presses only: a key held through the earlier dictation's
+            // paste would add its modifier to the paste's keystroke.
+            if self.overlap
+                && input.is_pressed
+                && input.mode == ShortcutActivation::Toggle
+                && self.pending_press.is_none()
+            {
+                debug!(
+                    "Starting '{}' over the running transcription",
+                    input.binding_id
+                );
+                return Some(self.begin_recording(
+                    input.binding_id,
+                    input.hotkey_string,
+                    now,
+                    true,
+                ));
+            }
             // Only one press can be remembered. Once a binding has claimed it,
             // inputs for a different binding are ignored — the same rule as a
             // different binding pressed while recording — rather than silently
@@ -527,7 +554,13 @@ impl CoordinatorState {
         if !matches!(self.stage, Stage::Processing)
             && (recording_was_active || matches!(self.stage, Stage::Recording(_)))
         {
-            self.stage = Stage::Idle;
+            // fork(voice-control): a recording cancelled over a running
+            // transcription leaves that dictation processing.
+            self.stage = if self.processing > 0 {
+                Stage::Processing
+            } else {
+                Stage::Idle
+            };
             self.hold = None;
         }
     }
@@ -553,6 +586,14 @@ impl CoordinatorState {
     }
 
     fn on_processing_finished(&mut self) -> Option<Effect> {
+        // fork(voice-control): an earlier dictation ended while a newer one
+        // records or is still processed; the stage is the newer one's.
+        self.processing = self.processing.saturating_sub(1);
+        if matches!(self.stage, Stage::Recording(_))
+            || (self.processing > 0 && matches!(self.stage, Stage::Processing))
+        {
+            return None;
+        }
         self.stage = Stage::Idle;
         self.hold = None;
         let pending = self.pending_press.take()?;
@@ -598,6 +639,8 @@ impl CoordinatorState {
     }
 
     fn begin_processing(&mut self, binding_id: String, hotkey_string: String) -> Effect {
+        // fork(voice-control): counted until its `ProcessingFinished`.
+        self.processing += 1;
         self.stage = Stage::Processing;
         self.hold = None;
         Effect::Stop {
@@ -661,6 +704,10 @@ impl TranscriptionCoordinator {
                             // effect (first-activation mic init) cannot turn a
                             // tap into a hold (#2089).
                             let now = input.received_at;
+                            // fork(voice-control): whether this press may
+                            // record over a running transcription.
+                            state.overlap = matches!(state.stage, Stage::Processing)
+                                && crate::overlap::allowed(&app);
                             if let Some(effect) = state.on_input(input, now) {
                                 run_effect(&app, &worker_tx, &mut state, effect);
                             }
@@ -1838,5 +1885,86 @@ mod tests {
             "held 400ms since the real key-down: must stop, not lock"
         );
         assert_eq!(state.stage, Stage::Processing);
+    }
+
+    // fork(voice-control): recording over a running transcription (`overlap`).
+
+    #[test]
+    fn toggle_press_during_processing_records_at_once_when_overlap_is_on() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        drive_into_processing(&mut state, t0);
+        state.overlap = true;
+
+        let effect = state.on_input(toggle_input(true), t0 + ms(200));
+        assert!(matches!(effect, Some(Effect::Start { .. })));
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+        assert!(state.pending_press.is_none());
+        assert!(state.is_recording_locked());
+    }
+
+    #[test]
+    fn earlier_dictation_finishing_leaves_the_new_recording_alone() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        drive_into_processing(&mut state, t0);
+        state.overlap = true;
+        assert!(state.on_input(toggle_input(true), t0 + ms(200)).is_some());
+
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Recording(BINDING.to_string()));
+
+        // The next press stops the recording as usual.
+        let effect = state.on_input(toggle_input(true), t0 + ms(400));
+        assert!(matches!(effect, Some(Effect::Stop { .. })));
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Idle);
+    }
+
+    #[test]
+    fn two_dictations_in_processing_end_with_the_second() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        drive_into_processing(&mut state, t0);
+        state.overlap = true;
+        assert!(state.on_input(toggle_input(true), t0 + ms(200)).is_some());
+        assert!(state.on_input(toggle_input(true), t0 + ms(400)).is_some());
+        assert_eq!(state.processing, 2);
+
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(
+            state.stage,
+            Stage::Processing,
+            "the second dictation is still processed"
+        );
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Idle);
+    }
+
+    #[test]
+    fn cancelling_the_new_recording_returns_to_processing() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        drive_into_processing(&mut state, t0);
+        state.overlap = true;
+        assert!(state.on_input(toggle_input(true), t0 + ms(200)).is_some());
+
+        state.on_cancel(true);
+        assert_eq!(state.stage, Stage::Processing);
+        assert!(state.on_processing_finished().is_none());
+        assert_eq!(state.stage, Stage::Idle);
+    }
+
+    #[test]
+    fn hold_press_during_processing_is_still_remembered_with_overlap_on() {
+        let mut state = CoordinatorState::new();
+        let t0 = Instant::now();
+        drive_into_processing(&mut state, t0);
+        state.overlap = true;
+
+        let press = input(ShortcutActivation::PushToTalk, true);
+        assert!(state.on_input(press, t0 + ms(200)).is_none());
+        assert_eq!(state.stage, Stage::Processing);
+        assert!(state.pending_press.is_some());
     }
 }

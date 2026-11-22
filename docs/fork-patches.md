@@ -28,27 +28,28 @@ Conventions used throughout:
 
 ## Feature summary
 
-| Feature                                                                                  | Kind    | Risk on rebase | Upstream files touched                                                                                                                                |
-| ---------------------------------------------------------------------------------------- | ------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [text-rules engine](#text-rules-engine)                                                  | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
-| [correction learning](#correction-learning)                                              | feature | medium         | `actions.rs`, `managers/transcription.rs`, `settings.rs`, `lib.rs`, `cli.rs`, settings UI                                                             |
-| [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs` (+ fork-owned `transcription/allowlist.rs`), `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                    |
-| [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                    |
-| [dictation journal + context](#dictation-journal--app-context)                           | feature | medium         | `actions.rs`, `managers/transcription.rs`, `transcription_coordinator.rs`, `overlay.rs`, `RecordingOverlay.tsx`, `settings.rs`, `lib.rs`, settings UI |
-| [ASR biasing](#asr-biasing-vocabulary--app-context)                                      | feature | medium         | `managers/transcription.rs`, `engine_supervisor/{protocol,worker}.rs`, `settings.rs`, `lib.rs`, `ModelSettingsCard.tsx`                               |
-| [snippets](#snippets)                                                                    | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                     |
-| [self-correction LLM pass](#self-correction-llm-pass)                                    | feature | low            | `actions.rs`, `settings.rs`, `lib.rs`, `build.rs`, settings UI                                                                                        |
-| [per-app styles](#per-app-styles)                                                        | feature | low            | `actions.rs` (shared hook), `settings.rs`, `lib.rs`, settings UI                                                                                      |
-| [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                            |
-| [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/sink.rs` (+ fork-owned `sink/vad_edges.rs` and its tests)                                                                        |
-| [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
-| [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
-| [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                      |
-| [long-form overlap](#long-form-overlap)                                                  | feature | low            | `managers/transcription/chunked.rs`, `audio_toolkit/chunking.rs`, `lib.rs`                                                                            |
-| [model warm-up after load](#model-warm-up-after-load)                                    | perf    | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
-| [T3 Code transcription socket](#t3-code-transcription-socket)                            | feature | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
-| [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
-| [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                             |
+| Feature                                                                                  | Kind    | Risk on rebase | Upstream files touched                                                                                                                                                    |
+| ---------------------------------------------------------------------------------------- | ------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [text-rules engine](#text-rules-engine)                                                  | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                                         |
+| [correction learning](#correction-learning)                                              | feature | medium         | `actions.rs`, `managers/transcription.rs`, `settings.rs`, `lib.rs`, `cli.rs`, settings UI                                                                                 |
+| [language-allowlist guard](#language-allowlist-guard)                                    | feature | medium         | `managers/transcription.rs` (+ fork-owned `transcription/allowlist.rs`), `shortcut/mod.rs`, `settings.rs`, `ModelSettingsCard.tsx`                                        |
+| [recording-limit auto-stop](#recording-limit-auto-stop)                                  | feature | low            | `settings.rs`, `shortcut/mod.rs`, `transcription_coordinator.rs`, `managers/model.rs`, settings UI                                                                        |
+| [dictation journal + context](#dictation-journal--app-context)                           | feature | medium         | `actions.rs`, `managers/transcription.rs`, `transcription_coordinator.rs`, `overlay.rs`, `RecordingOverlay.tsx`, `settings.rs`, `lib.rs`, settings UI                     |
+| [ASR biasing](#asr-biasing-vocabulary--app-context)                                      | feature | medium         | `managers/transcription.rs`, `engine_supervisor/{protocol,worker}.rs`, `settings.rs`, `lib.rs`, `ModelSettingsCard.tsx`                                                   |
+| [snippets](#snippets)                                                                    | feature | low            | `managers/transcription.rs`, `settings.rs`, `lib.rs`, settings UI                                                                                                         |
+| [self-correction LLM pass](#self-correction-llm-pass)                                    | feature | low            | `actions.rs`, `settings.rs`, `lib.rs`, `build.rs`, settings UI                                                                                                            |
+| [per-app styles](#per-app-styles)                                                        | feature | low            | `actions.rs` (shared hook), `settings.rs`, `lib.rs`, settings UI                                                                                                          |
+| [overlay: compact capsule + latency](#overlay-compact-capsule--latency)                  | feature | medium         | `RecordingOverlay.tsx`, `RecordingOverlay.css`, `overlay.rs`, `actions.rs`                                                                                                |
+| [vad-edges: dictation keeps internal pauses](#vad-edges-dictation-keeps-internal-pauses) | fix     | medium         | `audio_toolkit/audio/sink.rs` (+ fork-owned `sink/vad_edges.rs` and its tests)                                                                                            |
+| [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                                              |
+| [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                                                   |
+| [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                                          |
+| [long-form overlap](#long-form-overlap)                                                  | feature | low            | `managers/transcription/chunked.rs`, `audio_toolkit/chunking.rs`, `lib.rs`                                                                                                |
+| [dictating over a transcription](#dictating-over-a-running-transcription)                | feature | medium         | `actions.rs`, `transcription_coordinator.rs`, `managers/transcription.rs`, `managers/audio.rs`, `overlay.rs`, `tray.rs`, `notices.rs`, `utils.rs`, `RecordingOverlay.tsx` |
+| [model warm-up after load](#model-warm-up-after-load)                                    | perf    | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                                     |
+| [T3 Code transcription socket](#t3-code-transcription-socket)                            | feature | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                                     |
+| [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                                        |
+| [fork build & maintenance tooling](#fork-build--maintenance-tooling)                     | tooling | none           | none (fork-owned scripts)                                                                                                                                                 |
 
 "Risk on rebase" = likelihood upstream edits the same lines. New-module features are
 low; features that graft into `transcription.rs` are the ones to watch.
@@ -330,9 +331,11 @@ tokens) and can escalate to another model.
 
 Auto-stops a recording just before a model's safe dictation limit (some models
 degrade or hang past a length), for models with a measured limit. Qwen3-ASR
-has none while the `long_form_chunking` setting is on: decoded in overlapping
-chunks ([long-form overlap](#long-form-overlap)) it never sees more than about
-50 s in one run. With the setting off its limit is 90 s.
+has no model limit while the `long_form_chunking` setting is on: decoded in
+overlapping chunks ([long-form overlap](#long-form-overlap)) it never sees more
+than about 50 s in one run. A recording then stops after 10 minutes, with the
+countdown in its last 30 s, so one left running ends. With the setting off its
+limit is 90 s.
 
 - **New files:** `src/components/settings/RecordingLimitAutoStop.tsx`; measured
   limits captured via the bench harness (`probe-limit`).
@@ -372,7 +375,8 @@ only).
   (`ChunkedDecode::decode` runs each chunk through `OverlapDecode::decode`),
   `audio_toolkit/chunking.rs` (`Chunker::upcoming`, the audio after the last
   chunk handed out; `is_unspaced` is `pub(crate)`), `lib.rs` (one `mod`),
-  `managers/model.rs` (no recording limit for Qwen3-ASR while chunking is on),
+  `managers/model.rs` (10 minutes instead of 90 s for Qwen3-ASR while chunking
+  is on),
   `RecordingOverlay.tsx` / `.css` (progress meter).
 - **Progress:** once a transcription's length is known (a recording stopped,
   or a clip decoded in batch) and it is at least 15 s of audio, `ChunkedDecode`
@@ -777,6 +781,59 @@ app_styles;`, commands), `stores/settingsStore.ts`, `bindings.ts`.
 - **Upstream check:** does upstream now adapt output per app?
   ```bash
   git grep -iE "bundle.?id|per.?app|app.?style|frontmost" upstream/main -- src-tauri/src
+  ```
+
+## dictating over a running transcription
+
+A toggle press while a dictation is still transcribed starts the next
+recording at once. Upstream remembers that press and starts the recording when
+the text is pasted, so what is said in between is lost. The dictations finish
+in the order of their stops: each one transcribes and pastes after the one
+before it is through its paste.
+
+- **Order:** `overlap::enqueue` in `TranscribeAction::stop` hands out a `Turn`;
+  the pipeline awaits `Turn::wait` before it transcribes, and the turn ends
+  when the paste thread is done (or on any earlier exit).
+- **Who owns the overlay and the tray:** the newest recording. A dictation's
+  pipeline runs inside `overlap::scoped`, which tells every poll's thread
+  which session it works for. `show_overlay_state`, `hide_recording_overlay`,
+  `set_tray_state` and `notices::raise` do nothing for the overlay when
+  `overlap::stale()` says a newer recording has started. The same wrapper sets
+  the journal scope, so an earlier dictation's facts land in its own record.
+- **Live decode:** the next recording waits (`overlap::wait_for_handover`, at
+  most 2 s) until the earlier one has stopped its recording and closed its
+  route, then gets its own stream worker. `start_stream` allows that while the
+  earlier worker still finishes. Both workers share the engine's queue.
+- **Cancel:** over a running transcription, Escape or the capsule's X ends only
+  the recording (`overlap::cancel_recording_only`,
+  `AudioRecordingManager::discard_recording`); the earlier dictation gets the
+  overlay back and still pastes. A second cancel stops everything, as before.
+- **Coordinator:** `CoordinatorState.overlap` (set per input by the thread from
+  `overlap::allowed`) lets a toggle press in `Stage::Processing` begin a
+  recording; `processing` counts the stops that have not sent
+  `ProcessingFinished`, so an earlier dictation's end does not reset a newer
+  recording's stage.
+- **Overlay:** `dictation-backlog` carries the number of dictations stopped and
+  not yet done. While it is above zero during a recording, the capsule shows a
+  small settled wave (`.sprior`, 4 bars) in its start slot, with the earlier
+  dictation's progress when it reports one.
+- **Not covered:** hold modes (push-to-talk, hold-or-toggle) keep upstream's
+  remembered press, because a key held through the earlier paste would add
+  its modifier to the paste's keystroke. Models that stream keep it too: the
+  engine holds one stream.
+- **New files:** `src-tauri/src/overlap.rs`.
+- **Upstream files touched:** `actions.rs` (`recording_session`, `hand_ui_to`,
+  the handover wait in `start`, turn and scope in `stop`),
+  `transcription_coordinator.rs` (`overlap`, `processing`),
+  `managers/transcription.rs` (`start_stream`, `maybe_unload_immediately`),
+  `managers/audio.rs` (`discard_recording`), `overlay.rs`, `tray.rs`,
+  `notices.rs` (one `stale()` check each), `utils.rs`
+  (`cancel_current_operation`), `lib.rs` (one `mod`), `RecordingOverlay.tsx` /
+  `.css` (`backlog`, `.sprior`).
+- **Probe:** `overlap: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream record while it transcribes?
+  ```bash
+  git grep -iE "pipeline busy|pending_press|queue" upstream/main -- src-tauri/src/transcription_coordinator.rs
   ```
 
 ## overlay: compact capsule + latency

@@ -55,7 +55,11 @@ pub fn recording_limit_for_model_id(
     // 2026-11-21: 9.4 min and 8.1 min without a lost word).
     if model_id.contains("qwen3-asr") {
         if long_form_chunking {
-            return None;
+            // No model limit; ten minutes bounds a recording left running.
+            return Some(RecordingLimit {
+                max_recording_ms: 600_000,
+                warning_ms: 30_000,
+            });
         }
         return Some(RecordingLimit {
             max_recording_ms: 90_000,
@@ -154,13 +158,15 @@ mod recording_limit_tests {
     use super::recording_limit_for_model_id;
 
     #[test]
-    fn qwen3_asr_is_limited_only_when_it_is_decoded_in_one_run() {
+    fn qwen3_asr_limit_follows_how_it_is_decoded() {
         let id = "handy-computer/Qwen3-ASR-0.6B-gguf";
         let limit = recording_limit_for_model_id(id, false).unwrap();
 
         assert_eq!(limit.max_recording_ms, 90_000);
         assert_eq!(limit.warning_ms, 10_000);
-        assert_eq!(recording_limit_for_model_id(id, true), None);
+        let chunked = recording_limit_for_model_id(id, true).unwrap();
+        assert_eq!(chunked.max_recording_ms, 600_000);
+        assert_eq!(chunked.warning_ms, 30_000);
     }
 
     #[test]

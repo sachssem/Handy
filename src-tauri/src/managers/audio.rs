@@ -1325,8 +1325,14 @@ impl AudioRecordingManager {
 
     /// Cancel any ongoing recording without returning audio samples
     pub fn cancel_recording(&self) {
-        self.invalidate_recording_readiness();
         self.cancel_generation.fetch_add(1, Ordering::AcqRel);
+        self.discard_recording();
+    }
+
+    /// fork(voice-control): [`Self::cancel_recording`] without the cancel
+    /// mark, so a dictation that is still transcribing goes on (`overlap`).
+    pub fn discard_recording(&self) {
+        self.invalidate_recording_readiness();
         let mut state = self.state.lock().unwrap();
 
         match *state {

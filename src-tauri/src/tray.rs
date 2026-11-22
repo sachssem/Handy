@@ -239,6 +239,10 @@ pub fn get_icon_path(theme: AppTheme, state: TrayIconState, badge: bool) -> &'st
 
 /// Sets the recording state shown by the tray (icon + Cancel/model menu).
 pub fn set_tray_state(app: &AppHandle, state: TrayIconState) {
+    // fork(voice-control): a newer recording owns the tray (see `overlap`).
+    if crate::overlap::stale() {
+        return;
+    }
     sync_tray_with(app, |inner| inner.icon_state = state);
 }
 
