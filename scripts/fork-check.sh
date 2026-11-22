@@ -66,6 +66,12 @@ PROBES=(
   "recording-limit: enforcement scheduler|src-tauri/src/transcription_coordinator.rs|schedule_recording_limit"
   "recording-limit: settings UI mounted|src/components/settings/advanced/AdvancedSettings.tsx|RecordingLimitAutoStop"
 
+  # -- long-form overlap --
+  "long-form overlap: module registered|src-tauri/src/lib.rs|mod chunk_overlap"
+  "long-form overlap: chunks decoded with shared audio|src-tauri/src/managers/transcription/chunked.rs|chunk_overlap::OverlapDecode::new"
+  "long-form overlap: audio after the last chunk|src-tauri/src/audio_toolkit/chunking.rs|pub fn upcoming"
+  "long-form overlap: no limit for chunked Qwen3-ASR|src-tauri/src/managers/model.rs|long_form_chunking"
+
   # -- overlay: instant, compact, theme-inverted pill --
   "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"
   "overlay: compact capsule|src/overlay/RecordingOverlay.css|--ov-capsule-w"

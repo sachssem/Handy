@@ -39,14 +39,24 @@ const DEFAULT_RECORDING_LIMIT: RecordingLimit = RecordingLimit {
     warning_ms: 10_000,
 };
 
-pub fn recording_limit_for_model_id(model_id: &str) -> Option<RecordingLimit> {
+/// `long_form_chunking` is the setting: with it, a model that is decoded in
+/// chunks never sees more than about 50 s in one run.
+pub fn recording_limit_for_model_id(
+    model_id: &str,
+    long_form_chunking: bool,
+) -> Option<RecordingLimit> {
     let model_id = model_id.to_ascii_lowercase();
 
     // Qwen3-ASR's decode budget scales with audio length (12 tokens/s), so it
     // only truncates very dense speech; probe-limit (2026-10-15, Q5_K_M and
     // Q8_0, 12-case rotations) found no truncation through 122 s and extra
-    // words appear by ~240 s. 90 s keeps a margin to both.
+    // words appear by ~240 s. 90 s keeps a margin to both. Decoded in
+    // overlapping chunks it needs no limit (`handy-bench longform`,
+    // 2026-11-21: 9.4 min and 8.1 min without a lost word).
     if model_id.contains("qwen3-asr") {
+        if long_form_chunking {
+            return None;
+        }
         return Some(RecordingLimit {
             max_recording_ms: 90_000,
             warning_ms: 10_000,
@@ -144,16 +154,18 @@ mod recording_limit_tests {
     use super::recording_limit_for_model_id;
 
     #[test]
-    fn qwen3_asr_models_have_conservative_recording_limit() {
-        let limit = recording_limit_for_model_id("handy-computer/Qwen3-ASR-0.6B-gguf").unwrap();
+    fn qwen3_asr_is_limited_only_when_it_is_decoded_in_one_run() {
+        let id = "handy-computer/Qwen3-ASR-0.6B-gguf";
+        let limit = recording_limit_for_model_id(id, false).unwrap();
 
         assert_eq!(limit.max_recording_ms, 90_000);
         assert_eq!(limit.warning_ms, 10_000);
+        assert_eq!(recording_limit_for_model_id(id, true), None);
     }
 
     #[test]
     fn unmeasured_models_get_the_general_default_limit() {
-        let limit = recording_limit_for_model_id("handy-computer/parakeet-v3").unwrap();
+        let limit = recording_limit_for_model_id("handy-computer/parakeet-v3", true).unwrap();
 
         assert_eq!(limit.max_recording_ms, 300_000);
         assert_eq!(limit.warning_ms, 10_000);

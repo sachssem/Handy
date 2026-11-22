@@ -44,6 +44,7 @@ Conventions used throughout:
 | [history: pasted text](#history-pasted-text)                                             | fix     | low            | `actions.rs`                                                                                                                                          |
 | [paste last transcript hotkey](#paste-last-transcript-hotkey)                            | feature | low            | `settings.rs`, `actions.rs`, `tray.rs`, `lib.rs`, `GeneralSettings.tsx`                                                                               |
 | [fork never self-updates](#fork-never-self-updates)                                      | fix     | very low       | `settings.rs` (one early return)                                                                                                                      |
+| [long-form overlap](#long-form-overlap)                                                  | feature | low            | `managers/transcription/chunked.rs`, `audio_toolkit/chunking.rs`, `lib.rs`                                                                            |
 | [model warm-up after load](#model-warm-up-after-load)                                    | perf    | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
 | [T3 Code transcription socket](#t3-code-transcription-socket)                            | feature | low            | `managers/transcription.rs`, `lib.rs`                                                                                                                 |
 | [benchmark harness](#benchmark-harness)                                                  | tooling | very low       | `lib.rs` (one `mod`), `Cargo.toml`                                                                                                                    |
@@ -328,7 +329,10 @@ tokens) and can escalate to another model.
 ## recording-limit auto-stop
 
 Auto-stops a recording just before a model's safe dictation limit (some models
-degrade or hang past a length), for models with a measured limit.
+degrade or hang past a length), for models with a measured limit. Qwen3-ASR
+has none while the `long_form_chunking` setting is on: decoded in overlapping
+chunks ([long-form overlap](#long-form-overlap)) it never sees more than about
+50 s in one run. With the setting off its limit is 90 s.
 
 - **New files:** `src/components/settings/RecordingLimitAutoStop.tsx`; measured
   limits captured via the bench harness (`probe-limit`).
@@ -344,6 +348,48 @@ degrade or hang past a length), for models with a measured limit.
 - **Upstream check:** did upstream add a max-recording-length / auto-stop?
   ```bash
   git grep -iE "max.?record|recording.?limit|auto.?stop|duration.?limit" upstream/main -- src-tauri/src
+  ```
+
+## long-form overlap
+
+Upstream cuts long audio at pauses and decodes every chunk on its own. A model
+ends each chunk like a sentence and starts the next one cold, so a cut inside a
+sentence leaves "… wäre ja. die Taster …", and a cut inside a compound splits
+the word. Handy's recordings have their silence removed, so the chunker cannot
+tell a pause inside a sentence from one between two.
+
+The fork decodes each chunk with 3 s of its neighbours on both sides and cuts
+the two texts in the middle of the words they agree on, so the forced sentence
+end and the cold start fall into the discarded halves. The chunks' texts still
+join with a plain space, so upstream's `join_chunks` is untouched. Qwen3-ASR
+also writes an occasional chunk without punctuation or capitals; such a chunk is
+decoded again with its window moved by 1.5 s (up to three more windows, Qwen3-ASR
+only).
+
+- **New files:** `src-tauri/src/chunk_overlap.rs` (`OverlapDecode`, `stitch`,
+  `is_bare`, tests), `src-tauri/src/bench/longform.rs` (`handy-bench longform`).
+- **Upstream files touched:** `managers/transcription/chunked.rs`
+  (`ChunkedDecode::decode` runs each chunk through `OverlapDecode::decode`),
+  `audio_toolkit/chunking.rs` (`Chunker::upcoming`, the audio after the last
+  chunk handed out; `is_unspaced` is `pub(crate)`), `lib.rs` (one `mod`),
+  `managers/model.rs` (no recording limit for Qwen3-ASR while chunking is on).
+- **Scope:** dictations, live and in batch, and the T3 Code socket. The
+  background job (`managers/transcription/job.rs`: history retry, file
+  transcription) has its own chunk loop with one paragraph per chunk and is
+  not overlapped.
+- **Measured** (2026-11-21/22, Qwen3-ASR 1.7B Q5_K_M, real dictations joined to
+  8-11 min, 17-22 cuts each, reference: every recording in one run). Sentence
+  ends followed by a lowercase word, without and with overlap: 7 → 0, 9 → 2
+  (reference 3), 7 → 0. No seam without agreeing words at 3 s, 5-20 words agree.
+  1 s per side left 10 of 20 seams without a match, 6 s only cost time, moving
+  the overlap's outer edge to a pause changed nothing. Chunks without
+  punctuation: 1-6 of about 20 without the retry, 0-1 with it. Cost: 11 min of
+  audio in 31 runs instead of 23.
+- **Probe:** `long-form overlap: *` in `scripts/fork-check.sh`.
+- **Upstream check:** does upstream overlap its chunks or pass context from one
+  chunk to the next?
+  ```bash
+  git grep -iE "overlap|stitch|previous chunk" upstream/main -- src-tauri/src/audio_toolkit/chunking.rs src-tauri/src/managers/transcription
   ```
 
 ## dictation journal + app context

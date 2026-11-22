@@ -839,7 +839,9 @@ fn schedule_recording_limit(app: &AppHandle, tx: &Sender<Command>, session_id: u
         return;
     }
 
-    let Some(limit) = recording_limit_for_model_id(&settings.selected_model) else {
+    let Some(limit) =
+        recording_limit_for_model_id(&settings.selected_model, settings.long_form_chunking)
+    else {
         return;
     };
 

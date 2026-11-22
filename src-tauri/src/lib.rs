@@ -14,6 +14,8 @@ mod autostart;
 pub mod bench;
 mod catalog;
 mod chinese_script;
+// fork(voice-control): long-form chunks decoded with shared audio.
+mod chunk_overlap;
 pub mod cli;
 mod clipboard;
 mod commands;

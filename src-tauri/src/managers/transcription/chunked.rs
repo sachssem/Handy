@@ -50,6 +50,8 @@ pub(super) struct ChunkedDecode<'a> {
     setup: ChunkSetup,
     model_id: String,
     chunker: Chunker,
+    /// fork(voice-control): chunks are decoded with their neighbours' audio.
+    overlap: crate::chunk_overlap::OverlapDecode,
     transcripts: Vec<Transcript>,
     /// The first run that failed or was cancelled; nothing more is decoded
     /// after it.
@@ -72,6 +74,7 @@ impl<'a> ChunkedDecode<'a> {
             setup,
             model_id: model_id.to_string(),
             chunker: Chunker::new(Box::new(move || create_detector(backend, &app_handle))),
+            overlap: crate::chunk_overlap::OverlapDecode::new(model_id),
             transcripts: Vec::new(),
             failure: None,
         }
@@ -142,7 +145,8 @@ impl<'a> ChunkedDecode<'a> {
     }
 
     fn decode(&mut self, chunks: Vec<Vec<f32>>) {
-        for chunk in chunks {
+        let mut chunks = chunks.into_iter().peekable();
+        while let Some(chunk) = chunks.next() {
             if self.failure.is_some() {
                 return;
             }
@@ -153,10 +157,17 @@ impl<'a> ChunkedDecode<'a> {
             let bias = std::sync::Arc::clone(&setup.bias);
             let audio_secs = chunk.len() as f64 / 16_000.0;
             let started = Instant::now();
+            // fork(voice-control): decoded with the audio around the chunk
+            // and cut at the seam to the chunk before (see `chunk_overlap`).
+            let after = chunks
+                .peek()
+                .map_or(self.chunker.upcoming(), |next| next.as_slice());
+            let (tm, mark, model_id) = (self.tm, self.mark, &self.model_id);
             match self
-                .tm
-                .run_batch(self.mark, chunk, &run_options, &bias, &self.model_id)
-            {
+                .overlap
+                .decode(chunk, after, self.transcripts.last_mut(), |pcm| {
+                    tm.run_batch(mark, pcm, &run_options, &bias, model_id)
+                }) {
                 Ok(transcript) => {
                     self.transcripts.push(transcript);
                     // Real-time factor: audio seconds decoded per second of

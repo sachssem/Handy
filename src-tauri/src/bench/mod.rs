@@ -10,6 +10,7 @@
 mod corpus;
 mod engine;
 mod history_export;
+mod longform;
 mod probe;
 mod record;
 mod regression;
@@ -64,6 +65,11 @@ enum Command {
     Record(RecordArgs),
     /// Measure the audio duration at which a model starts truncating output.
     ProbeLimit(ProbeArgs),
+    /// Join recordings, cut them like a long dictation and compare the text.
+    Longform(longform::LongformArgs),
+    /// Internal: the chunk lengths `longform` asks a child process for.
+    #[command(hide = true)]
+    LongformCuts(longform::CutsArgs),
 }
 
 #[derive(Parser, Debug)]
@@ -155,6 +161,8 @@ pub fn run() -> Result<()> {
             &args.re_record,
         ),
         Command::ProbeLimit(args) => probe::probe_limit(args),
+        Command::Longform(args) => longform::run(args),
+        Command::LongformCuts(args) => longform::cuts(args),
     }
 }
 

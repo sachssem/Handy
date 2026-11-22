@@ -112,6 +112,29 @@ History prefixes for email/quotes had already been post-processed at import;
 their notes record this, while the supplied spoken truth stays independent of
 history/ASR. The truncation case remains `TODO` until the user supplies truth.
 
+## Long dictations (`longform`)
+
+Checks what a long dictation loses where the app cuts it. `longform` joins the
+given recordings into one clip, cuts it with the app's chunker and decodes the
+chunks twice: on their own (upstream) and with the app's overlap
+(`src-tauri/src/chunk_overlap.rs`). The reference is every recording decoded in
+one run.
+
+```bash
+CMAKE_POLICY_VERSION_MINIMUM=3.5 cargo run --manifest-path src-tauri/Cargo.toml \
+  --bin handy-bench -- longform --model 'cpp:/absolute/path/model.gguf' --warmup \
+  --out /tmp/longform ~/Library/Application\ Support/com.pais.handy/recordings/handy-*.wav
+```
+
+The report prints the words on both sides of every cut and, per variant, the
+word count, the sentence ends followed by a lowercase word (what a cut inside a
+sentence leaves), the chunks without punctuation and WER/CER against the
+reference. `--out` writes one word per line, so `diff reference.txt overlap.txt`
+is a word diff. `--vocab` and `--prompt` work as in `run`. Take recordings of
+40 s and more: shorter ones are joined at their ends, where a cut is harmless.
+The cuts are planned in a child process, because the VAD registers
+transcribe.cpp CPU-only and that choice is fixed per process.
+
 ## Where the models live (the "empty models dir")
 
 `<app_data>/models/` looks empty even though the app transcribes fine, because

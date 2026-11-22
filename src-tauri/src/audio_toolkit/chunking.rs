@@ -217,6 +217,12 @@ impl Chunker {
         self.len
     }
 
+    /// fork(voice-control): the audio after the last chunk handed out, which
+    /// `chunk_overlap` decodes that chunk's end with.
+    pub fn upcoming(&self) -> &[f32] {
+        &self.pending
+    }
+
     /// Adds audio. Returns the chunks whose cuts this made certain, in order.
     /// A whole clip pushed at once is moved in, not copied.
     pub fn push(&mut self, pcm: impl Into<Vec<f32>>) -> Vec<Vec<f32>> {
@@ -342,7 +348,8 @@ static UNSPACED: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-fn is_unspaced(c: char) -> bool {
+// fork(voice-control): `pub(crate)` for `chunk_overlap`'s word matching.
+pub(crate) fn is_unspaced(c: char) -> bool {
     UNSPACED.is_match(c.encode_utf8(&mut [0; 4]))
 }
 
