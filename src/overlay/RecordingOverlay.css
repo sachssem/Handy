@@ -239,6 +239,70 @@
 .spill .swave.settled b {
   animation-name: swave-body;
 }
+/* Long transcription (`metered`): the bars are its progress meter. The decoded
+   share stands at half height (l = 0.5: cap offset 3px, body scale 0.538) and
+   carries the travelling pulse; the bars past it wait low, pale and still. */
+.spill .swave.metered i {
+  animation-name: swave-tone-lit;
+}
+.spill .swave.metered i::before {
+  animation-name: swave-cap-top-lit;
+}
+.spill .swave.metered i::after {
+  animation-name: swave-cap-bottom-lit;
+}
+.spill .swave.metered b {
+  animation-name: swave-body-lit;
+}
+.spill .swave.metered i.pending {
+  opacity: 0.22;
+}
+.spill .swave.metered i.pending,
+.spill .swave.metered i.pending::before,
+.spill .swave.metered i.pending::after,
+.spill .swave.metered i.pending b {
+  animation: none;
+}
+@keyframes swave-tone-lit {
+  20% {
+    opacity: 1;
+  }
+  0%,
+  45%,
+  100% {
+    opacity: 0.85;
+  }
+}
+@keyframes swave-cap-top-lit {
+  0%,
+  45%,
+  100% {
+    transform: translateY(3px);
+  }
+  20% {
+    transform: translateY(0);
+  }
+}
+@keyframes swave-cap-bottom-lit {
+  0%,
+  45%,
+  100% {
+    transform: translateY(-3px);
+  }
+  20% {
+    transform: translateY(0);
+  }
+}
+@keyframes swave-body-lit {
+  0%,
+  45%,
+  100% {
+    transform: scaleY(0.538);
+  }
+  20% {
+    transform: scaleY(1);
+  }
+}
 /* Rest -> crest at 20% -> rest at 45%, then hold (the pause between sweeps). */
 @keyframes swave-tone {
   20% {
@@ -802,6 +866,10 @@
   .spill .swave.settled i {
     --l: 0.45 !important;
     animation: swave-breathe 1.4s ease-in-out infinite alternate;
+  }
+  .spill .swave.metered i.pending {
+    --l: 0.2 !important;
+    animation: none;
   }
 }
 @keyframes swave-breathe {

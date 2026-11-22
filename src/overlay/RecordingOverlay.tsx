@@ -116,6 +116,9 @@ const RecordingOverlay: React.FC = () => {
   // audio with the configured fallback model, so the work label says why the
   // transcription takes a second pass.
   const [fallbackActive, setFallbackActive] = useState(false);
+  // fork(voice-control): decoded fraction of a long transcription (0..1);
+  // null while there is none to show.
+  const [progress, setProgress] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
   // Bumped on each new streaming session so the Live card remounts fresh (replays
   // the pop-in, and never animates in from the previous panel's open size).
@@ -183,6 +186,7 @@ const RecordingOverlay: React.FC = () => {
             // fork(voice-control): clear the previous session's recording limit.
             setRecordingLimit(null);
             setFallbackActive(false);
+            setProgress(null);
             setNowMs(Date.now());
           }
           setState(overlayState);
@@ -225,6 +229,7 @@ const RecordingOverlay: React.FC = () => {
         // fork(voice-control): clear the limit and fallback at the end of a session.
         setRecordingLimit(null);
         setFallbackActive(false);
+        setProgress(null);
       });
 
       const unlistenReady = await listen("recording-ready", () => {
@@ -250,6 +255,12 @@ const RecordingOverlay: React.FC = () => {
       const unlistenFallback = await listen("fallback-transcription", () => {
         setFallbackActive(true);
       });
+
+      // fork(voice-control): a long transcription reports how far it is.
+      const unlistenProgress = await listen<number>(
+        "transcription-progress",
+        (event) => setProgress(event.payload),
+      );
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const newLevels = event.payload as number[];
@@ -307,6 +318,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenReady();
         unlistenRecordingLimit();
         unlistenFallback();
+        unlistenProgress();
         unlistenLevel();
         unlistenStream();
         unlistenPhase();
@@ -422,14 +434,24 @@ const RecordingOverlay: React.FC = () => {
   // `settled` = transcribing/processing: the bars glide low and a wave travels
   // across them (staggered per bar via --i); --c (distance from the center bar)
   // lets the outer bars trail the center slightly while recording.
+  // With `progress` (a long transcription) the bars double as its meter: the
+  // wave only travels across the share of bars that is decoded, the rest wait
+  // pale. The first bar is lit from the start, so there is always motion.
+  const litBars =
+    progress === null
+      ? WAVE_BARS
+      : Math.min(WAVE_BARS, Math.max(1, Math.ceil(progress * WAVE_BARS)));
   const waveformFor = (settled: boolean, minPx: number, maxPx: number) => (
     <div
-      className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"}`}
+      className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"} ${
+        settled && progress !== null ? "metered" : ""
+      }`}
       style={{ "--bmin": minPx, "--bmax": maxPx } as React.CSSProperties}
     >
       {levels.map((v, i) => (
         <i
           key={i}
+          className={settled && i >= litBars ? "pending" : undefined}
           style={
             {
               "--l": Math.min(1, Math.pow(v, 0.7)).toFixed(3),

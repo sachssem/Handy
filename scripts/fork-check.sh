@@ -71,6 +71,9 @@ PROBES=(
   "long-form overlap: chunks decoded with shared audio|src-tauri/src/managers/transcription/chunked.rs|chunk_overlap::OverlapDecode::new"
   "long-form overlap: audio after the last chunk|src-tauri/src/audio_toolkit/chunking.rs|pub fn upcoming"
   "long-form overlap: no limit for chunked Qwen3-ASR|src-tauri/src/managers/model.rs|long_form_chunking"
+  "long-form overlap: progress emitted|src-tauri/src/managers/transcription/chunked.rs|fn report_progress"
+  "long-form overlap: progress meter in the capsule|src/overlay/RecordingOverlay.tsx|transcription-progress"
+  "long-form overlap: progress meter styles|src/overlay/RecordingOverlay.css|swave\.metered"
 
   # -- overlay: instant, compact, theme-inverted pill --
   "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"

@@ -372,7 +372,15 @@ only).
   (`ChunkedDecode::decode` runs each chunk through `OverlapDecode::decode`),
   `audio_toolkit/chunking.rs` (`Chunker::upcoming`, the audio after the last
   chunk handed out; `is_unspaced` is `pub(crate)`), `lib.rs` (one `mod`),
-  `managers/model.rs` (no recording limit for Qwen3-ASR while chunking is on).
+  `managers/model.rs` (no recording limit for Qwen3-ASR while chunking is on),
+  `RecordingOverlay.tsx` / `.css` (progress meter).
+- **Progress:** once a transcription's length is known (a recording stopped,
+  or a clip decoded in batch), `ChunkedDecode` emits `transcription-progress`
+  with the decoded fraction after every chunk, from the first finished chunk
+  on. The compact capsule turns its bars into the meter (`.swave.metered` in
+  `RecordingOverlay.css`): the decoded share of the 7 bars stands at half
+  height and carries the travelling pulse, the rest wait pale. A dictation of
+  one chunk never reports, so it looks as before.
 - **Scope:** dictations, live and in batch, and the T3 Code socket. The
   background job (`managers/transcription/job.rs`: history retry, file
   transcription) has its own chunk loop with one paragraph per chunk and is
