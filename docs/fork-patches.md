@@ -375,12 +375,18 @@ only).
   `managers/model.rs` (no recording limit for Qwen3-ASR while chunking is on),
   `RecordingOverlay.tsx` / `.css` (progress meter).
 - **Progress:** once a transcription's length is known (a recording stopped,
-  or a clip decoded in batch), `ChunkedDecode` emits `transcription-progress`
-  with the decoded fraction after every chunk, from the first finished chunk
-  on. The compact capsule turns its bars into the meter (`.swave.metered` in
-  `RecordingOverlay.css`): the decoded share of the 7 bars stands at half
-  height and carries the travelling pulse, the rest wait pale. A dictation of
-  one chunk never reports, so it looks as before.
+  or a clip decoded in batch) and it is at least 15 s of audio, `ChunkedDecode`
+  emits `transcription-progress` when a chunk's decode starts: the decoded
+  share (`from`), the share once that chunk is done (`to`) and the time the
+  chunk probably takes (`eta_ms`, from the rate of the chunk decoded last, 0.15 s
+  per second of audio before the first). The compact capsule turns its bars
+  into the meter (`.swave.metered` in `RecordingOverlay.css`): the overlay
+  moves from `from` to `to` over `eta_ms` and holds there until the next chunk
+  starts. The lit share of the 13 bars stands at half height and carries the
+  travelling pulse, the rest wait pale. Lit and waiting bars run the same
+  keyframes and differ only in the variables `--rest` / `--crest`, so a bar
+  that joins is in step with the pulse. Shorter audio never reports and looks
+  as before.
 - **Scope:** dictations, live and in batch, and the T3 Code socket. The
   background job (`managers/transcription/job.rs`: history retry, file
   transcription) has its own chunk loop with one paragraph per chunk and is
@@ -775,8 +781,8 @@ app_styles;`, commands), `stores/settingsStore.ts`, `bindings.ts`.
 
 ## overlay: compact capsule + latency
 
-The Minimal / transcribing / processing overlay is one fixed 144x32 capsule
-(7 bars that settle into a shimmer while working; the fallback-model pass is
+The Minimal / transcribing / processing overlay is one fixed 160x36 capsule
+(13 bars that settle into a shimmer while working; the fallback-model pass is
 the only state with text), shown with no awaits before the first paint.
 
 - **Instant show:** `show-overlay` commits every visible change inside
@@ -786,6 +792,13 @@ the only state with text), shown with no awaits before the first paint.
   each new appearance to replay the entrance animation. `actions.rs` sets the
   tray icon after the overlay (the tray sync used
   to cost 17–60 ms ahead of it).
+- **No throttling while hidden:** the overlay panel is built with
+  `background_throttling(Disabled)` (WebKit's `inactiveSchedulingPolicy`,
+  macOS 14+). macOS throttles the web view of a hidden window. In the journal
+  of 2026-11-10 to 22, 19 of 41 presses after more than 10 minutes without a
+  dictation had the first frame later than 300 ms (up to 2.5 s), against 3 of
+  54 within a minute of the last one. The hidden capsule pauses its
+  animations (`.spill.leaving`), so the unthrottled view has nothing to do.
 - **Arming + accessibility:** the arming waveform pulses only in opacity to
   preserve round caps, and rests with reduced motion. Cancel reuses `tray.cancel`;
   the capsule status uses translated `overlay.recording` while recording and
@@ -799,7 +812,7 @@ the only state with text), shown with no awaits before the first paint.
 - **Upstream files touched:** `src/overlay/RecordingOverlay.tsx` (capsule
   markup, `flushSync` show, `showSeq` remount, breadcrumbs, recording-limit
   ring, fallback label), `src/overlay/RecordingOverlay.css` (`--ov-capsule-*`
-  geometry and animations), `overlay.rs` (`OVERLAY_WIDTH` 164 + test bounds;
+  geometry and animations), `overlay.rs` (`OVERLAY_WIDTH` 180, `OVERLAY_HEIGHT` 54 + test bounds, `background_throttling`;
   upstream's compact `notice` state keeps upstream's 266 px width,
   `OVERLAY_NOTICE_WIDTH`, so the longest notice titles fit; `epoch_ms` on the
   show line), `actions.rs` (tray after overlay, `epoch_ms` on the start line).

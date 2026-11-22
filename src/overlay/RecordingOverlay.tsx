@@ -43,8 +43,14 @@ type RecordingLimitState = {
 
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
-// fork(voice-control): 7 bars for the compact 144px capsule (upstream 9).
-const WAVE_BARS = 7;
+// fork(voice-control): 13 bars for the compact 160px capsule (upstream 9).
+const WAVE_BARS = 13;
+
+// fork(voice-control): a long transcription's progress, sent when a chunk's
+// decode starts: the decoded share, the share once that chunk is done, and how
+// long the chunk probably takes.
+type ProgressPayload = { from: number; to: number; eta_ms: number };
+type Meter = { from: number; to: number; etaMs: number; at: number };
 
 // fork(voice-control): overlay latency breadcrumbs (debug log level + the
 // dictation journal's `overlay` events). The overlay webview has no visible
@@ -116,9 +122,10 @@ const RecordingOverlay: React.FC = () => {
   // audio with the configured fallback model, so the work label says why the
   // transcription takes a second pass.
   const [fallbackActive, setFallbackActive] = useState(false);
-  // fork(voice-control): decoded fraction of a long transcription (0..1);
-  // null while there is none to show.
-  const [progress, setProgress] = useState<number | null>(null);
+  // fork(voice-control): the chunk a long transcription is decoding; null
+  // while there is no progress to show. `litBars` is how many bars it lights.
+  const [meter, setMeter] = useState<Meter | null>(null);
+  const [litBars, setLitBars] = useState(WAVE_BARS);
   const [nowMs, setNowMs] = useState(() => Date.now());
   // Bumped on each new streaming session so the Live card remounts fresh (replays
   // the pop-in, and never animates in from the previous panel's open size).
@@ -190,7 +197,7 @@ const RecordingOverlay: React.FC = () => {
           }
           // fork(voice-control): the progress belongs to the transcription
           // alone; recording and post-processing show the plain bars.
-          if (overlayState !== "transcribing") setProgress(null);
+          if (overlayState !== "transcribing") setMeter(null);
           setState(overlayState);
           if (overlayState === "streaming") {
             setPhase("listening");
@@ -231,7 +238,7 @@ const RecordingOverlay: React.FC = () => {
         // fork(voice-control): clear the limit and fallback at the end of a session.
         setRecordingLimit(null);
         setFallbackActive(false);
-        setProgress(null);
+        setMeter(null);
       });
 
       const unlistenReady = await listen("recording-ready", () => {
@@ -259,9 +266,15 @@ const RecordingOverlay: React.FC = () => {
       });
 
       // fork(voice-control): a long transcription reports how far it is.
-      const unlistenProgress = await listen<number>(
+      const unlistenProgress = await listen<ProgressPayload>(
         "transcription-progress",
-        (event) => setProgress(event.payload),
+        (event) =>
+          setMeter({
+            from: event.payload.from,
+            to: event.payload.to,
+            etaMs: event.payload.eta_ms,
+            at: performance.now(),
+          }),
       );
 
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
@@ -340,6 +353,27 @@ const RecordingOverlay: React.FC = () => {
     const id = setInterval(() => setNowMs(Date.now()), 250);
     return () => clearInterval(id);
   }, [recordingLimit, isVisible]);
+
+  // fork(voice-control): the meter runs through the chunk in work over its
+  // estimated time and then holds at the chunk's end until the next one starts.
+  useEffect(() => {
+    if (!meter) {
+      setLitBars(WAVE_BARS);
+      return;
+    }
+    const tick = () => {
+      const elapsed = performance.now() - meter.at;
+      const done = meter.etaMs > 0 ? Math.min(1, elapsed / meter.etaMs) : 1;
+      const share = meter.from + (meter.to - meter.from) * done;
+      // The first bar is lit from the start, so there is always motion.
+      setLitBars(
+        Math.min(WAVE_BARS, Math.max(1, Math.ceil(share * WAVE_BARS))),
+      );
+    };
+    tick();
+    const id = setInterval(tick, 80);
+    return () => clearInterval(id);
+  }, [meter]);
 
   // Stick to the bottom as text streams in — but only while pinned, so a user who
   // has scrolled up to read history isn't yanked back down by the next chunk.
@@ -436,19 +470,21 @@ const RecordingOverlay: React.FC = () => {
   // `settled` = transcribing/processing: the bars glide low and a wave travels
   // across them (staggered per bar via --i); --c (distance from the center bar)
   // lets the outer bars trail the center slightly while recording.
-  // With `progress` (a long transcription) the bars double as its meter: the
-  // wave only travels across the share of bars that is decoded, the rest wait
-  // pale. The first bar is lit from the start, so there is always motion.
-  const litBars =
-    progress === null
-      ? WAVE_BARS
-      : Math.min(WAVE_BARS, Math.max(1, Math.ceil(progress * WAVE_BARS)));
+  // With a `meter` (a long transcription) the bars double as its progress: the
+  // wave only travels across the share of bars that is decoded or in work, the
+  // rest wait pale.
   const waveformFor = (settled: boolean, minPx: number, maxPx: number) => (
     <div
       className={`swave ${settled ? "settled" : captureReady ? "ready" : "arming"} ${
-        settled && progress !== null ? "metered" : ""
+        settled && meter !== null ? "metered" : ""
       }`}
-      style={{ "--bmin": minPx, "--bmax": maxPx } as React.CSSProperties}
+      style={
+        {
+          "--bmin": minPx,
+          "--bmax": maxPx,
+          "--cmax": (WAVE_BARS - 1) / 2,
+        } as React.CSSProperties
+      }
     >
       {levels.map((v, i) => (
         <i
@@ -660,7 +696,7 @@ const RecordingOverlay: React.FC = () => {
         {working && (fallbackActive || modelLoading) ? (
           <span className="spill-label">{workLabel}</span>
         ) : (
-          waveformFor(working, 4, 16)
+          waveformFor(working, 4, 18)
         )}
         {cancelBtn}
       </div>

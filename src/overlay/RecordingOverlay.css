@@ -50,8 +50,8 @@
      = compact capsule + the compact stage padding (shadow slack),
      OVERLAY_STREAM_* >= the Live panel's max footprint. Keep overlay.rs in sync
      when these change. */
-  --ov-capsule-w: 144px; /* compact capsule — one footprint for every state */
-  --ov-capsule-h: 32px;
+  --ov-capsule-w: 160px; /* compact capsule — one footprint for every state */
+  --ov-capsule-h: 36px;
   --ov-pill-w: 224px; /* Live pill before it opens or collapses */
   --ov-open-w: 392px; /* Live panel, expanded */
   --ov-base-h: 40px; /* Live control-row height (.sbase) */
@@ -161,6 +161,15 @@
     transform 150ms cubic-bezier(0.4, 0, 1, 1);
 }
 
+/* Nothing animates in the hidden capsule: it stays mounted after the fade. */
+.spill.leaving,
+.spill.leaving::before,
+.spill.leaving *,
+.spill.leaving *::before,
+.spill.leaving *::after {
+  animation-play-state: paused;
+}
+
 /* Transcribing / processing: a faint sheen sweeps across the capsule, under
    the bars (they are positioned, so they paint above it). */
 .spill.working {
@@ -193,20 +202,20 @@
   }
 }
 
-/* Waveform — 7 bars in the foreground color. Reactive only after the first
+/* Waveform — 13 bars in the foreground color. Reactive only after the first
    microphone callback; while arming, a muted center-out pulse acknowledges the
    shortcut without pretending audio levels are already flowing. */
 .spill .swave {
   --bw: 3;
+  gap: 4px;
 }
 
 /* Transcribing / processing: the bars glide low (from wherever the last level
    left them) and take a faint accent tint, then a full-height pulse travels
    across them bar by bar, rests briefly and repeats — clearly "working",
    unmistakably not "listening". Each bar runs the pulse on its three parts in
-   lockstep (caps translate, body scales). Values are the compact geometry
-   (4..16px, 3px caps) at l = 0.2 (rest) and l = 1 (crest): cap offset
-   6px * (1 - l), body scale (1 + 12l) / 13. */
+   lockstep (caps translate, body scales) between the levels --rest and
+   --crest. */
 .spill .swave.settled {
   color: color-mix(in srgb, var(--s-fg) 72%, var(--s-accent));
   transition: color 400ms ease;
@@ -214,6 +223,10 @@
 .spill .swave.settled i {
   --l: 0.2 !important;
   --bt: 280ms;
+  --rest: 0.2;
+  --crest: 1;
+  --rest-o: 0.5;
+  --crest-o: 1;
   opacity: 0.5;
   transition: opacity 280ms ease-out;
 }
@@ -225,7 +238,7 @@
   animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
   animation-iteration-count: infinite;
   /* First the glide down, then the pulse runs from the start side. */
-  animation-delay: calc(240ms + var(--i, 0) * 85ms);
+  animation-delay: calc(240ms + var(--i, 0) * 50ms);
 }
 .spill .swave.settled i {
   animation-name: swave-tone;
@@ -239,108 +252,75 @@
 .spill .swave.settled b {
   animation-name: swave-body;
 }
-/* Long transcription (`metered`): the bars are its progress meter. The decoded
-   share stands at half height (l = 0.5: cap offset 3px, body scale 0.538) and
-   carries the travelling pulse; the bars past it wait low, pale and still. */
+/* Long transcription (`metered`): the bars are its progress meter. The share
+   that is decoded or in work stands at half height and carries the travelling
+   pulse; the bars past it wait low, pale and still. Only variables differ, so
+   a bar that joins is in step with the pulse at once. */
 .spill .swave.metered i {
-  animation-name: swave-tone-lit;
-}
-.spill .swave.metered i::before {
-  animation-name: swave-cap-top-lit;
-}
-.spill .swave.metered i::after {
-  animation-name: swave-cap-bottom-lit;
-}
-.spill .swave.metered b {
-  animation-name: swave-body-lit;
+  --l: 0.5 !important;
+  --rest: 0.5;
+  --rest-o: 0.85;
+  opacity: 0.85;
 }
 .spill .swave.metered i.pending {
+  --l: 0.2 !important;
+  --rest: 0.2;
+  --crest: 0.2;
+  --rest-o: 0.22;
+  --crest-o: 0.22;
   opacity: 0.22;
 }
-.spill .swave.metered i.pending,
-.spill .swave.metered i.pending::before,
-.spill .swave.metered i.pending::after,
-.spill .swave.metered i.pending b {
-  animation: none;
-}
-@keyframes swave-tone-lit {
-  20% {
-    opacity: 1;
-  }
-  0%,
-  45%,
-  100% {
-    opacity: 0.85;
-  }
-}
-@keyframes swave-cap-top-lit {
-  0%,
-  45%,
-  100% {
-    transform: translateY(3px);
-  }
-  20% {
-    transform: translateY(0);
-  }
-}
-@keyframes swave-cap-bottom-lit {
-  0%,
-  45%,
-  100% {
-    transform: translateY(-3px);
-  }
-  20% {
-    transform: translateY(0);
-  }
-}
-@keyframes swave-body-lit {
-  0%,
-  45%,
-  100% {
-    transform: scaleY(0.538);
-  }
-  20% {
-    transform: scaleY(1);
-  }
-}
-/* Rest -> crest at 20% -> rest at 45%, then hold (the pause between sweeps). */
+/* Rest -> crest at 20% -> rest at 45%, then hold (the pause between sweeps).
+   --rest / --crest are bar levels (0..1) and place the caps and the body the
+   way --l does on a bar at rest. */
 @keyframes swave-tone {
   20% {
-    opacity: 1;
+    opacity: var(--crest-o);
   }
+  0%,
   45%,
   100% {
-    opacity: 0.5;
+    opacity: var(--rest-o);
   }
 }
 @keyframes swave-cap-top {
   0%,
   45%,
   100% {
-    transform: translateY(4.8px);
+    transform: translateY(calc(var(--span) * (1 - var(--rest)) * 0.5px));
   }
   20% {
-    transform: translateY(0);
+    transform: translateY(calc(var(--span) * (1 - var(--crest)) * 0.5px));
   }
 }
 @keyframes swave-cap-bottom {
   0%,
   45%,
   100% {
-    transform: translateY(-4.8px);
+    transform: translateY(calc(var(--span) * (var(--rest) - 1) * 0.5px));
   }
   20% {
-    transform: translateY(0);
+    transform: translateY(calc(var(--span) * (var(--crest) - 1) * 0.5px));
   }
 }
 @keyframes swave-body {
   0%,
   45%,
   100% {
-    transform: scaleY(0.262);
+    transform: scaleY(
+      calc(
+        (var(--bmin) + var(--span) * var(--rest) - var(--bw)) /
+          (var(--bmax) - var(--bw))
+      )
+    );
   }
   20% {
-    transform: scaleY(1);
+    transform: scaleY(
+      calc(
+        (var(--bmin) + var(--span) * var(--crest) - var(--bw)) /
+          (var(--bmax) - var(--bw))
+      )
+    );
   }
 }
 
@@ -747,19 +727,9 @@
 .swave.arming i {
   --l: 0.15 !important;
   opacity: 0.35;
+  /* Center-out pulse: the outer pair first, the middle bar (--c = 0) last. */
   animation: swave-arming 900ms ease-in-out infinite;
-}
-/* Center-out pulse across the 7 bars (outer pair first, middle bar last). */
-.swave.arming i:nth-child(2),
-.swave.arming i:nth-child(6) {
-  animation-delay: 75ms;
-}
-.swave.arming i:nth-child(3),
-.swave.arming i:nth-child(5) {
-  animation-delay: 150ms;
-}
-.swave.arming i:nth-child(4) {
-  animation-delay: 225ms;
+  animation-delay: calc((var(--cmax, 3) - var(--c, 0)) * 38ms);
 }
 /* fork(voice-control): pulse opacity so round caps retain their shape. */
 @keyframes swave-arming {
@@ -868,7 +838,6 @@
     animation: swave-breathe 1.4s ease-in-out infinite alternate;
   }
   .spill .swave.metered i.pending {
-    --l: 0.2 !important;
     animation: none;
   }
 }

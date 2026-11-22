@@ -14,9 +14,26 @@ use crate::language_detection::Plan;
 use crate::managers::audio::create_detector;
 use crate::settings::{AppSettings, VadBackend};
 
-/// fork(voice-control): the overlay's progress event; its payload is the
-/// decoded fraction of the audio, between 0 and 1.
+/// fork(voice-control): the overlay's progress event, sent when a chunk's
+/// decode starts.
 const PROGRESS_EVENT: &str = "transcription-progress";
+/// fork(voice-control): audio shorter than this shows no progress; its decode
+/// is over before a meter could say anything.
+const PROGRESS_MIN_SAMPLES: usize = 15 * 16_000;
+/// fork(voice-control): decode seconds per second of audio, assumed until the
+/// first chunk is measured (the app measures 4x to 10x real time).
+const DEFAULT_DECODE_RATE: f64 = 0.15;
+
+/// fork(voice-control): the share of the audio that is decoded (`from`), the
+/// share that will be once the chunk in work is done (`to`), both between 0
+/// and 1, and how long that chunk probably takes. The overlay moves its meter
+/// from one to the other over that time.
+#[derive(Clone, serde::Serialize)]
+struct Progress {
+    from: f64,
+    to: f64,
+    eta_ms: u64,
+}
 
 /// How a chunked decode's runs are set up: known up front (a whole clip), or
 /// once the first chunk's audio can pick the language (a live recording).
@@ -61,6 +78,9 @@ pub(super) struct ChunkedDecode<'a> {
     /// known, for the overlay's progress.
     decoded_samples: usize,
     total_samples: Option<usize>,
+    /// fork(voice-control): decode seconds per second of audio, from the
+    /// chunk decoded last.
+    decode_rate: f64,
     transcripts: Vec<Transcript>,
     /// The first run that failed or was cancelled; nothing more is decoded
     /// after it.
@@ -86,6 +106,7 @@ impl<'a> ChunkedDecode<'a> {
             overlap: crate::chunk_overlap::OverlapDecode::new(model_id),
             decoded_samples: 0,
             total_samples: None,
+            decode_rate: DEFAULT_DECODE_RATE,
             transcripts: Vec::new(),
             failure: None,
         }
@@ -138,7 +159,6 @@ impl<'a> ChunkedDecode<'a> {
         if self.failure.is_none() {
             // fork(voice-control): a recording's length is known once it stops.
             self.total_samples = Some(self.chunker.samples());
-            self.report_progress();
             let chunks = self.chunker.finish();
             self.decode(chunks);
         }
@@ -160,18 +180,23 @@ impl<'a> ChunkedDecode<'a> {
         Ok((self.transcripts, *setup))
     }
 
-    /// fork(voice-control): tell the overlay how much of a long transcription
-    /// is decoded, as a fraction. Nothing before the first chunk is done, so a
-    /// dictation of one chunk looks as it always did.
-    fn report_progress(&self) {
+    /// fork(voice-control): tell the overlay that the decode of a chunk of
+    /// `chunk_samples` starts. Nothing while the length is unknown (a
+    /// recording that still runs shows its levels) or for short audio.
+    fn report_progress(&self, chunk_samples: usize) {
         let Some(total) = self.total_samples else {
             return;
         };
-        if self.decoded_samples == 0 || self.decoded_samples >= total {
+        if total < PROGRESS_MIN_SAMPLES {
             return;
         }
-        let fraction = self.decoded_samples as f64 / total as f64;
-        let _ = self.tm.app_handle.emit(PROGRESS_EVENT, fraction);
+        let share = |samples: usize| (samples as f64 / total as f64).min(1.0);
+        let progress = Progress {
+            from: share(self.decoded_samples),
+            to: share(self.decoded_samples + chunk_samples),
+            eta_ms: (chunk_samples as f64 / 16.0 * self.decode_rate) as u64,
+        };
+        let _ = self.tm.app_handle.emit(PROGRESS_EVENT, progress);
     }
 
     fn decode(&mut self, chunks: Vec<Vec<f32>>) {
@@ -188,6 +213,7 @@ impl<'a> ChunkedDecode<'a> {
             let chunk_samples = chunk.len();
             let audio_secs = chunk_samples as f64 / 16_000.0;
             let started = Instant::now();
+            self.report_progress(chunk_samples);
             // fork(voice-control): decoded with the audio around the chunk
             // and cut at the seam to the chunk before (see `chunk_overlap`).
             let after = chunks
@@ -202,11 +228,13 @@ impl<'a> ChunkedDecode<'a> {
                 Ok(transcript) => {
                     self.transcripts.push(transcript);
                     self.decoded_samples += chunk_samples;
-                    self.report_progress();
                     // Real-time factor: audio seconds decoded per second of
                     // wall clock. Floored so a near-instant decode reports a
                     // large factor instead of infinity.
                     let elapsed_secs = started.elapsed().as_secs_f64().max(1e-6);
+                    if audio_secs > 0.0 {
+                        self.decode_rate = elapsed_secs / audio_secs;
+                    }
                     info!(
                         "Decoded long-form chunk {} ({:.1}s of audio) in {:.2}s ({:.0}x real time)",
                         self.transcripts.len(),

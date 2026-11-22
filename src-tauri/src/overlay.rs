@@ -45,15 +45,15 @@ tauri_panel! {
 // scale (see windows_text_scale_factor), which WebView2 applies as a zoom.
 //
 // fork(voice-control): the compact overlay (Minimal / transcribing /
-// processing) is one fixed 144x32 capsule (--ov-capsule-w/-h) for every state,
+// processing) is one fixed 160x36 capsule (--ov-capsule-w/-h) for every state,
 // with no width animation, plus the compact stage padding that holds its drop
-// shadow (10px each side, 6px above, 12px below) — 164x50 (upstream: a 40h pill
+// shadow (10px each side, 6px above, 12px below) — 180x54 (upstream: a 40h pill
 // animating 172→216 wide in a 266x50 window).
-const OVERLAY_WIDTH: f64 = 164.0;
+const OVERLAY_WIDTH: f64 = 180.0;
 // fork(voice-control): a compact notice keeps upstream's width, so the longest
 // notice titles (up to 215px of text) still fit.
 const OVERLAY_NOTICE_WIDTH: f64 = 266.0;
-const OVERLAY_HEIGHT: f64 = 50.0;
+const OVERLAY_HEIGHT: f64 = 54.0;
 
 // Actual is 394x118, just a little extra
 const OVERLAY_STREAM_WIDTH: f64 = 400.0;
@@ -512,7 +512,17 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
             .no_activate(true)
             .corner_radius(0.0)
             .style_mask(StyleMask::empty().borderless().nonactivating_panel())
-            .with_window(|w| w.decorations(false).transparent(true).focusable(false))
+            .with_window(|w| {
+                w.decorations(false)
+                    .transparent(true)
+                    .focusable(false)
+                    // fork(voice-control): macOS throttles the web view of a
+                    // hidden window, and after minutes without a dictation the
+                    // overlay then took up to 2.5 s to paint after the press.
+                    .background_throttling(
+                        tauri::utils::config::BackgroundThrottlingPolicy::Disabled,
+                    )
+            })
             .collection_behavior(
                 CollectionBehavior::new()
                     .can_join_all_spaces()
@@ -886,7 +896,7 @@ mod tests {
                 assert_eq!(notice, session_size);
             } else {
                 // fork(voice-control): the compact notice keeps the height but
-                // widens from the 164 px capsule to fit its title.
+                // widens from the 180 px capsule to fit its title.
                 assert_eq!(notice, (OVERLAY_NOTICE_WIDTH, session_size.1));
             }
             assert_eq!(is_live_state(session), live);
@@ -947,8 +957,8 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Bottom,
             ),
-            // fork(voice-control): 164x50 logical at 1.5 (upstream 266 wide).
-            (3717, 2025, 246, 75)
+            // fork(voice-control): 180x54 logical at 1.5 (upstream 266x50).
+            (3705, 2019, 270, 81)
         );
         assert_eq!(
             windows_overlay_bounds(
@@ -960,7 +970,7 @@ mod tests {
                 OVERLAY_HEIGHT,
                 OverlayPosition::Top,
             ),
-            (3717, 6, 246, 75)
+            (3705, 6, 270, 81)
         );
     }
 

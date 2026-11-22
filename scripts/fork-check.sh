@@ -78,7 +78,8 @@ PROBES=(
   # -- overlay: instant, compact, theme-inverted pill --
   "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"
   "overlay: compact capsule|src/overlay/RecordingOverlay.css|--ov-capsule-w"
-  "overlay: window sized for capsule|src-tauri/src/overlay.rs|OVERLAY_WIDTH: f64 = 164"
+  "overlay: window sized for capsule|src-tauri/src/overlay.rs|OVERLAY_WIDTH: f64 = 180"
+  "overlay: hidden web view not throttled|src-tauri/src/overlay.rs|BackgroundThrottlingPolicy::Disabled"
 
   # -- dictation keeps internal pauses (VAD trims only the edges) --
   "vad-edges: module wired in|src-tauri/src/audio_toolkit/audio/sink.rs|^mod vad_edges;"
