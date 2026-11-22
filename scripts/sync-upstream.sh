@@ -2,7 +2,7 @@
 #
 # fork(voice-control): one-command upstream sync for the personal fork.
 #
-# Codifies the "Upstream Update Procedure" from AGENTS.md so the safety steps
+# Codifies the "Upstream Update Procedure" from docs/fork-workflow.md so the safety steps
 # (backup tag, ff-only mirror, integrity gate) can never be skipped or mis-typed.
 #
 # The fork is carried as ONE squashed commit on top of upstream. The script

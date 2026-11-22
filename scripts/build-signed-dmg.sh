@@ -2,7 +2,7 @@
 #
 # fork(voice-control): reproducible local release build for the personal fork.
 #
-# Why this exists (both are macOS-local pain points, see AGENTS.md "Fork Build"):
+# Why this exists (both are macOS-local pain points, see docs/fork-workflow.md "Fork Build"):
 #   1. Code signing: an ad-hoc signature has an unstable identity, so macOS TCC
 #      forgets Microphone/Accessibility grants on every rebuild. Signing with a
 #      stable self-signed cert makes the app's Designated Requirement constant,

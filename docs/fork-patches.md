@@ -260,7 +260,7 @@ dictation's saved redaction decision; counts, pair ids and outcomes survive.
   git grep -iE "learn|correction|replacement|dictionary|vocab" upstream/main -- src-tauri/src src
   ```
   Unlikely (upstream is frozen). If a rebase conflicts here, adapt carefully
-  rather than dropping; verify with `handy --debug-toast` (see AGENTS.md "Fork
+  rather than dropping; verify with `handy --debug-toast` (see docs/fork-workflow.md "Fork
   Debug Helpers").
 
 ## language-allowlist guard
@@ -1133,7 +1133,8 @@ The fork's own scripts and docs — never conflicts with upstream.
 
 - **Files (all fork-owned):** `scripts/build-signed-dmg.sh`,
   `scripts/sync-upstream.sh`, `scripts/fork-check.sh`, `docs/REQUIREMENTS.md`,
-  `docs/fork-patches.md` (this file), the "Fork Workflow" section of `AGENTS.md`.
+  `docs/fork-patches.md` (this file), the "Fork Workflow" section of `AGENTS.md`,
+  `docs/fork-workflow.md`.
 - **Upstream check:** none.
 
 ## ASR biasing (vocabulary + app context)
