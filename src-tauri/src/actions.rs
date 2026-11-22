@@ -558,7 +558,13 @@ impl ShortcutAction for TranscribeAction {
         // Load ASR model and VAD model in parallel
         let kickoff_started = Instant::now();
         // An empty selection has nothing to load; the check below says so.
-        let selected_model = get_settings(app).selected_model;
+        let press_settings = get_settings(app);
+        let selected_model = press_settings.selected_model;
+        // fork(voice-control): a load waits for the overlay's first frame, or
+        // the GPU work of the load keeps the overlay off the screen.
+        if press_settings.overlay_style != OverlayStyle::None {
+            crate::load_gate::shut();
+        }
         let load_started = !selected_model.is_empty() && tm.initiate_model_load(true);
         let rm_clone = Arc::clone(&rm);
         std::thread::spawn(move || {
@@ -788,7 +794,11 @@ impl ShortcutAction for TranscribeAction {
         // the larger panel, but it still switches from listening to a working
         // spinner while the stream finalizes. Non-streaming paths use the
         // compact transcribing pill (None no-ops in show_*).
-        let style = get_settings(app).overlay_style;
+        let stop_settings = get_settings(app);
+        // fork(voice-control): a session warmed at the press is stale after a
+        // long recording; the transcription gives a new one time to warm up.
+        crate::self_correction::prepare(&stop_settings);
+        let style = stop_settings.overlay_style;
         // Capture this before finalizing the stream so every later working state
         // targets the same overlay that was shown for this transcription.
         let use_streaming_overlay = should_use_streaming_overlay(style, tm.is_streaming());

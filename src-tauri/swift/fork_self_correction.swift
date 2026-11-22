@@ -145,7 +145,18 @@ public func forkScRun(
 
     // Report the outstanding generation before consulting availability: a
     // timed-out request still owns the model even if availability changed.
+    // A session that is being prepared is ready within milliseconds, so wait
+    // for it inside this call's time instead of giving the pass up: the call
+    // itself starts a prepare when the ready session is older than a long
+    // recording.
+    let entered = DispatchTime.now()
+    let deadline = entered + .milliseconds(Int(max(0, timeoutMs)))
     state.lock.lock()
+    while state.preparing && !state.inFlight && DispatchTime.now() < deadline {
+        state.lock.unlock()
+        usleep(5_000)
+        state.lock.lock()
+    }
     let busy = state.inFlight || state.preparing
     state.lock.unlock()
     if busy {
@@ -206,7 +217,6 @@ public func forkScRun(
         semaphore.signal()
     }
 
-    let deadline = DispatchTime.now() + .milliseconds(Int(max(0, timeoutMs)))
     if semaphore.wait(timeout: deadline) == .timedOut {
         task.cancel()
         resultPtr.pointee.status = FORK_SC_TIMEOUT

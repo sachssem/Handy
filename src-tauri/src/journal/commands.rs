@@ -64,5 +64,8 @@ pub fn open_journal_dir(app: AppHandle) -> Result<(), String> {
 #[specta::specta]
 pub fn journal_overlay_stage(stage: String) {
     log::debug!("toast-webview: {}", stage);
+    if stage.contains("' first-frame ") {
+        crate::load_gate::open();
+    }
     super::dictation::record_overlay_breadcrumb(&stage);
 }

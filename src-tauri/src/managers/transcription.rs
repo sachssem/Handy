@@ -766,6 +766,8 @@ impl TranscriptionManager {
                     .store(false, Ordering::Release);
             }
             let settings = get_settings(&self_clone.app_handle);
+            // fork(voice-control): a press's overlay paints first.
+            crate::load_gate::wait();
             // fork(voice-control): journal the press-path load + warm-up.
             let _ = crate::model_warmup::take_last_ms();
             let load_started = Instant::now();

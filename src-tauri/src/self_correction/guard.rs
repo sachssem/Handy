@@ -102,7 +102,7 @@ pub(crate) fn check(input: &str, output: &str, spans: &[Span]) -> Result<(), &'s
 
 /// Byte ranges use the same tokenizer as the word alignment, including its
 /// handling of contractions and Unicode letters.
-fn word_ranges(text: &str) -> Vec<Range<usize>> {
+pub(super) fn word_ranges(text: &str) -> Vec<Range<usize>> {
     tokenize(text)
         .into_iter()
         .filter_map(|token| match token {

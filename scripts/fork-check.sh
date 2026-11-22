@@ -96,6 +96,10 @@ PROBES=(
   "overlay: instant show (no awaits before paint)|src/overlay/RecordingOverlay.tsx|flushSync\\(\\(\\) =>"
   "overlay: compact capsule|src/overlay/RecordingOverlay.css|--ov-capsule-w"
   "overlay: window sized for capsule|src-tauri/src/overlay.rs|OVERLAY_WIDTH: f64 = 180"
+  "overlay: load gate registered|src-tauri/src/lib.rs|^mod load_gate;"
+  "overlay: press shuts the load gate|src-tauri/src/actions.rs|crate::load_gate::shut\\(\\)"
+  "overlay: model load waits for the first frame|src-tauri/src/managers/transcription.rs|crate::load_gate::wait\\(\\)"
+  "overlay: first frame opens the load gate|src-tauri/src/journal/commands.rs|crate::load_gate::open\\(\\)"
   "overlay: hidden web view not throttled|src-tauri/src/overlay.rs|BackgroundThrottlingPolicy::Disabled"
 
   # -- dictation keeps internal pauses (VAD trims only the edges) --
@@ -170,6 +174,9 @@ PROBES=(
   "self-correction: disfluency detector wired|src-tauri/src/self_correction/mod.rs|disfluency::detect"
   "self-correction: guard keeps retained text verbatim|src-tauri/src/self_correction/guard.rs|if !retained_text_matches\("
   "self-correction: session warm-up at recording start|src-tauri/src/actions.rs|self_correction::prepare\("
+  "self-correction: session refreshed at stop|src-tauri/src/actions.rs|self_correction::prepare\(&stop_settings\)"
+  "self-correction: model gets the excerpt|src-tauri/src/self_correction/mod.rs|excerpt::range\(&text, &spans\)"
+  "self-correction: run waits for a session in preparation|src-tauri/swift/fork_self_correction.swift|while state\.preparing && !state\.inFlight"
   "self-correction: Swift session bridge built|src-tauri/build.rs|fork_self_correction_build::build\(\)"
   "self-correction: Apple path uses fork bridge|src-tauri/src/self_correction/mod.rs|apple_session::run\("
   "self-correction: upstream filler removal precedes the pass|src-tauri/src/managers/transcription.rs|remove_filler_words\("

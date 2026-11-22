@@ -39,6 +39,7 @@ mod notices;
 // fork(voice-control): self-correction pass + per-app style after the result.
 mod output_stages;
 // fork(voice-control): dictating over a running transcription.
+mod load_gate;
 mod overlap;
 mod overlay;
 // fork(voice-control): "Paste last transcript" hotkey action.

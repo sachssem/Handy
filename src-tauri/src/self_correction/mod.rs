@@ -29,6 +29,7 @@ mod blocking;
 pub(crate) mod commands;
 mod cues;
 mod disfluency;
+mod excerpt;
 mod guard;
 mod rules;
 
@@ -381,11 +382,31 @@ async fn apply_in_language(
     if remaining.is_zero() {
         return (text, Some(finish(facts, "timeout")));
     }
-    let raw = match call(&provider, &text, remaining).await {
+    // The model gets the sentences with the disfluencies, not the dictation
+    // (see `excerpt`); the whole text when the excerpt alone hides them.
+    let mut part = excerpt::range(&text, &spans);
+    let mut part_spans = disfluency::detect(&text[part.clone()], lang);
+    if part_spans.is_empty() {
+        part = 0..text.len();
+        part_spans = spans;
+    }
+    debug!(
+        "self-correction: sending {} of {} chars",
+        text[part.clone()].chars().count(),
+        text.chars().count()
+    );
+    let raw = match call(&provider, &text[part.clone()], remaining).await {
         Ok(raw) => raw,
         Err(reason) => return (text, Some(finish(facts, reason))),
     };
-    let (out, reason) = evaluate_candidate(text, &raw, &spans, &mut facts);
+    let (cleaned, reason) = evaluate_candidate(
+        text[part.clone()].to_string(),
+        &raw,
+        &part_spans,
+        &mut facts,
+    );
+    let mut out = text;
+    out.replace_range(part, &cleaned);
     (out, Some(finish(facts, reason)))
 }
 
@@ -658,6 +679,40 @@ mod tests {
             (facts.reason.as_str(), facts.requested),
             ("disabled", false)
         );
+    }
+
+    /// Runs the on-device model: `cargo test --lib live_apple -- --ignored
+    /// --nocapture` on a Mac with Apple Intelligence. A dictation of a minute
+    /// and a half with one stutter used to end in `busy` (the session
+    /// prepared at the press was stale) or in `timeout` (the model rewrote
+    /// all of it).
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    #[ignore = "needs Apple Intelligence"]
+    fn live_apple_pass_cleans_a_long_dictation() {
+        let settings = crate::settings::get_default_settings();
+        let filler = "Das Skript zum Abgleich hat gesagt, dass die Werte jetzt gleich sind. \
+                      Danach habe ich die Berechtigungen noch einmal geprüft. ";
+        let text = format!(
+            "{}Dann haben wir wir das Ganze neu eingebaut. {}",
+            filler.repeat(5),
+            filler.repeat(5)
+        );
+        assert!(text.chars().count() > 1300);
+        // No session was prepared: the call prepares one and waits for it.
+        for round in 0..2 {
+            let (out, facts) = tauri::async_runtime::block_on(apply_in_language(
+                &settings,
+                text.clone(),
+                None,
+                Some("de"),
+            ));
+            let facts = facts.expect("facts");
+            println!("round {round}: {} in {} ms", facts.reason, facts.ms);
+            assert_eq!(facts.reason, "applied", "candidate {:?}", facts.candidate);
+            assert_eq!(out, text.replace("wir wir", "wir"));
+            // The next pass finds its session in preparation.
+        }
     }
 
     #[test]

@@ -714,10 +714,32 @@ provider, candidate?}` (only when a disfluency was found; `cue` = the distinct d
   `unchanged`; accepted results use `text.self_correction`. Candidate text
   is local-journal-only, never logged, and omitted under the journal's
   existing fail-closed text redaction.
-  Debug log: `self-correction: detected '<kinds>' in N µs` and the outcome
-  line with ms.
+  Debug log: `self-correction: detected '<kinds>' in N µs`, `sending N of M
+chars` and the outcome line with ms.
+- **Excerpt:** the model gets the sentences that hold the disfluencies
+  (`excerpt::range`, at most 280 characters), and its answer replaces them in
+  the text. The model writes its answer out in full, so a pass over the whole
+  dictation took as long as the dictation was long: in the journal up to
+  2026-11-22 the on-device model answered 207 characters in 1.8 s and ran
+  into the 3 s cap at 444, 805, 1174 and 1422 characters, so no dictation over
+  half a minute was ever cleaned. A repair over two sentences sends both, a
+  disfluency at a sentence's start also the sentence before it. Disfluencies
+  too far apart for one excerpt send the first and leave the rest as said. A
+  sentence longer than the limit sends ten words on each side. The guard
+  checks the answer against the excerpt with the disfluencies detected in it;
+  when the excerpt alone shows none, the whole text goes out as before.
+- **Session after a long recording:** the session prepared at the press is
+  older than 90 s after a long recording, and the call then replaced it and
+  found the replacement still in preparation, which ended the pass with
+  `busy` (3 of 8 passes in that journal, all recordings of 85 s and more).
+  `TranscribeAction::stop` now prepares a new session while the transcription
+  runs, and `fork_sc_run` waits within its timeout for a session in
+  preparation. `busy` is left for a generation that is still unwinding.
+  Live check on a Mac with Apple Intelligence: `cargo test --lib live_apple
+-- --ignored --nocapture` (1400 characters with one stutter: 3.1 s without
+  a session, 0.6 s with one).
 - **New files:** `src-tauri/src/self_correction/` (`mod.rs`, `cues.rs`,
-  `disfluency.rs`, `rules.rs`, `guard.rs`, `blocking.rs`, `commands.rs`,
+  `disfluency.rs`, `excerpt.rs`, `rules.rs`, `guard.rs`, `blocking.rs`, `commands.rs`,
   `apple_session.rs`), `src-tauri/src/output_stages.rs` (sequences this
   pass and the per-app style), `src-tauri/swift/fork_self_correction.swift`
   with its `_stub.swift`, `_bridge.h` and `_build.rs` siblings. `correction_learning::lexicon` became
@@ -725,7 +747,8 @@ provider, candidate?}` (only when a disfluency was found; `cue` = the distinct d
 - **Upstream files touched:** `actions.rs` (one wrapped call:
   `crate::output_stages::finish(&ah, process_transcription_output(..))` in
   `TranscribeAction::stop` — live dictations only, not history retries;
-  `crate::self_correction::prepare(&settings)` in `TranscribeAction::start`),
+  `crate::self_correction::prepare` in `TranscribeAction::start` and
+  `::stop`),
   `settings.rs` (`self_correction_llm_enabled`), `lib.rs` (`mod
 self_correction;`, `mod output_stages;`, command),
   `build.rs` (`#[path] mod fork_self_correction_build;` +
@@ -856,6 +879,19 @@ the only state with text), shown with no awaits before the first paint.
   dictation had the first frame later than 300 ms (up to 2.5 s), against 3 of
   54 within a minute of the last one. The hidden capsule pauses its
   animations (`.spill.leaving`), so the unthrottled view has nothing to do.
+- **Model load after the first frame:** a press after the model was unloaded
+  (`model_unload_timeout`, 88 of 212 dictations in the journal up to
+  2026-11-22) starts the load with the recording. The load and its warm-up
+  keep the GPU busy, and the overlay's web view gets its first frame on screen
+  only when they are through: 23 of the 27 first frames later than 400 ms
+  belonged to a press that loaded the model, the latest came 3.7 s after the
+  press, at the end of the warm-up. `load_gate` orders the two. The press
+  shuts the gate (`load_gate::shut`, unless the overlay style is None), the
+  load thread waits at it (`load_gate::wait` in `initiate_model_load`), and
+  the web view's first-frame report opens it (`load_gate::open` in
+  `journal_overlay_stage`). The gate opens by itself after 400 ms, and loads
+  that no press started (Settings, the T3 socket, file jobs) find it open.
+  Debug log: `Model load waited … for the overlay's first frame`.
 - **Arming + accessibility:** the arming waveform pulses only in opacity to
   preserve round caps, and rests with reduced motion. Cancel reuses `tray.cancel`;
   the capsule status uses translated `overlay.recording` while recording and
@@ -865,14 +901,17 @@ the only state with text), shown with no awaits before the first paint.
   `show '<state>' handler|first-frame epoch_ms=…` through the journal's
   `journal_overlay_stage` command (app log + journal `overlay` events, see
   [dictation journal](#dictation-journal--app-context)).
-- **New files:** none.
-- **Upstream files touched:** `src/overlay/RecordingOverlay.tsx` (capsule
+- **New files:** `src-tauri/src/load_gate.rs` (with its test).
+- **Upstream files touched:** `lib.rs` (`mod load_gate;`),
+  `managers/transcription.rs` (`load_gate::wait` in `initiate_model_load`),
+  `src/overlay/RecordingOverlay.tsx` (capsule
   markup, `flushSync` show, `showSeq` remount, breadcrumbs, recording-limit
   ring, fallback label), `src/overlay/RecordingOverlay.css` (`--ov-capsule-*`
   geometry and animations), `overlay.rs` (`OVERLAY_WIDTH` 180, `OVERLAY_HEIGHT` 54 + test bounds, `background_throttling`;
   upstream's compact `notice` state keeps upstream's 266 px width,
   `OVERLAY_NOTICE_WIDTH`, so the longest notice titles fit; `epoch_ms` on the
-  show line), `actions.rs` (tray after overlay, `epoch_ms` on the start line).
+  show line), `actions.rs` (tray after overlay, `epoch_ms` on the start line,
+  `load_gate::shut` before the model kickoff).
 - **Probe:** `overlay: *` in `scripts/fork-check.sh`.
 - **Upstream check:** did upstream redesign the compact overlay or its show
   path? On a conflict in `RecordingOverlay.tsx` / `.css`, prefer upstream's
