@@ -29,7 +29,7 @@ use crate::audio_toolkit::chunking::is_unspaced;
 
 const RATE: usize = 16_000;
 /// Audio of the neighbouring chunk decoded with a chunk, per side.
-pub const OVERLAP_SAMPLES: usize = 3 * RATE;
+const OVERLAP_SAMPLES: usize = 3 * RATE;
 /// How far a retry moves a window's edge.
 const SHIFT_SAMPLES: usize = RATE * 3 / 2;
 /// Audio before and after a chunk that each attempt adds to it. The first is
@@ -48,7 +48,7 @@ const KEEP_SAMPLES: usize = OVERLAP_SAMPLES + 2 * SHIFT_SAMPLES;
 
 /// Whether a bare chunk of this model is worth decoding again. Only where it
 /// was measured: a model that never punctuates would retry every chunk.
-pub fn retries_bare(model_id: &str) -> bool {
+fn retries_bare(model_id: &str) -> bool {
     model_id.to_ascii_lowercase().contains("qwen3-asr")
 }
 
@@ -145,14 +145,14 @@ fn trim_seam(first: &mut String, second: &mut String, shared: usize, window: usi
 
 /// Where two chunk texts that share audio are joined.
 #[derive(Debug, PartialEq)]
-pub struct Seam {
+struct Seam {
     /// Bytes of the first text to keep.
-    pub keep_first: usize,
+    keep_first: usize,
     /// Bytes of the second text to drop.
-    pub skip_second: usize,
+    skip_second: usize,
     /// Words in the run both texts agree on; 0 when they share none and the
     /// seam was placed by the expected overlap alone.
-    pub run: usize,
+    run: usize,
 }
 
 /// A word, or one character of a script written without spaces.
@@ -213,7 +213,7 @@ pub fn is_bare(text: &str) -> bool {
 /// Find the seam of `first` and `second`, whose shared audio is about
 /// `expected` words long: the middle of the longest word run the end of
 /// `first` and the start of `second` agree on.
-pub fn stitch(first: &str, second: &str, expected: usize) -> Seam {
+fn stitch(first: &str, second: &str, expected: usize) -> Seam {
     let a = tokens(first);
     let b = tokens(second);
     // The estimate comes from the speaking rate, so look somewhat further.

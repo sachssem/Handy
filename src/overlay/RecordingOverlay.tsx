@@ -186,9 +186,11 @@ const RecordingOverlay: React.FC = () => {
             // fork(voice-control): clear the previous session's recording limit.
             setRecordingLimit(null);
             setFallbackActive(false);
-            setProgress(null);
             setNowMs(Date.now());
           }
+          // fork(voice-control): the progress belongs to the transcription
+          // alone; recording and post-processing show the plain bars.
+          if (overlayState !== "transcribing") setProgress(null);
           setState(overlayState);
           if (overlayState === "streaming") {
             setPhase("listening");
